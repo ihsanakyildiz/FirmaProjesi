@@ -149,8 +149,8 @@ DATABASE_URL="mysql://root:@127.0.0.1:3306/ihsanakyildiz"
 AUTH_SECRET="en-az-32-karakter-rastgele-bir-anahtar"
 AUTH_URL="http://localhost:3000"
 
-ADMIN_EMAIL="admin@ihsanakyildiz.com"
-ADMIN_PASSWORD="Admin123!"
+ADMIN_EMAIL="ihsanakyildiz@gmail.com"
+ADMIN_PASSWORD="*******"
 ADMIN_NAME="Admin"
 ```
 
