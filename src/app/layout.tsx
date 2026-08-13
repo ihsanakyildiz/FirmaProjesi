@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { DeferredAnalytics } from "@/components/site/deferred-analytics";
 import { PerformanceHead } from "@/components/site/performance-head";
 import { getSettingsMap, isSettingEnabled } from "@/lib/settings";
@@ -14,6 +14,12 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
   display: "swap",
 });
@@ -135,13 +141,14 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('admin-theme');if(t==='dark'){document.documentElement.classList.add('admin-dark');document.documentElement.dataset.adminTheme='dark';}else{document.documentElement.dataset.adminTheme='light';}}catch(e){}})();`,
+            __html: `(function(){try{var a=localStorage.getItem('admin-theme');if(a==='dark'){document.documentElement.classList.add('admin-dark');document.documentElement.dataset.adminTheme='dark';}else{document.documentElement.dataset.adminTheme='light';}var s=localStorage.getItem('site-theme');if(s==='dark'){document.documentElement.classList.add('site-dark');document.documentElement.dataset.siteTheme='dark';}else{document.documentElement.dataset.siteTheme='light';}}catch(e){}})();`,
           }}
         />
         <PerformanceHead settings={settings} />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} antialiased`}
+      >        {children}
         <DeferredAnalytics
           enabled={!thirdPartyDisabled}
           defer={deferAnalytics}

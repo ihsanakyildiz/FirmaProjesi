@@ -10,9 +10,35 @@
   --admin-muted: #f3f6f9;
   --admin-text: #1e293b;
   --admin-text-muted: #64748b;
+
+  /* Public site (Infinia-inspired) */
+  --site-bg: #ffffff;
+  --site-fg: #0f172a;
+  --site-muted: #64748b;
+  --site-primary: #7c3aed;
+  --site-primary-soft: #f3e8ff;
+  --site-border: #e2e8f0;
+  --site-card: #ffffff;
+  --site-surface: #f8fafc;
+  --site-glow-a: rgba(124, 58, 237, 0.18);
+  --site-glow-b: rgba(52, 211, 153, 0.14);
+}
+
+html.site-dark {
+  --site-bg: #0b1220;
+  --site-fg: #f1f5f9;
+  --site-muted: #94a3b8;
+  --site-primary: #a78bfa;
+  --site-primary-soft: rgba(167, 139, 250, 0.14);
+  --site-border: #1e293b;
+  --site-card: #111827;
+  --site-surface: #0f172a;
+  --site-glow-a: rgba(167, 139, 250, 0.22);
+  --site-glow-b: rgba(52, 211, 153, 0.1);
 }
 
 @custom-variant dark (&:where(.admin-dark, .admin-dark *));
+@custom-variant site-dark (&:where(.site-dark, .site-dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -24,14 +50,72 @@
   --color-admin-muted: var(--admin-muted);
   --color-admin-text: var(--admin-text);
   --color-admin-text-muted: var(--admin-text-muted);
+  --color-site-bg: var(--site-bg);
+  --color-site-fg: var(--site-fg);
+  --color-site-muted: var(--site-muted);
+  --color-site-primary: var(--site-primary);
+  --color-site-primary-soft: var(--site-primary-soft);
+  --color-site-border: var(--site-border);
+  --color-site-card: var(--site-card);
+  --color-site-surface: var(--site-surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-plus-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.site-shell {
+  background: var(--site-bg);
+  color: var(--site-fg);
+  font-family: var(--font-plus-jakarta), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.site-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.site-soft-glow {
+  background:
+    radial-gradient(ellipse 50% 40% at 15% 30%, var(--site-glow-b), transparent 70%),
+    radial-gradient(ellipse 45% 45% at 85% 25%, var(--site-glow-a), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 50% 90%, var(--site-glow-a), transparent 70%);
+}
+
+@keyframes site-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes site-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.site-animate-float {
+  animation: site-float 5s ease-in-out infinite;
+}
+
+.site-animate-fade-up {
+  animation: site-fade-up 0.7s ease-out both;
 }
 
 html.perf-smooth-scroll {
