@@ -1,26 +1,359 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f6f9;
+  --foreground: #212529;
+  --admin-primary: #405189;
+  --admin-accent: #0ab39c;
+  --admin-card: #ffffff;
+  --admin-border: #e9ebec;
+  --admin-muted: #f3f6f9;
+  --admin-text: #1e293b;
+  --admin-text-muted: #64748b;
 }
+
+@custom-variant dark (&:where(.admin-dark, .admin-dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-admin-primary: var(--admin-primary);
+  --color-admin-accent: var(--admin-accent);
+  --color-admin-card: var(--admin-card);
+  --color-admin-border: var(--admin-border);
+  --color-admin-muted: var(--admin-muted);
+  --color-admin-text: var(--admin-text);
+  --color-admin-text-muted: var(--admin-text-muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html.perf-smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.perf-respect-reduced-motion {
+    scroll-behavior: auto;
+  }
+
+  html.perf-respect-reduced-motion *,
+  html.perf-respect-reduced-motion *::before,
+  html.perf-respect-reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.admin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.admin-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.admin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+}
+
+.admin-scroll-light {
+  scrollbar-width: thin;
+  scrollbar-color: #c5cbd3 #f3f6f9;
+  overscroll-behavior: contain;
+}
+
+.admin-scroll-light::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-scroll-light::-webkit-scrollbar-track {
+  background: #f3f6f9;
+  border-radius: 999px;
+}
+
+.admin-scroll-light::-webkit-scrollbar-thumb {
+  background: #c5cbd3;
+  border-radius: 999px;
+}
+
+.admin-scroll-light::-webkit-scrollbar-thumb:hover {
+  background: #a8b0bc;
+}
+
+/* TipTap (MIT) rich text editor — admin forms */
+.rich-text-editor .ProseMirror {
+  min-height: 220px;
+  padding: 0.85rem 1rem;
+  outline: none;
+  color: #1e293b;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.rich-text-editor .rich-text-editor__content--compact.ProseMirror,
+.rich-text-editor .ProseMirror.rich-text-editor__content--compact {
+  min-height: 110px;
+}
+
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin: 0 0 0.75em;
+}
+
+.rich-text-editor .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  margin: 0.9em 0 0.45em;
+  font-size: 1.2rem;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  margin: 0.8em 0 0.4em;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.25rem;
+}
+
+.rich-text-editor .ProseMirror ul {
+  list-style: disc;
+}
+
+.rich-text-editor .ProseMirror ol {
+  list-style: decimal;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  margin: 0 0 0.75em;
+  border-left: 3px solid #0ab39c;
+  padding-left: 0.85rem;
+  color: #64748b;
+}
+
+.rich-text-editor .ProseMirror a {
+  color: #405189;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text-editor .ProseMirror img.rich-text-editor__image,
+.rich-text-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.85rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ebec;
+}
+
+.rich-text-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid #0ab39c;
+  outline-offset: 2px;
+}
+
+/* Blok / varsayılan */
+.rich-text-editor .ProseMirror img[data-align="none"],
+.rich-text-editor .ProseMirror img:not([data-align]) {
+  display: block;
+  float: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Metnin solunda — yazı sağdan akar */
+.rich-text-editor .ProseMirror img[data-align="left"] {
+  display: block;
+  float: left;
+  margin: 0.25rem 1rem 0.85rem 0;
+}
+
+/* Metnin sağında — yazı soldan akar */
+.rich-text-editor .ProseMirror img[data-align="right"] {
+  display: block;
+  float: right;
+  margin: 0.25rem 0 0.85rem 1rem;
+}
+
+/* Ortalı */
+.rich-text-editor .ProseMirror img[data-align="center"] {
+  display: block;
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Float sonrası içerik taşmasını önle */
+.rich-text-editor .ProseMirror::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* ——— Admin karanlık tema (shell içi) ——— */
+html.admin-dark [data-admin-shell] {
+  color-scheme: dark;
+  background-color: #1a1d21;
+  color: #e9ebec;
+  --admin-card: #212529;
+  --admin-border: #32383e;
+  --admin-muted: #2a2f34;
+  --admin-text: #e9ebec;
+  --admin-text-muted: #878a99;
+}
+
+html.admin-dark [data-admin-shell] .bg-white {
+  background-color: var(--admin-card) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-\[\#f3f6f9\] {
+  background-color: var(--admin-muted) !important;
+}
+
+html.admin-dark [data-admin-shell] .border-\[\#e9ebec\] {
+  border-color: var(--admin-border) !important;
+}
+
+html.admin-dark [data-admin-shell] .divide-\[\#e9ebec\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--admin-border) !important;
+}
+
+html.admin-dark [data-admin-shell] .text-slate-800 {
+  color: #e9ebec !important;
+}
+
+html.admin-dark [data-admin-shell] .text-slate-700 {
+  color: #dee2e6 !important;
+}
+
+html.admin-dark [data-admin-shell] .text-slate-600 {
+  color: #adb5bd !important;
+}
+
+html.admin-dark [data-admin-shell] .text-slate-500 {
+  color: #878a99 !important;
+}
+
+html.admin-dark [data-admin-shell] .text-slate-400 {
+  color: #6c757d !important;
+}
+
+html.admin-dark [data-admin-shell] .hover\:bg-slate-50:hover {
+  background-color: #2a2f34 !important;
+}
+
+html.admin-dark [data-admin-shell] .hover\:bg-white:hover {
+  background-color: #2a2f34 !important;
+}
+
+html.admin-dark [data-admin-shell] .focus\:bg-white:focus {
+  background-color: var(--admin-card) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.14) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-amber-500\/5 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-sky-500\/5 {
+  background-color: rgba(14, 165, 233, 0.12) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-violet-500\/5 {
+  background-color: rgba(139, 92, 246, 0.12) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-\[\#0ab39c\]\/5 {
+  background-color: rgba(10, 179, 156, 0.12) !important;
+}
+
+html.admin-dark [data-admin-shell] .bg-\[\#405189\]\/5 {
+  background-color: rgba(64, 81, 137, 0.18) !important;
+}
+
+html.admin-dark [data-admin-shell] .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+html.admin-dark [data-admin-shell] input:not([type="checkbox"]):not([type="radio"]),
+html.admin-dark [data-admin-shell] textarea,
+html.admin-dark [data-admin-shell] select {
+  color-scheme: dark;
+}
+
+html.admin-dark [data-admin-shell] .shadow-sm {
+  --tw-shadow-color: rgb(0 0 0 / 0.35);
+}
+
+html.admin-dark .admin-scroll-light {
+  scrollbar-color: #495057 #212529;
+}
+
+html.admin-dark .admin-scroll-light::-webkit-scrollbar-track {
+  background: #212529;
+}
+
+html.admin-dark .admin-scroll-light::-webkit-scrollbar-thumb {
+  background: #495057;
+}
+
+html.admin-dark .admin-scroll-light::-webkit-scrollbar-thumb:hover {
+  background: #6c757d;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror {
+  color: #e9ebec;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror h2,
+html.admin-dark .rich-text-editor .ProseMirror h3 {
+  color: #f8f9fa;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror blockquote {
+  color: #adb5bd;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror a {
+  color: #8da2fb;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror img.rich-text-editor__image,
+html.admin-dark .rich-text-editor .ProseMirror img {
+  border-color: #32383e;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  color: #6c757d;
 }
