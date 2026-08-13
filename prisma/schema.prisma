@@ -1,0 +1,559 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique @db.VarChar(191)
+  emailVerified DateTime?
+  password      String
+  image         String?   @db.VarChar(500)
+  role          Role      @default(ADMIN)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Language {
+  id           String        @id @default(cuid())
+  code         String        @unique @db.VarChar(10)
+  name         String        @db.VarChar(100)
+  isDefault    Boolean       @default(false)
+  isActive     Boolean       @default(true)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  translations Translation[]
+
+  @@map("languages")
+}
+
+model Translation {
+  id         String   @id @default(cuid())
+  languageId String
+  language   Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  namespace  String   @db.VarChar(100)
+  key        String   @db.VarChar(191)
+  value      String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([languageId, namespace, key])
+  @@index([namespace, key])
+  @@map("translations")
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  group     String   @db.VarChar(50)
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.Text
+  label     String   @db.VarChar(191)
+  type      String   @default("text") @db.VarChar(30)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+  @@map("settings")
+}
+
+/// Hizmet kategorileri (Web Tasarım, Web Programlama vb.) — sınırsız alt kategori
+model WorkCategory {
+  id             String         @id @default(cuid())
+  parentId       String?
+  parent         WorkCategory?  @relation("WorkCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       WorkCategory[] @relation("WorkCategoryTree")
+  name           String         @db.VarChar(191)
+  slug           String         @unique @db.VarChar(191)
+  description    String?        @db.Text
+  content        String?        @db.LongText
+  image          String?        @db.VarChar(500)
+  icon           String?        @db.VarChar(100)
+  isActive       Boolean        @default(true)
+  sortOrder      Int            @default(0)
+  seoTitle       String?        @db.VarChar(191)
+  seoDescription String?        @db.VarChar(500)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  works          Work[]
+  menuItems      MenuItem[]
+
+  @@index([parentId])
+  @@index([isActive, sortOrder])
+  @@map("work_categories")
+}
+
+/// Yapılan işler / hizmet içerikleri
+model Work {
+  id             String        @id @default(cuid())
+  categoryId     String?
+  category       WorkCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  title          String        @db.VarChar(191)
+  slug           String        @unique @db.VarChar(191)
+  summary        String?       @db.Text
+  content        String?       @db.LongText
+  image          String?       @db.VarChar(500)
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  seoTitle       String?       @db.VarChar(191)
+  seoDescription String?       @db.VarChar(500)
+  /// Örn. kategori silinince: "Kategorisi olmadığı için pasif edildi"
+  statusNote     String?       @db.VarChar(255)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  projects       Project[]     @relation("WorkToProjects")
+  pages          Page[]        @relation("PageToWorks")
+  menuItems      MenuItem[]
+
+  @@index([categoryId])
+  @@index([isActive, sortOrder])
+  @@map("works")
+}
+
+/// Proje kategorileri — sınırsız alt kategori
+model ProjectCategory {
+  id             String            @id @default(cuid())
+  parentId       String?
+  parent         ProjectCategory?  @relation("ProjectCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       ProjectCategory[] @relation("ProjectCategoryTree")
+  name           String            @db.VarChar(191)
+  slug           String            @unique @db.VarChar(191)
+  description    String?           @db.Text
+  content        String?           @db.LongText
+  image          String?           @db.VarChar(500)
+  icon           String?           @db.VarChar(100)
+  isActive       Boolean           @default(true)
+  sortOrder      Int               @default(0)
+  seoTitle       String?           @db.VarChar(191)
+  seoDescription String?           @db.VarChar(500)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  projects       Project[]
+  menuItems      MenuItem[]
+
+  @@index([parentId])
+  @@index([isActive, sortOrder])
+  @@map("project_categories")
+}
+
+/// Portföy / proje içerikleri
+model Project {
+  id              String                @id @default(cuid())
+  categoryId      String?
+  category        ProjectCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  clientId        String?
+  client          ProjectClient?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  title           String                @db.VarChar(191)
+  slug            String                @unique @db.VarChar(191)
+  summary         String?               @db.Text
+  content         String?               @db.LongText
+  image           String?               @db.VarChar(500)
+  /// Canlı proje / site URL
+  projectUrl      String?               @db.VarChar(500)
+  /// true ise URL vitrinde gizlenir (NDA vb.)
+  hideProjectUrl  Boolean               @default(false)
+  isFeatured      Boolean               @default(false)
+  projectYear     Int?
+  projectRole     String?               @db.VarChar(191)
+  projectDuration String?               @db.VarChar(100)
+  isActive        Boolean               @default(true)
+  sortOrder       Int                   @default(0)
+  seoTitle        String?               @db.VarChar(191)
+  seoDescription  String?               @db.VarChar(500)
+  statusNote      String?               @db.VarChar(255)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  features        ProjectFeature[]      @relation("ProjectToFeatures")
+  gallery         ProjectGalleryImage[]
+  metrics         ProjectMetric[]
+  works           Work[]                @relation("WorkToProjects")
+  pages           Page[]                @relation("PageToProjects")
+  menuItems       MenuItem[]
+
+  @@index([categoryId])
+  @@index([clientId])
+  @@index([isActive, sortOrder])
+  @@index([isFeatured, isActive])
+  @@map("projects")
+}
+
+/// Portföy müşterileri — bir müşterinin birden fazla projesi olabilir
+model ProjectClient {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(191)
+  slug        String    @unique @db.VarChar(191)
+  sector      String?   @db.VarChar(191)
+  logo        String?   @db.VarChar(500)
+  website     String?   @db.VarChar(500)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  projects    Project[]
+
+  @@index([isActive, sortOrder])
+  @@map("project_clients")
+}
+
+/// Proje galeri görselleri
+model ProjectGalleryImage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  image     String   @db.VarChar(500)
+  alt       String?  @db.VarChar(191)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId, sortOrder])
+  @@map("project_gallery_images")
+}
+
+/// Proje sonuç metrikleri (KPI)
+model ProjectMetric {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String  @db.VarChar(100)
+  value     String  @db.VarChar(100)
+  sortOrder Int     @default(0)
+
+  @@index([projectId, sortOrder])
+  @@map("project_metrics")
+}
+
+/// Projede seçilebilir özellikler / teknolojiler (PHP, React, MySQL vb.)
+model ProjectFeature {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(191)
+  slug        String    @unique @db.VarChar(191)
+  description String?   @db.Text
+  icon        String?   @db.VarChar(100)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  projects    Project[] @relation("ProjectToFeatures")
+
+  @@index([isActive, sortOrder])
+  @@map("project_features")
+}
+
+/// Blog kategorileri — sınırsız alt kategori
+model BlogCategory {
+  id             String         @id @default(cuid())
+  parentId       String?
+  parent         BlogCategory?  @relation("BlogCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       BlogCategory[] @relation("BlogCategoryTree")
+  name           String         @db.VarChar(191)
+  slug           String         @unique @db.VarChar(191)
+  description    String?        @db.Text
+  content        String?        @db.LongText
+  image          String?        @db.VarChar(500)
+  icon           String?        @db.VarChar(100)
+  isActive       Boolean        @default(true)
+  sortOrder      Int            @default(0)
+  seoTitle       String?        @db.VarChar(191)
+  seoDescription String?        @db.VarChar(500)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  posts          BlogPost[]
+  menuItems      MenuItem[]
+
+  @@index([parentId])
+  @@index([isActive, sortOrder])
+  @@map("blog_categories")
+}
+
+/// Blog yazıları
+model BlogPost {
+  id             String        @id @default(cuid())
+  categoryId     String?
+  category       BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  title          String        @db.VarChar(191)
+  slug           String        @unique @db.VarChar(191)
+  summary        String?       @db.Text
+  content        String?       @db.LongText
+  image          String?       @db.VarChar(500)
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  seoTitle       String?       @db.VarChar(191)
+  seoDescription String?       @db.VarChar(500)
+  statusNote     String?       @db.VarChar(255)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  pages          Page[]        @relation("PageToPosts")
+  menuItems      MenuItem[]
+
+  @@index([categoryId])
+  @@index([isActive, sortOrder])
+  @@map("blog_posts")
+}
+
+enum PageType {
+  CLASSIC
+  ADVANCED
+}
+
+/// CMS sayfaları — klasik içerik veya gelişmiş builder
+model Page {
+  id             String    @id @default(cuid())
+  type           PageType  @default(CLASSIC)
+  title          String    @db.VarChar(191)
+  slug           String    @unique @db.VarChar(191)
+  summary        String?   @db.Text
+  content        String?   @db.LongText
+  image          String?   @db.VarChar(500)
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  seoTitle       String?   @db.VarChar(191)
+  seoDescription String?   @db.VarChar(500)
+  /// Gelişmiş sayfa builder verisi (JSON) — ileride
+  builderData    String?   @db.LongText
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  works          Work[]    @relation("PageToWorks")
+  projects       Project[] @relation("PageToProjects")
+  posts          BlogPost[] @relation("PageToPosts")
+  menuItems      MenuItem[]
+
+  @@index([type, isActive, sortOrder])
+  @@map("pages")
+}
+
+/// Hero alanları (örn. Anasayfa Hero) — birden fazla slayt
+model Hero {
+  id          String      @id @default(cuid())
+  name        String      @db.VarChar(191)
+  slug        String      @unique @db.VarChar(191)
+  description String?     @db.Text
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  autoplay    Boolean     @default(true)
+  intervalMs  Int         @default(6000)
+  showDots    Boolean     @default(true)
+  showArrows  Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  slides      HeroSlide[]
+
+  @@index([isActive, sortOrder])
+  @@map("heroes")
+}
+
+enum HeroLayout {
+  SPLIT_COLLAGE
+  FULL_BLEED
+  CENTERED
+}
+
+enum HeroMediaKind {
+  LOGO
+  COLLAGE
+  AVATAR
+}
+
+/// Hero slaytı — gelişmiş görünüm + metin + medya
+model HeroSlide {
+  id             String      @id @default(cuid())
+  heroId         String
+  hero           Hero        @relation(fields: [heroId], references: [id], onDelete: Cascade)
+  /// Admin etiket (Slayt 1 vb.)
+  label          String?     @db.VarChar(191)
+  isActive       Boolean     @default(true)
+  sortOrder      Int         @default(0)
+
+  badgeText      String?     @db.VarChar(120)
+  badgeIcon      String?     @db.VarChar(50)
+  headline       String      @db.VarChar(255)
+  headlineAccent String?     @db.VarChar(191)
+  subheadline    String?     @db.Text
+  ctaLabel       String?     @db.VarChar(100)
+  ctaUrl         String?     @db.VarChar(500)
+  trustLabel     String?     @db.VarChar(120)
+
+  overlayPercent Int         @default(0)
+  titleColor     String      @default("#0f172a") @db.VarChar(30)
+  accentColor    String      @default("#7c3aed") @db.VarChar(30)
+  subtitleColor  String      @default("#64748b") @db.VarChar(30)
+  ctaBgColor     String      @default("#7c3aed") @db.VarChar(30)
+  ctaTextColor   String      @default("#ffffff") @db.VarChar(30)
+  titleFont      String?     @db.VarChar(191)
+  titleSizePx    Int?
+  subtitleSizePx Int?
+  imageWidthPx   Int?
+  imageHeightPx  Int?
+  layout         HeroLayout  @default(SPLIT_COLLAGE)
+  /// grid | plain | soft-gradient
+  backgroundStyle String     @default("grid") @db.VarChar(40)
+  /// Opsiyonel arka plan görseli
+  backgroundImage String?    @db.VarChar(500)
+  themeColor     String?     @db.VarChar(30)
+
+  showStars      Boolean     @default(true)
+  starCount      Int         @default(5)
+  showAvatars    Boolean     @default(true)
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  media          HeroSlideMedia[]
+
+  @@index([heroId, sortOrder])
+  @@index([heroId, isActive])
+  @@map("hero_slides")
+}
+
+model HeroSlideMedia {
+  id        String        @id @default(cuid())
+  slideId   String
+  slide     HeroSlide     @relation(fields: [slideId], references: [id], onDelete: Cascade)
+  kind      HeroMediaKind
+  image     String        @db.VarChar(500)
+  alt       String?       @db.VarChar(191)
+  label     String?       @db.VarChar(191)
+  href      String?       @db.VarChar(500)
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@index([slideId, kind, sortOrder])
+  @@map("hero_slide_media")
+}
+
+enum CardMediaType {
+  IMAGE
+  ICON
+}
+
+/// Ön yüz kartları (hizmet / özellik kartları vb.)
+model Card {
+  id        String        @id @default(cuid())
+  title     String        @db.VarChar(191)
+  mediaType CardMediaType @default(ICON)
+  /// Kapak görseli (mediaType = IMAGE)
+  image     String?       @db.VarChar(500)
+  /// Lucide ikon adı — örn. Globe (mediaType = ICON)
+  icon      String?       @db.VarChar(100)
+  /// Kart tıklanınca açılacak sayfa / URL
+  href      String        @db.VarChar(500)
+  isActive  Boolean       @default(true)
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("cards")
+}
+
+/// SSS grubu — farklı sayfalarda kullanılabilir
+model FaqGroup {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(191)
+  slug        String    @unique @db.VarChar(191)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  items       FaqItem[]
+
+  @@index([isActive, sortOrder])
+  @@map("faq_groups")
+}
+
+/// SSS grubuna ait soru-cevap
+model FaqItem {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     FaqGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  question  String   @db.VarChar(500)
+  answer    String   @db.LongText
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId, sortOrder])
+  @@index([groupId, isActive])
+  @@map("faq_items")
+}
+
+enum MenuLinkType {
+  CUSTOM
+  PAGE
+  WORK_CATEGORY
+  WORK
+  PROJECT_CATEGORY
+  PROJECT
+  BLOG_CATEGORY
+  BLOG_POST
+}
+
+/// Menü grubu — örn. Header Menü, Footer Menü
+model MenuGroup {
+  id          String     @id @default(cuid())
+  name        String     @db.VarChar(191)
+  slug        String     @unique @db.VarChar(191)
+  description String?    @db.Text
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       MenuItem[]
+
+  @@index([isActive, sortOrder])
+  @@map("menu_groups")
+}
+
+/// Menü öğesi — CMS içeriği veya özel (mega) link; alt menü için parentId
+model MenuItem {
+  id       String    @id @default(cuid())
+  groupId  String
+  group    MenuGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  parentId String?
+  parent   MenuItem? @relation("MenuItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MenuItem[] @relation("MenuItemTree")
+
+  label       String       @db.VarChar(191)
+  linkType    MenuLinkType @default(CUSTOM)
+  /// CUSTOM için URL; diğer tiplerde opsiyonel override
+  href        String?      @db.VarChar(500)
+  description String?      @db.VarChar(255)
+  openInNewTab Boolean     @default(false)
+
+  pageId            String?
+  page              Page?            @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  workCategoryId    String?
+  workCategory      WorkCategory?    @relation(fields: [workCategoryId], references: [id], onDelete: SetNull)
+  workId            String?
+  work              Work?            @relation(fields: [workId], references: [id], onDelete: SetNull)
+  projectCategoryId String?
+  projectCategory   ProjectCategory? @relation(fields: [projectCategoryId], references: [id], onDelete: SetNull)
+  projectId         String?
+  project           Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  blogCategoryId    String?
+  blogCategory      BlogCategory?    @relation(fields: [blogCategoryId], references: [id], onDelete: SetNull)
+  blogPostId        String?
+  blogPost          BlogPost?        @relation(fields: [blogPostId], references: [id], onDelete: SetNull)
+
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId, parentId, sortOrder])
+  @@index([groupId, isActive])
+  @@map("menu_items")
+}
