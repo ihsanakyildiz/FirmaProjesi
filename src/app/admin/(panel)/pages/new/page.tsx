@@ -22,8 +22,8 @@ export default function NewPageTypePickerPage() {
           Yeni Sayfa
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Oluşturmak istediğiniz sayfa tipini seçin. Klasik sayfalar metin + ilişkili
-          içeriklerle çalışır; gelişmiş sayfalar görsel builder ile gelecek.
+          Klasik sayfalar metin + ilişkili içeriklerle çalışır. Gelişmiş sayfalar
+          Elementor benzeri bölüm builder ile yapılandırılır.
         </p>
       </div>
 
@@ -45,26 +45,23 @@ export default function NewPageTypePickerPage() {
           <p className="mt-4 text-sm font-semibold text-[#0ab39c]">Devam et →</p>
         </Link>
 
-        <div
-          aria-disabled="true"
-          className="relative rounded-lg border border-dashed border-[#e9ebec] bg-[#f8f9fb] p-6 opacity-80"
+        <Link
+          href="/admin/pages/new/advanced"
+          className="group rounded-lg border border-[#e9ebec] bg-white p-6 shadow-sm transition hover:border-[#405189]/40 hover:shadow-md"
         >
-          <span className="absolute top-4 right-4 rounded-md bg-amber-100 px-2 py-1 text-[10px] font-bold tracking-wide text-amber-700 uppercase">
-            Yakında
-          </span>
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-[#405189]/10 text-[#405189]">
             <LayoutTemplate className="h-6 w-6" />
           </span>
-          <h2 className="mt-4 flex items-center gap-2 text-lg font-semibold text-slate-700">
+          <h2 className="mt-4 flex items-center gap-2 text-lg font-semibold text-slate-800 group-hover:text-[#405189]">
             Gelişmiş Sayfa
             <Sparkles className="h-4 w-4 text-[#405189]" />
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-500">
-            Elementor benzeri sürükle-bırak bölümler, bloklar ve yerleşim düzeni.
-            Klasik sayfa tamamlandıktan sonra bu modüle geçeceğiz.
+            Hero, kart, proje, blog, SSS ve CTA bölümlerini ekleyin; sırayı
+            değiştirin; her blokta hangi içeriğin görüneceğini seçin.
           </p>
-          <p className="mt-4 text-sm font-medium text-slate-400">Şu an kullanılamıyor</p>
-        </div>
+          <p className="mt-4 text-sm font-semibold text-[#405189]">Devam et →</p>
+        </Link>
       </div>
     </div>
   );

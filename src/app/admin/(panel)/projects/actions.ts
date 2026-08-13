@@ -6,14 +6,17 @@ import { prisma } from "@/lib/prisma";
 import {
   normalizeProjectUrl,
   parseGalleryOrderJson,
+  parseProjectHighlights,
   parseProjectMetricsJson,
   PROJECT_GALLERY_MAX,
+  serializeProjectHighlights,
 } from "@/lib/project-portfolio";
 import { resolveProjectSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/seo";
 import { slugify } from "@/lib/slug";
 import {
   deletePublicAsset,
   saveOptimizedImage,
+  savePublicUpload,
   uploadLimits,
 } from "@/lib/uploads";
 
@@ -109,6 +112,33 @@ function parseYear(raw: string): number | null {
   return year;
 }
 
+async function assertValidFaqGroup(faqGroupId: string | null) {
+  if (!faqGroupId) return null;
+  const group = await prisma.faqGroup.findUnique({
+    where: { id: faqGroupId },
+    select: { id: true },
+  });
+  if (!group) throw new Error("FAQ_GROUP_NOT_FOUND");
+  return faqGroupId;
+}
+
+function parseHighlightsFromForm(formData: FormData): string[] {
+  const multi = formData
+    .getAll("highlights[]")
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean);
+  if (multi.length > 0) return parseProjectHighlights(JSON.stringify(multi));
+  return parseProjectHighlights(String(formData.get("highlights") ?? ""));
+}
+
+const BROCHURE_PDF_MIME = ["application/pdf", ".pdf"];
+const BROCHURE_ZIP_MIME = [
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/octet-stream",
+  ".zip",
+];
+
 function parseProjectPayload(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
@@ -125,6 +155,12 @@ function parseProjectPayload(formData: FormData) {
     formData.get("hideProjectUrl") === "on" || formData.get("hideProjectUrl") === "true";
   const existingImage = String(formData.get("image") ?? "").trim();
   const imageFile = formData.get("image_file");
+  const existingBrochurePdf = String(formData.get("brochurePdf") ?? "").trim();
+  const brochurePdfFile = formData.get("brochure_pdf_file");
+  const existingBrochureZip = String(formData.get("brochureZip") ?? "").trim();
+  const brochureZipFile = formData.get("brochure_zip_file");
+  const faqGroupIdRaw = String(formData.get("faqGroupId") ?? "").trim();
+  const highlights = parseHighlightsFromForm(formData);
   const featureIds = formData
     .getAll("featureIds")
     .map((value) => String(value).trim())
@@ -154,6 +190,12 @@ function parseProjectPayload(formData: FormData) {
     hideProjectUrl,
     existingImage,
     imageFile,
+    existingBrochurePdf,
+    brochurePdfFile,
+    existingBrochureZip,
+    brochureZipFile,
+    faqGroupId: faqGroupIdRaw || null,
+    highlights,
     featureIds,
     projectUrl,
     clientId: clientIdRaw || null,
@@ -236,11 +278,14 @@ async function syncProjectMetrics(
   });
 }
 
-function revalidateProjectPaths(id?: string) {
+function revalidateProjectPaths(id?: string, slug?: string) {
   revalidatePath("/admin/projects");
   revalidatePath("/admin/projects/categories");
   revalidatePath("/admin/projects/features");
+  revalidatePath("/projeler");
+  revalidatePath("/");
   if (id) revalidatePath(`/admin/projects/${id}/edit`);
+  if (slug) revalidatePath(`/projeler/${slug}`);
 }
 
 export async function createProjectAction(
@@ -273,9 +318,12 @@ export async function createProjectAction(
   try {
     const categoryId = await assertValidProjectCategory(data.categoryId);
     const clientId = await assertValidProjectClient(data.clientId);
+    const faqGroupId = await assertValidFaqGroup(data.faqGroupId);
     const featureIds = await resolveFeatureIds(data.featureIds);
     const slug = await uniqueProjectSlug(data.slugInput || data.title);
     let image = data.existingImage;
+    let brochurePdf = data.existingBrochurePdf;
+    let brochureZip = data.existingBrochureZip;
 
     if (data.imageFile instanceof File && data.imageFile.size > 0) {
       const saved = await saveOptimizedImage(data.imageFile, {
@@ -285,6 +333,24 @@ export async function createProjectAction(
         quality: 82,
       });
       image = saved.publicPath;
+    }
+
+    if (data.brochurePdfFile instanceof File && data.brochurePdfFile.size > 0) {
+      const saved = await savePublicUpload(data.brochurePdfFile, {
+        uploadDir: "uploads/projects/brochures",
+        maxBytes: 20 * 1024 * 1024,
+        allowedMime: BROCHURE_PDF_MIME,
+      });
+      brochurePdf = saved.publicPath;
+    }
+
+    if (data.brochureZipFile instanceof File && data.brochureZipFile.size > 0) {
+      const saved = await savePublicUpload(data.brochureZipFile, {
+        uploadDir: "uploads/projects/brochures",
+        maxBytes: 20 * 1024 * 1024,
+        allowedMime: BROCHURE_ZIP_MIME,
+      });
+      brochureZip = saved.publicPath;
     }
 
     let sortOrder = data.sortOrder;
@@ -312,9 +378,13 @@ export async function createProjectAction(
         slug,
         categoryId,
         clientId,
+        faqGroupId,
         summary: data.summary || null,
         content: data.content || null,
         image: image || null,
+        brochurePdf: brochurePdf || null,
+        brochureZip: brochureZip || null,
+        highlights: serializeProjectHighlights(data.highlights),
         projectUrl: data.projectUrl,
         hideProjectUrl: data.hideProjectUrl,
         isFeatured: data.isFeatured,
@@ -334,7 +404,7 @@ export async function createProjectAction(
     await syncProjectGallery(created.id, data.galleryOrder, data.galleryFiles);
     await syncProjectMetrics(created.id, data.metrics);
 
-    revalidateProjectPaths(created.id);
+    revalidateProjectPaths(created.id, created.slug);
     revalidatePath("/admin/projects/clients");
     return { success: true, message: "Proje oluşturuldu." };
   } catch (error) {
@@ -346,6 +416,9 @@ export async function createProjectAction(
     }
     if (error instanceof Error && error.message === "FEATURE_NOT_FOUND") {
       return { error: "Seçilen özelliklerden biri bulunamadı." };
+    }
+    if (error instanceof Error && error.message === "FAQ_GROUP_NOT_FOUND") {
+      return { error: "Seçilen SSS grubu bulunamadı." };
     }
     console.error(error);
     return { error: "Proje eklenirken bir hata oluştu." };
@@ -388,9 +461,12 @@ export async function updateProjectAction(
 
     const categoryId = await assertValidProjectCategory(data.categoryId);
     const clientId = await assertValidProjectClient(data.clientId);
+    const faqGroupId = await assertValidFaqGroup(data.faqGroupId);
     const featureIds = await resolveFeatureIds(data.featureIds);
     const slug = await uniqueProjectSlug(data.slugInput || data.title, id);
     let image = data.existingImage;
+    let brochurePdf = data.existingBrochurePdf;
+    let brochureZip = data.existingBrochureZip;
 
     if (data.imageFile instanceof File && data.imageFile.size > 0) {
       const saved = await saveOptimizedImage(data.imageFile, {
@@ -404,6 +480,32 @@ export async function updateProjectAction(
     } else if (!image && existing.image) {
       await deletePublicAsset(existing.image);
       image = "";
+    }
+
+    if (data.brochurePdfFile instanceof File && data.brochurePdfFile.size > 0) {
+      const saved = await savePublicUpload(data.brochurePdfFile, {
+        uploadDir: "uploads/projects/brochures",
+        maxBytes: 20 * 1024 * 1024,
+        allowedMime: BROCHURE_PDF_MIME,
+        previousPath: existing.brochurePdf || undefined,
+      });
+      brochurePdf = saved.publicPath;
+    } else if (!brochurePdf && existing.brochurePdf) {
+      await deletePublicAsset(existing.brochurePdf);
+      brochurePdf = "";
+    }
+
+    if (data.brochureZipFile instanceof File && data.brochureZipFile.size > 0) {
+      const saved = await savePublicUpload(data.brochureZipFile, {
+        uploadDir: "uploads/projects/brochures",
+        maxBytes: 20 * 1024 * 1024,
+        allowedMime: BROCHURE_ZIP_MIME,
+        previousPath: existing.brochureZip || undefined,
+      });
+      brochureZip = saved.publicPath;
+    } else if (!brochureZip && existing.brochureZip) {
+      await deletePublicAsset(existing.brochureZip);
+      brochureZip = "";
     }
 
     const seo = resolveProjectSeo({
@@ -421,9 +523,13 @@ export async function updateProjectAction(
         slug,
         categoryId,
         clientId,
+        faqGroupId,
         summary: data.summary || null,
         content: data.content || null,
         image: image || null,
+        brochurePdf: brochurePdf || null,
+        brochureZip: brochureZip || null,
+        highlights: serializeProjectHighlights(data.highlights),
         projectUrl: data.projectUrl,
         hideProjectUrl: data.hideProjectUrl,
         isFeatured: data.isFeatured,
@@ -444,7 +550,7 @@ export async function updateProjectAction(
     await syncProjectGallery(id, data.galleryOrder, data.galleryFiles);
     await syncProjectMetrics(id, data.metrics);
 
-    revalidateProjectPaths(id);
+    revalidateProjectPaths(id, slug);
     revalidatePath("/admin/projects/clients");
     return { success: true, message: "Proje güncellendi." };
   } catch (error) {
@@ -456,6 +562,9 @@ export async function updateProjectAction(
     }
     if (error instanceof Error && error.message === "FEATURE_NOT_FOUND") {
       return { error: "Seçilen özelliklerden biri bulunamadı." };
+    }
+    if (error instanceof Error && error.message === "FAQ_GROUP_NOT_FOUND") {
+      return { error: "Seçilen SSS grubu bulunamadı." };
     }
     console.error(error);
     return { error: "Proje güncellenirken bir hata oluştu." };
@@ -481,11 +590,13 @@ export async function deleteProjectAction(formData: FormData): Promise<DeletePro
   await prisma.project.delete({ where: { id } });
 
   if (existing.image) await deletePublicAsset(existing.image);
+  if (existing.brochurePdf) await deletePublicAsset(existing.brochurePdf);
+  if (existing.brochureZip) await deletePublicAsset(existing.brochureZip);
   for (const item of existing.gallery) {
     await deletePublicAsset(item.image);
   }
 
-  revalidateProjectPaths();
+  revalidateProjectPaths(undefined, existing.slug);
   revalidatePath("/admin/projects/clients");
   return { success: true, message: "Proje silindi." };
 }

@@ -110,6 +110,7 @@ export default async function EditWorkPage({ params }: EditWorkPageProps) {
           summary: work.summary ?? "",
           content: work.content ?? "",
           image: work.image ?? "",
+          previewImage: work.previewImage ?? "",
           sortOrder: work.sortOrder,
           isActive: work.isActive,
           seoTitle,

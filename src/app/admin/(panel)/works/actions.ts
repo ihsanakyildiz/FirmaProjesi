@@ -93,6 +93,8 @@ function parseWorkPayload(formData: FormData) {
   const isActive = formData.get("isActive") === "on" || formData.get("isActive") === "true";
   const existingImage = String(formData.get("image") ?? "").trim();
   const imageFile = formData.get("image_file");
+  const existingPreviewImage = String(formData.get("previewImage") ?? "").trim();
+  const previewImageFile = formData.get("preview_image_file");
   const projectIds = formData
     .getAll("projectIds")
     .map((value) => String(value).trim())
@@ -110,6 +112,8 @@ function parseWorkPayload(formData: FormData) {
     isActive,
     existingImage,
     imageFile,
+    existingPreviewImage,
+    previewImageFile,
     projectIds,
   };
 }
@@ -146,6 +150,7 @@ export async function createWorkAction(
     const projectIds = await resolveProjectIds(data.projectIds);
     const slug = await uniqueWorkSlug(data.slugInput || data.title);
     let image = data.existingImage;
+    let previewImage = data.existingPreviewImage;
 
     if (data.imageFile instanceof File && data.imageFile.size > 0) {
       const saved = await saveOptimizedImage(data.imageFile, {
@@ -155,6 +160,19 @@ export async function createWorkAction(
         quality: 82,
       });
       image = saved.publicPath;
+    }
+
+    if (data.previewImageFile instanceof File && data.previewImageFile.size > 0) {
+      const saved = await saveOptimizedImage(data.previewImageFile, {
+        uploadDir: "uploads/works",
+        maxBytes: 12 * 1024 * 1024,
+        mode: "webp",
+        quality: 78,
+        width: 1440,
+        height: 20000,
+        fit: "inside",
+      });
+      previewImage = saved.publicPath;
     }
 
     let sortOrder = data.sortOrder;
@@ -184,6 +202,7 @@ export async function createWorkAction(
         summary: data.summary || null,
         content: data.content || null,
         image: image || null,
+        previewImage: previewImage || null,
         sortOrder,
         isActive: data.isActive,
         seoTitle: seo.seoTitle,
@@ -197,6 +216,7 @@ export async function createWorkAction(
     revalidatePath("/admin/works");
     revalidatePath("/admin/works/categories");
     revalidatePath("/admin/projects");
+    revalidatePath("/");
     return { success: true, message: "Çalışma oluşturuldu." };
   } catch (error) {
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
@@ -248,6 +268,7 @@ export async function updateWorkAction(
     const projectIds = await resolveProjectIds(data.projectIds);
     const slug = await uniqueWorkSlug(data.slugInput || data.title, id);
     let image = data.existingImage;
+    let previewImage = data.existingPreviewImage;
 
     if (data.imageFile instanceof File && data.imageFile.size > 0) {
       const saved = await saveOptimizedImage(data.imageFile, {
@@ -261,6 +282,23 @@ export async function updateWorkAction(
     } else if (!image && existing.image) {
       await deletePublicAsset(existing.image);
       image = "";
+    }
+
+    if (data.previewImageFile instanceof File && data.previewImageFile.size > 0) {
+      const saved = await saveOptimizedImage(data.previewImageFile, {
+        uploadDir: "uploads/works",
+        maxBytes: 12 * 1024 * 1024,
+        mode: "webp",
+        quality: 78,
+        width: 1440,
+        height: 20000,
+        fit: "inside",
+        previousPath: existing.previewImage || undefined,
+      });
+      previewImage = saved.publicPath;
+    } else if (!previewImage && existing.previewImage) {
+      await deletePublicAsset(existing.previewImage);
+      previewImage = "";
     }
 
     const seo = resolveWorkSeo({
@@ -280,6 +318,7 @@ export async function updateWorkAction(
         summary: data.summary || null,
         content: data.content || null,
         image: image || null,
+        previewImage: previewImage || null,
         sortOrder: data.sortOrder,
         isActive: data.isActive,
         seoTitle: seo.seoTitle,
@@ -295,6 +334,7 @@ export async function updateWorkAction(
     revalidatePath(`/admin/works/${id}/edit`);
     revalidatePath("/admin/works/categories");
     revalidatePath("/admin/projects");
+    revalidatePath("/");
     return { success: true, message: "Çalışma güncellendi." };
   } catch (error) {
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
@@ -322,14 +362,19 @@ export async function deleteWorkAction(formData: FormData): Promise<DeleteWorkRe
   if (!existing) return { error: "Çalışma bulunamadı." };
 
   const imagePath = existing.image;
+  const previewImagePath = existing.previewImage;
   await prisma.work.delete({ where: { id } });
   if (imagePath) {
     await deletePublicAsset(imagePath);
+  }
+  if (previewImagePath) {
+    await deletePublicAsset(previewImagePath);
   }
 
   revalidatePath("/admin/works");
   revalidatePath("/admin/works/categories");
   revalidatePath("/admin/projects");
+  revalidatePath("/");
   return { success: true, message: "Çalışma silindi." };
 }
 

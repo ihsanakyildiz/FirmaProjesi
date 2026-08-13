@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import {
   ChevronDown,
   ChevronUp,
@@ -17,8 +18,10 @@ import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { SearchableSelect } from "@/components/admin/searchable-select";
 import {
   PROJECT_GALLERY_MAX,
+  PROJECT_HIGHLIGHT_MAX,
   PROJECT_METRIC_MAX,
   PROJECT_ROLE_OPTIONS,
+  parseProjectHighlights,
   type ProjectMetricInput,
 } from "@/lib/project-portfolio";
 import { resolveProjectSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX, clampSeoText } from "@/lib/seo";
@@ -60,6 +63,10 @@ type ProjectFormValues = {
   seoDescription?: string;
   gallery?: { id: string; image: string; sortOrder: number }[];
   metrics?: ProjectMetricInput[];
+  brochurePdf?: string | null;
+  brochureZip?: string | null;
+  highlights?: string | null;
+  faqGroupId?: string | null;
 };
 
 type CategoryOption = {
@@ -80,12 +87,19 @@ type ClientOption = {
   depth?: number;
 };
 
+type FaqGroupOption = {
+  id: string;
+  label: string;
+  depth?: number;
+};
+
 type ProjectFormProps = {
   mode: "create" | "edit";
   initial?: ProjectFormValues;
   categoryOptions?: CategoryOption[];
   featureOptions?: FeatureOption[];
   clientOptions?: ClientOption[];
+  faqGroupOptions?: FaqGroupOption[];
 };
 
 function slugPreview(value: string) {
@@ -111,6 +125,7 @@ export function ProjectForm({
   categoryOptions = [],
   featureOptions = [],
   clientOptions = [],
+  faqGroupOptions = [],
 }: ProjectFormProps) {
   const router = useRouter();
   const action = mode === "create" ? createProjectAction : updateProjectAction;
@@ -120,6 +135,7 @@ export function ProjectForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [clientId, setClientId] = useState(initial?.clientId ?? "");
+  const [faqGroupId, setFaqGroupId] = useState(initial?.faqGroupId ?? "");
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>(
     () => initial?.featureIds ?? [],
   );
@@ -134,6 +150,12 @@ export function ProjectForm({
   );
   const [image, setImage] = useState(initial?.image ?? "");
   const [preview, setPreview] = useState(initial?.image ?? "");
+  const [brochurePdf, setBrochurePdf] = useState(initial?.brochurePdf ?? "");
+  const [brochureZip, setBrochureZip] = useState(initial?.brochureZip ?? "");
+  const [highlights, setHighlights] = useState<string[]>(() => {
+    const parsed = parseProjectHighlights(initial?.highlights);
+    return parsed.length > 0 ? parsed : [""];
+  });
   const [gallery, setGallery] = useState<GalleryItem[]>(() =>
     (initial?.gallery ?? []).map((item) => ({
       key: item.id,
@@ -149,6 +171,8 @@ export function ProjectForm({
   );
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const brochurePdfRef = useRef<HTMLInputElement>(null);
+  const brochureZipRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (state.success) {
@@ -254,6 +278,8 @@ export function ProjectForm({
     <form action={submitAction} className="space-y-6">
       {mode === "edit" && initial?.id ? <input type="hidden" name="id" value={initial.id} /> : null}
       <input type="hidden" name="image" value={image} />
+      <input type="hidden" name="brochurePdf" value={brochurePdf} />
+      <input type="hidden" name="brochureZip" value={brochureZip} />
       <input type="hidden" name="gallery_order" value={galleryOrderJson} />
       <input type="hidden" name="metrics_json" value={metricsJson} />
 
@@ -413,24 +439,16 @@ export function ProjectForm({
           </div>
 
           <div className="flex flex-wrap gap-3 md:col-span-2">
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-              <input
-                type="checkbox"
-                name="isActive"
-                defaultChecked={initial?.isActive ?? true}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-              />
-              <span className="text-sm font-medium text-slate-700">Aktif (yayında)</span>
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-              <input
-                type="checkbox"
-                name="isFeatured"
-                defaultChecked={initial?.isFeatured ?? false}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-              />
-              <span className="text-sm font-medium text-slate-700">Vitrinde öne çıkar</span>
-            </label>
+            <AdminSwitch
+              name="isActive"
+              label="Aktif (yayında)"
+              defaultChecked={initial?.isActive ?? true}
+            />
+            <AdminSwitch
+              name="isFeatured"
+              label="Vitrinde öne çıkar"
+              defaultChecked={initial?.isFeatured ?? false}
+            />
           </div>
 
           <div className="md:col-span-2">
@@ -483,17 +501,11 @@ export function ProjectForm({
             />
           </div>
           <div className="md:col-span-2">
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-              <input
-                type="checkbox"
-                name="hideProjectUrl"
-                defaultChecked={initial?.hideProjectUrl ?? false}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-              />
-              <span className="text-sm font-medium text-slate-700">
-                URL’yi vitrinde gizle (NDA / gizli proje)
-              </span>
-            </label>
+            <AdminSwitch
+              name="hideProjectUrl"
+              label="URL’yi vitrinde gizle (NDA / gizli proje)"
+              defaultChecked={initial?.hideProjectUrl ?? false}
+            />
           </div>
           <div>
             <label htmlFor="projectYear" className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -855,6 +867,188 @@ export function ProjectForm({
                 e.target.value = "";
               }}
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-[#e9ebec] bg-white shadow-sm">
+        <div className="border-b border-[#e9ebec] px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-800">
+            Detay Sayfası (Sidebar & İçerik)
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Broşür dosyaları, onay maddeleri ve SSS grubu — proje detay sayfasında
+            görünür
+          </p>
+        </div>
+        <div className="grid gap-5 p-5 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <label
+              htmlFor="faqGroupId"
+              className="mb-1.5 block text-sm font-medium text-slate-700"
+            >
+              SSS grubu
+            </label>
+            <SearchableSelect
+              id="faqGroupId"
+              name="faqGroupId"
+              value={faqGroupId}
+              onChange={setFaqGroupId}
+              options={faqGroupOptions}
+              placeholder="SSS grubu seçin…"
+              emptyLabel="— SSS gösterme —"
+              searchPlaceholder="SSS grubu ara…"
+              noResultsLabel="Eşleşen SSS grubu yok"
+            />
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-slate-700">Broşür PDF</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => brochurePdfRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Upload className="h-4 w-4" />
+                PDF Seç
+              </button>
+              {brochurePdf ? (
+                <>
+                  <a
+                    href={brochurePdf}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-[#405189] underline"
+                  >
+                    Mevcut PDF
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBrochurePdf("");
+                      if (brochurePdfRef.current) brochurePdfRef.current.value = "";
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-600"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Kaldır
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <input
+              ref={brochurePdfRef}
+              type="file"
+              name="brochure_pdf_file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setBrochurePdf(file.name);
+              }}
+            />
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-slate-700">Broşür ZIP</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => brochureZipRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Upload className="h-4 w-4" />
+                ZIP Seç
+              </button>
+              {brochureZip ? (
+                <>
+                  <a
+                    href={brochureZip.startsWith("/") ? brochureZip : "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-[#405189] underline"
+                  >
+                    {brochureZip.startsWith("/") ? "Mevcut ZIP" : brochureZip}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBrochureZip("");
+                      if (brochureZipRef.current) brochureZipRef.current.value = "";
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-600"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Kaldır
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <input
+              ref={brochureZipRef}
+              type="file"
+              name="brochure_zip_file"
+              accept=".zip,application/zip"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setBrochureZip(file.name);
+              }}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-slate-700">
+                Onay maddeleri (checklist)
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setHighlights((prev) =>
+                    prev.length >= PROJECT_HIGHLIGHT_MAX ? prev : [...prev, ""],
+                  )
+                }
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#e9ebec] px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Madde ekle
+              </button>
+            </div>
+            <div className="space-y-2">
+              {highlights.map((item, index) => (
+                <div key={`highlight-${index}`} className="flex gap-2">
+                  <input
+                    name="highlights[]"
+                    value={item}
+                    onChange={(e) => {
+                      const next = [...highlights];
+                      next[index] = e.target.value;
+                      setHighlights(next);
+                    }}
+                    placeholder={`Madde ${index + 1}`}
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setHighlights((prev) =>
+                        prev.length <= 1
+                          ? [""]
+                          : prev.filter((_, i) => i !== index),
+                      )
+                    }
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-rose-200 text-rose-500 hover:bg-rose-50"
+                    aria-label="Maddeyi sil"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

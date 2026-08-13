@@ -11,11 +11,35 @@ export type ProjectRoleOption = (typeof PROJECT_ROLE_OPTIONS)[number];
 
 export const PROJECT_METRIC_MAX = 4;
 export const PROJECT_GALLERY_MAX = 12;
+export const PROJECT_HIGHLIGHT_MAX = 8;
 
 export type ProjectMetricInput = {
   label: string;
   value: string;
 };
+
+export function parseProjectHighlights(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean)
+      .slice(0, PROJECT_HIGHLIGHT_MAX);
+  } catch {
+    return raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, PROJECT_HIGHLIGHT_MAX);
+  }
+}
+
+export function serializeProjectHighlights(items: string[]): string | null {
+  const cleaned = items.map((item) => item.trim()).filter(Boolean).slice(0, PROJECT_HIGHLIGHT_MAX);
+  return cleaned.length ? JSON.stringify(cleaned) : null;
+}
 
 export function parseProjectMetricsJson(raw: string): ProjectMetricInput[] {
   try {

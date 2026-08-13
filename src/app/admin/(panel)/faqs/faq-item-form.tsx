@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import {
   createFaqItemAction,
@@ -113,15 +114,11 @@ export function FaqItemForm({
       </div>
 
       <div className="flex items-end">
-        <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-          <input
-            type="checkbox"
-            name="isActive"
-            defaultChecked={initial?.isActive ?? true}
-            className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-          />
-          <span className="text-sm font-medium text-slate-700">Aktif</span>
-        </label>
+        <AdminSwitch
+          name="isActive"
+          label="Aktif"
+          defaultChecked={initial?.isActive ?? true}
+        />
       </div>
     </div>
   );

@@ -37,9 +37,9 @@ export function resolveMenuItemHref(item: MenuItemWithLinks): string | null {
     case "PAGE":
       return item.page ? `/${item.page.slug}` : null;
     case "WORK_CATEGORY":
-      return item.workCategory ? `/hizmetler/${item.workCategory.slug}` : null;
+      return item.workCategory ? `/yapilan-isler` : null;
     case "WORK":
-      return item.work ? `/hizmetler/${item.work.slug}` : null;
+      return item.work ? `/yapilan-isler/${item.work.slug}` : null;
     case "PROJECT_CATEGORY":
       return item.projectCategory ? `/projeler/${item.projectCategory.slug}` : null;
     case "PROJECT":

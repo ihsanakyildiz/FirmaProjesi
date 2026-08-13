@@ -121,6 +121,7 @@ export async function savePublicUpload(
     fixedFileName?: string;
     allowedMime?: string[];
     maxBytes?: number;
+    previousPath?: string;
   } = {},
 ): Promise<SavedUpload> {
   if (!(file instanceof File) || file.size === 0) {
@@ -161,6 +162,11 @@ export async function savePublicUpload(
   await writeFile(absolutePath, Buffer.from(await file.arrayBuffer()));
 
   const publicPath = `/${[relativeDir, fileName].filter(Boolean).join("/")}`.replace(/\\/g, "/");
+
+  if (options.previousPath && options.previousPath !== publicPath) {
+    await deletePublicAsset(options.previousPath);
+  }
+
   return { publicPath, absolutePath, fileName, mimeType: mime };
 }
 
@@ -174,6 +180,8 @@ export async function saveOptimizedImage(
     mode?: ImageProcessMode;
     width?: number;
     height?: number;
+    /** Varsayılan: cover. Uzun ekran görüntüleri için inside kullanın. */
+    fit?: "cover" | "inside" | "contain" | "fill" | "outside";
     quality?: number;
     previousPath?: string;
   } = {},
@@ -271,9 +279,9 @@ export async function saveOptimizedImage(
       webpPipeline = webpPipeline.resize({
         width: options.width,
         height: options.height,
-        fit: "cover",
+        fit: options.fit ?? "cover",
         position: "centre",
-        withoutEnlargement: false,
+        withoutEnlargement: options.fit === "inside" ? true : false,
       });
     } else {
       webpPipeline = webpPipeline.resize({

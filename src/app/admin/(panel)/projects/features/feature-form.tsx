@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
+import { LucideIconPicker } from "@/components/admin/lucide-icon-picker";
 import {
   createProjectFeatureAction,
   updateProjectFeatureAction,
@@ -12,14 +14,43 @@ import {
 
 const initialState: ProjectFeatureFormState = {};
 
+const ICON_COLOR_PRESETS = [
+  { label: "Mor", value: "#7c3aed" },
+  { label: "İndigo", value: "#405189" },
+  { label: "Teal", value: "#0ab39c" },
+  { label: "Mavi", value: "#3b82f6" },
+  { label: "Cyan", value: "#06b6d4" },
+  { label: "Yeşil", value: "#22c55e" },
+  { label: "Amber", value: "#f59e0b" },
+  { label: "Turuncu", value: "#f97316" },
+  { label: "Kırmızı", value: "#ef4444" },
+  { label: "Pembe", value: "#ec4899" },
+  { label: "Slate", value: "#64748b" },
+  { label: "Siyah", value: "#0f172a" },
+] as const;
+
+function normalizeHexColor(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  const withHash = value.startsWith("#") ? value : `#${value}`;
+  if (/^#[0-9a-fA-F]{6}$/.test(withHash)) return withHash.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(withHash)) {
+    const [, a, b, c] = withHash;
+    return `#${a}${a}${b}${b}${c}${c}`.toLowerCase();
+  }
+  return "";
+}
+
 type FeatureFormValues = {
   id?: string;
   name?: string;
   slug?: string;
   description?: string;
   icon?: string;
+  iconColor?: string;
   sortOrder?: number;
   isActive?: boolean;
+  showOnHome?: boolean;
 };
 
 type ProjectFeatureFormProps = {
@@ -47,6 +78,10 @@ export function ProjectFeatureForm({ mode, initial }: ProjectFeatureFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
+  const [icon, setIcon] = useState(initial?.icon ?? "");
+  const [iconColor, setIconColor] = useState(
+    () => normalizeHexColor(initial?.iconColor ?? "") || "#7c3aed",
+  );
 
   useEffect(() => {
     if (state.success) {
@@ -61,6 +96,7 @@ export function ProjectFeatureForm({ mode, initial }: ProjectFeatureFormProps) {
   return (
     <form action={formAction} className="space-y-6">
       {mode === "edit" && initial?.id ? <input type="hidden" name="id" value={initial.id} /> : null}
+      <input type="hidden" name="iconColor" value={iconColor} />
 
       {state.error ? (
         <div
@@ -138,29 +174,84 @@ export function ProjectFeatureForm({ mode, initial }: ProjectFeatureFormProps) {
             />
           </div>
 
-          <div>
-            <label htmlFor="icon" className="mb-1.5 block text-sm font-medium text-slate-700">
-              İkon (opsiyonel)
-            </label>
-            <input
-              id="icon"
-              name="icon"
-              defaultValue={initial?.icon ?? ""}
-              placeholder="Örn. code, database, server"
-              className={inputClass}
-            />
+          <div className="md:col-span-2">
+            <p className="mb-2 text-sm font-medium text-slate-700">İkon seçimi</p>
+            <LucideIconPicker value={icon} onChange={setIcon} color={iconColor} />
           </div>
 
-          <div className="flex items-end">
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
+          <div className="md:col-span-2">
+            <p className="mb-2 text-sm font-medium text-slate-700">İkon rengi</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {ICON_COLOR_PRESETS.map((preset) => {
+                const active = iconColor === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    title={preset.label}
+                    aria-label={preset.label}
+                    onClick={() => setIconColor(preset.value)}
+                    className={`h-8 w-8 rounded-full border-2 transition ${
+                      active
+                        ? "border-slate-800 ring-2 ring-slate-300 ring-offset-1"
+                        : "border-white shadow-sm hover:scale-105"
+                    }`}
+                    style={{ backgroundColor: preset.value }}
+                  />
+                );
+              })}
+              <label className="relative ml-1 inline-flex h-8 w-8 cursor-pointer overflow-hidden rounded-full border border-[#e9ebec] shadow-sm">
+                <span
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)",
+                  }}
+                />
+                <input
+                  type="color"
+                  value={normalizeHexColor(iconColor) || "#7c3aed"}
+                  onChange={(e) => setIconColor(normalizeHexColor(e.target.value))}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  aria-label="Özel renk seç"
+                />
+              </label>
               <input
-                type="checkbox"
-                name="isActive"
-                defaultChecked={initial?.isActive ?? true}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
+                type="text"
+                value={iconColor}
+                onChange={(e) => {
+                  const next = e.target.value.trim();
+                  if (!next) {
+                    setIconColor("");
+                    return;
+                  }
+                  const normalized = normalizeHexColor(next);
+                  setIconColor(normalized || next);
+                }}
+                onBlur={() => {
+                  const normalized = normalizeHexColor(iconColor);
+                  if (normalized) setIconColor(normalized);
+                }}
+                placeholder="#7c3aed"
+                className="w-28 rounded-md border border-[#e9ebec] px-2.5 py-1.5 text-sm outline-none focus:border-[#0ab39c]"
               />
-              <span className="text-sm font-medium text-slate-700">Aktif</span>
-            </label>
+            </div>
+            <p className="mt-1.5 text-xs text-slate-400">
+              Paletten seçin veya özel hex renk yazın / renk seçiciden belirleyin.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3 md:col-span-2">
+            <AdminSwitch
+              name="isActive"
+              label="Aktif"
+              defaultChecked={initial?.isActive ?? true}
+            />
+            <AdminSwitch
+              name="showOnHome"
+              label="Anasayfada göster"
+              defaultChecked={initial?.showOnHome ?? false}
+            />
           </div>
 
           <div className="md:col-span-2">

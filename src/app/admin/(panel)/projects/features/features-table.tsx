@@ -17,6 +17,7 @@ import {
   deleteProjectFeatureAction,
   toggleProjectFeatureActiveAction,
 } from "./actions";
+import { LucideIconByName } from "@/lib/lucide-icons";
 
 export type ProjectFeatureRow = {
   id: string;
@@ -24,7 +25,9 @@ export type ProjectFeatureRow = {
   slug: string;
   description: string | null;
   icon: string | null;
+  iconColor: string | null;
   isActive: boolean;
+  showOnHome: boolean;
   sortOrder: number;
   _count: { projects: number };
 };
@@ -239,11 +242,28 @@ export function ProjectFeaturesTable({ features }: { features: ProjectFeatureRow
                   key={feature.id}
                   className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_70px_90px_90px_150px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-800">{feature.name}</p>
-                    {feature.description ? (
-                      <p className="mt-0.5 truncate text-xs text-slate-400">{feature.description}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {feature.icon ? (
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#f3f6f9]"
+                        style={{ color: feature.iconColor || "#405189" }}
+                      >
+                        <LucideIconByName name={feature.icon} className="h-4 w-4" />
+                      </span>
                     ) : null}
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-800">{feature.name}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        {feature.showOnHome ? (
+                          <span className="inline-flex rounded bg-[#405189]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#405189]">
+                            Anasayfa
+                          </span>
+                        ) : null}
+                        {feature.description ? (
+                          <p className="truncate text-xs text-slate-400">{feature.description}</p>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                   <span className="truncate text-slate-500">{feature.slug}</span>
                   <span className="text-slate-500">{feature.sortOrder}</span>

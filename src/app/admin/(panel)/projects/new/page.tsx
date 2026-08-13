@@ -17,7 +17,7 @@ type NewProjectPageProps = {
 export default async function NewProjectPage({ searchParams }: NewProjectPageProps) {
   const { categoryId, clientId } = await searchParams;
 
-  const [categories, features, clients] = await Promise.all([
+  const [categories, features, clients, faqGroups] = await Promise.all([
     prisma.projectCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: {
@@ -39,6 +39,11 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, sector: true },
     }),
+    prisma.faqGroup.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
   ]);
 
   const tree = buildCategoryTree(categories);
@@ -58,6 +63,12 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
   const clientOptions = clients.map((client) => ({
     id: client.id,
     label: client.sector ? `${client.name} (${client.sector})` : client.name,
+    depth: 0,
+  }));
+
+  const faqGroupOptions = faqGroups.map((group) => ({
+    id: group.id,
+    label: group.name,
     depth: 0,
   }));
 
@@ -95,6 +106,7 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
         categoryOptions={categoryOptions}
         featureOptions={featureOptions}
         clientOptions={clientOptions}
+        faqGroupOptions={faqGroupOptions}
       />
     </div>
   );

@@ -33,7 +33,7 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
   });
   if (!project) notFound();
 
-  const [categories, features, clients] = await Promise.all([
+  const [categories, features, clients, faqGroups] = await Promise.all([
     prisma.projectCategory.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: {
@@ -52,6 +52,11 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
     prisma.projectClient.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, sector: true, isActive: true },
+    }),
+    prisma.faqGroup.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
     }),
   ]);
 
@@ -79,6 +84,12 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
       label: client.sector ? `${client.name} (${client.sector})` : client.name,
       depth: 0,
     }));
+
+  const faqGroupOptions = faqGroups.map((group) => ({
+    id: group.id,
+    label: group.name,
+    depth: 0,
+  }));
 
   const autoSeo = resolveProjectSeo({
     title: project.title,
@@ -110,6 +121,7 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
         categoryOptions={categoryOptions}
         featureOptions={featureOptions}
         clientOptions={clientOptions}
+        faqGroupOptions={faqGroupOptions}
         initial={{
           id: project.id,
           categoryId: project.categoryId,
@@ -132,6 +144,10 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
           seoDescription,
           gallery: project.gallery,
           metrics: project.metrics,
+          brochurePdf: project.brochurePdf,
+          brochureZip: project.brochureZip,
+          highlights: project.highlights,
+          faqGroupId: project.faqGroupId,
         }}
       />
     </div>

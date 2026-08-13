@@ -1,0 +1,289 @@
+"use client";
+
+import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
+import type { PricingFeatureItem } from "@/lib/pricing";
+import {
+  createPricingPlanAction,
+  updatePricingPlanAction,
+  type PricingFormState,
+} from "./actions";
+
+type PricingPlanFormInitial = {
+  id?: string;
+  name?: string;
+  blurb?: string | null;
+  priceMonthly?: string;
+  priceYearly?: string;
+  showPeriod?: boolean;
+  featured?: boolean;
+  features?: PricingFeatureItem[];
+  ctaLabel?: string;
+  ctaHref?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+};
+
+const emptyFeature = (): PricingFeatureItem => ({
+  label: "",
+  included: true,
+});
+
+export function PricingPlanForm({
+  mode,
+  initial,
+}: {
+  mode: "create" | "edit";
+  initial?: PricingPlanFormInitial;
+}) {
+  const router = useRouter();
+  const boundUpdate = updatePricingPlanAction.bind(null, initial?.id ?? "");
+  const action = mode === "create" ? createPricingPlanAction : boundUpdate;
+  const [state, formAction, pending] = useActionState<
+    PricingFormState,
+    FormData
+  >(action, {});
+
+  const [features, setFeatures] = useState<PricingFeatureItem[]>(
+    initial?.features && initial.features.length > 0
+      ? initial.features
+      : [emptyFeature()],
+  );
+
+  useEffect(() => {
+    if (state.success) {
+      router.push("/admin/pricing");
+      router.refresh();
+    }
+  }, [state.success, router]);
+
+  const updateFeature = (
+    index: number,
+    patch: Partial<PricingFeatureItem>,
+  ) => {
+    setFeatures((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+    );
+  };
+
+  return (
+    <form action={formAction} className="space-y-5">
+      {state.error ? (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {state.error}
+        </div>
+      ) : null}
+      {state.message && state.success ? (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {state.message}
+        </div>
+      ) : null}
+
+      <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Paket adı
+            </label>
+            <input
+              name="name"
+              defaultValue={initial?.name ?? ""}
+              required
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+            {state.fieldErrors?.name ? (
+              <p className="mt-1 text-xs text-rose-600">
+                {state.fieldErrors.name}
+              </p>
+            ) : null}
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Kısa açıklama
+            </label>
+            <input
+              name="blurb"
+              defaultValue={initial?.blurb ?? ""}
+              placeholder="Büyüyen ekipler için"
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Aylık fiyat
+            </label>
+            <input
+              name="priceMonthly"
+              defaultValue={initial?.priceMonthly ?? ""}
+              placeholder="₺14.900 veya Ücretsiz"
+              required
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+            {state.fieldErrors?.priceMonthly ? (
+              <p className="mt-1 text-xs text-rose-600">
+                {state.fieldErrors.priceMonthly}
+              </p>
+            ) : null}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Yıllık fiyat
+            </label>
+            <input
+              name="priceYearly"
+              defaultValue={initial?.priceYearly ?? ""}
+              placeholder="₺149.000 veya Ücretsiz"
+              required
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+            {state.fieldErrors?.priceYearly ? (
+              <p className="mt-1 text-xs text-rose-600">
+                {state.fieldErrors.priceYearly}
+              </p>
+            ) : null}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              CTA metni
+            </label>
+            <input
+              name="ctaLabel"
+              defaultValue={initial?.ctaLabel ?? "Başlayın"}
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              CTA linki
+            </label>
+            <input
+              name="ctaHref"
+              defaultValue={initial?.ctaHref ?? "/iletisim"}
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Sıra
+            </label>
+            <input
+              type="number"
+              name="sortOrder"
+              defaultValue={initial?.sortOrder ?? ""}
+              placeholder="Otomatik"
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <AdminSwitch
+            name="showPeriod"
+            label="Dönem göster (/ay · /yıl)"
+            description="Kapalıysa fiyat yanında dönem yazılmaz."
+            defaultChecked={initial?.showPeriod !== false}
+          />
+          <AdminSwitch
+            name="featured"
+            label="Öne çıkan paket"
+            defaultChecked={initial?.featured === true}
+          />
+          <AdminSwitch
+            name="isActive"
+            label="Aktif"
+            defaultChecked={initial?.isActive !== false}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800">Özellikler</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              En fazla 12 satır. Dahil değil işaretlenenler soluk görünür.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={features.length >= 12}
+            onClick={() => setFeatures((prev) => [...prev, emptyFeature()])}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#e9ebec] px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-[#f8f9fb] disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Satır ekle
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="flex flex-col gap-2 rounded-md border border-[#e9ebec] p-3 sm:flex-row sm:items-center"
+            >
+              <input
+                name="featureLabel[]"
+                value={feature.label}
+                onChange={(event) =>
+                  updateFeature(index, { label: event.target.value })
+                }
+                placeholder="Özellik metni"
+                className="min-w-0 flex-1 rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+              <input
+                type="hidden"
+                name="featureIncluded[]"
+                value={feature.included ? "true" : "false"}
+              />
+              <AdminSwitch
+                label="Dahil"
+                checked={feature.included}
+                onChange={(checked) =>
+                  updateFeature(index, { included: checked })
+                }
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setFeatures((prev) =>
+                    prev.length <= 1
+                      ? [emptyFeature()]
+                      : prev.filter((_, i) => i !== index),
+                  )
+                }
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                title="Satırı sil"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-md bg-[#0ab39c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#099885] disabled:opacity-60"
+        >
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {mode === "create" ? "Paketi oluştur" : "Kaydet"}
+        </button>
+        <Link
+          href="/admin/pricing"
+          className="rounded-md border border-[#e9ebec] bg-white px-4 py-2.5 text-sm font-medium text-slate-600"
+        >
+          Vazgeç
+        </Link>
+      </div>
+    </form>
+  );
+}

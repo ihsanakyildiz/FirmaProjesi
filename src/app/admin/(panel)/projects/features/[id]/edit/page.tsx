@@ -47,8 +47,10 @@ export default async function EditProjectFeaturePage({
           slug: feature.slug,
           description: feature.description ?? undefined,
           icon: feature.icon ?? undefined,
+          iconColor: feature.iconColor ?? undefined,
           sortOrder: feature.sortOrder,
           isActive: feature.isActive,
+          showOnHome: feature.showOnHome,
         }}
       />
     </div>

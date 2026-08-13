@@ -49,19 +49,35 @@ function parseFeaturePayload(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const icon = String(formData.get("icon") ?? "").trim();
+  const icon = String(formData.get("icon") ?? "").trim().slice(0, 100);
+  const iconColorRaw = String(formData.get("iconColor") ?? "").trim();
+  const iconColorMatch = iconColorRaw.match(/^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/);
+  let iconColor: string | null = null;
+  if (iconColorMatch) {
+    const withHash = iconColorRaw.startsWith("#") ? iconColorRaw : `#${iconColorRaw}`;
+    if (withHash.length === 4) {
+      const [, a, b, c] = withHash;
+      iconColor = `#${a}${a}${b}${b}${c}${c}`.toLowerCase();
+    } else {
+      iconColor = withHash.toLowerCase();
+    }
+  }
   const sortOrderRaw = String(formData.get("sortOrder") ?? "").trim();
   const sortOrderParsed = Number.parseInt(sortOrderRaw, 10);
   const isActive = formData.get("isActive") === "on" || formData.get("isActive") === "true";
+  const showOnHome =
+    formData.get("showOnHome") === "on" || formData.get("showOnHome") === "true";
 
   return {
     name,
     slugInput,
     description,
     icon,
+    iconColor,
     sortOrderRaw,
     sortOrder: Number.isFinite(sortOrderParsed) ? sortOrderParsed : null,
     isActive,
+    showOnHome,
   };
 }
 
@@ -100,13 +116,17 @@ export async function createProjectFeatureAction(
         slug,
         description: payload.description || null,
         icon: payload.icon || null,
+        iconColor: payload.iconColor,
         sortOrder,
         isActive: payload.isActive,
+        showOnHome: payload.showOnHome,
       },
     });
 
     revalidatePath("/admin/projects/features");
     revalidatePath("/admin/projects");
+    revalidatePath("/");
+    revalidatePath("/projeler");
     return { success: true, message: "Özellik oluşturuldu." };
   } catch (error) {
     console.error(error);
@@ -152,14 +172,18 @@ export async function updateProjectFeatureAction(
         slug,
         description: payload.description || null,
         icon: payload.icon || null,
+        iconColor: payload.iconColor,
         sortOrder,
         isActive: payload.isActive,
+        showOnHome: payload.showOnHome,
       },
     });
 
     revalidatePath("/admin/projects/features");
     revalidatePath(`/admin/projects/features/${id}/edit`);
     revalidatePath("/admin/projects");
+    revalidatePath("/");
+    revalidatePath("/projeler");
     return { success: true, message: "Özellik güncellendi." };
   } catch (error) {
     console.error(error);

@@ -18,6 +18,7 @@ import { deleteCardAction, toggleCardActiveAction } from "./actions";
 
 export type CardRow = {
   id: string;
+  type: "CLASSIC" | "ADVANCED";
   title: string;
   mediaType: "IMAGE" | "ICON";
   image: string | null;
@@ -120,7 +121,10 @@ export function CardsTable({ cards }: { cards: CardRow[] }) {
     const needle = query.trim().toLocaleLowerCase("tr-TR");
     if (!needle) return cards;
     return cards.filter((card) =>
-      [card.title, card.href, card.icon ?? ""].join(" ").toLocaleLowerCase("tr-TR").includes(needle),
+      [card.title, card.href, card.icon ?? "", card.type]
+        .join(" ")
+        .toLocaleLowerCase("tr-TR")
+        .includes(needle),
     );
   }, [cards, query]);
 
@@ -165,9 +169,10 @@ export function CardsTable({ cards }: { cards: CardRow[] }) {
           <div className="px-5 py-10 text-center text-sm text-slate-500">Sonuç yok.</div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[860px]">
-              <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_70px_90px_140px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+            <div className="min-w-[960px]">
+              <div className="grid grid-cols-[minmax(0,1.6fr)_100px_minmax(0,1.1fr)_70px_90px_140px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <div>Kart</div>
+                <div>Tip</div>
                 <div>Link</div>
                 <div>Sıra</div>
                 <div>Durum</div>
@@ -176,11 +181,12 @@ export function CardsTable({ cards }: { cards: CardRow[] }) {
               {filtered.map((card) => (
                 <div
                   key={card.id}
-                  className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_70px_90px_140px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
+                  className="grid grid-cols-[minmax(0,1.6fr)_100px_minmax(0,1.1fr)_70px_90px_140px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f6f9] text-[#405189]">
-                      {card.mediaType === "IMAGE" && card.image ? (
+                      {(card.type === "ADVANCED" || card.mediaType === "IMAGE") &&
+                      card.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={card.image} alt="" className="h-full w-full object-cover" />
                       ) : (
@@ -190,11 +196,28 @@ export function CardsTable({ cards }: { cards: CardRow[] }) {
                     <div className="min-w-0">
                       <p className="truncate font-medium text-slate-800">{card.title}</p>
                       <p className="mt-0.5 text-[11px] text-slate-400">
-                        {card.mediaType === "IMAGE" ? "Görsel" : `İkon · ${card.icon ?? "—"}`}
+                        {card.type === "ADVANCED"
+                          ? "Split yerleşim"
+                          : card.mediaType === "IMAGE"
+                            ? "Görsel"
+                            : `İkon · ${card.icon ?? "—"}`}
                       </p>
                     </div>
                   </div>
-                  <div className="truncate text-xs text-slate-500">{card.href}</div>
+                  <div>
+                    {card.type === "ADVANCED" ? (
+                      <span className="inline-flex rounded-full bg-[#405189]/10 px-2.5 py-1 text-[11px] font-semibold text-[#405189]">
+                        Gelişmiş
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-[#0ab39c]/10 px-2.5 py-1 text-[11px] font-semibold text-[#0ab39c]">
+                        Klasik
+                      </span>
+                    )}
+                  </div>
+                  <div className="truncate text-xs text-slate-500">
+                    {card.type === "ADVANCED" ? "—" : card.href}
+                  </div>
                   <div className="text-slate-600">{card.sortOrder}</div>
                   <div>
                     {card.isActive ? (

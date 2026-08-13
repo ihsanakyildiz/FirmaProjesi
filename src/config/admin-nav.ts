@@ -2,6 +2,7 @@ import {
   BookOpen,
   Briefcase,
   Building2,
+  CircleDollarSign,
   CircleHelp,
   FileText,
   FolderKanban,
@@ -56,6 +57,11 @@ export const adminNavSections: AdminNavSection[] = [
         label: "Kartlar",
         href: "/admin/cards",
         icon: LayoutGrid,
+      },
+      {
+        label: "Fiyatlandırma",
+        href: "/admin/pricing",
+        icon: CircleDollarSign,
       },
       {
         label: "SSS",

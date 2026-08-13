@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,7 +12,6 @@ import {
   Loader2,
   Palette,
   Save,
-  Star,
   Trash2,
   Type,
   Upload,
@@ -727,16 +727,11 @@ export function HeroSlideForm({
               />
             </div>
             <div className="flex items-end">
-              <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-                />
-                <span className="text-sm font-medium text-slate-700">Aktif slayt</span>
-              </label>
+              <AdminSwitch
+                label="Aktif slayt"
+                checked={isActive}
+                onChange={setIsActive}
+              />
             </div>
             <div>
               <label htmlFor="badgeText" className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -906,29 +901,16 @@ export function HeroSlideForm({
               onChange={setMedia}
             />
             <div className="grid gap-4 rounded-lg border border-[#e9ebec] bg-[#f8f9fb] p-4 md:grid-cols-2">
-              <label className="inline-flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="showAvatars"
-                  checked={showAvatars}
-                  onChange={(e) => setShowAvatars(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-                />
-                <span className="text-sm font-medium text-slate-700">Avatar grubunu göster</span>
-              </label>
-              <label className="inline-flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="showStars"
-                  checked={showStars}
-                  onChange={(e) => setShowStars(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-                />
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                  <Star className="h-4 w-4 text-amber-400" />
-                  Yıldız puanını göster
-                </span>
-              </label>
+              <AdminSwitch
+                label="Avatar grubunu göster"
+                checked={showAvatars}
+                onChange={setShowAvatars}
+              />
+              <AdminSwitch
+                label="Yıldız puanını göster"
+                checked={showStars}
+                onChange={setShowStars}
+              />
               <div>
                 <label htmlFor="starCount" className="mb-1.5 block text-sm font-medium text-slate-700">
                   Yıldız sayısı

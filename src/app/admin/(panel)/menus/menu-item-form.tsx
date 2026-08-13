@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MenuLinkType } from "@prisma/client";
 import { Loader2, Save } from "lucide-react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/admin/searchable-select";
 import { MENU_LINK_TYPE_LABELS, MENU_LINK_TYPES } from "@/lib/menus";
 import {
@@ -266,24 +267,16 @@ export function MenuItemForm({
           </div>
 
           <div className="flex flex-wrap items-end gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-              <input
-                type="checkbox"
-                name="isActive"
-                defaultChecked={initial?.isActive ?? true}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-              />
-              <span className="text-sm font-medium text-slate-700">Aktif</span>
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-              <input
-                type="checkbox"
-                name="openInNewTab"
-                defaultChecked={initial?.openInNewTab ?? false}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-              />
-              <span className="text-sm font-medium text-slate-700">Yeni sekme</span>
-            </label>
+            <AdminSwitch
+              name="isActive"
+              label="Aktif"
+              defaultChecked={initial?.isActive ?? true}
+            />
+            <AdminSwitch
+              name="openInNewTab"
+              label="Yeni sekme"
+              defaultChecked={initial?.openInNewTab ?? false}
+            />
           </div>
         </div>
       </div>

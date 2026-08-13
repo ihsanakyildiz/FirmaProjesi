@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { resolvePageSeo } from "@/lib/seo";
+import type { PageSectionTypeValue } from "@/lib/page-sections";
+import { AdvancedPageMetaForm } from "../../advanced-page-meta-form";
 import { ClassicPageForm } from "../../classic-page-form";
+import {
+  PageBuilder,
+  type BuilderSection,
+} from "../../page-builder";
 
 type EditPageProps = {
   params: Promise<{ id: string }>;
@@ -82,6 +88,131 @@ async function loadRelationOptions(selected: {
   };
 }
 
+async function loadBuilderOptions() {
+  const [
+    classicCards,
+    advancedCards,
+    projects,
+    posts,
+    works,
+    heroes,
+    faqs,
+    projectCategories,
+    workCategories,
+    blogCategories,
+  ] = await Promise.all([
+    prisma.card.findMany({
+      where: { type: "CLASSIC" },
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: { id: true, title: true, isActive: true },
+    }),
+    prisma.card.findMany({
+      where: { type: "ADVANCED" },
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: { id: true, title: true, isActive: true },
+    }),
+    prisma.project.findMany({
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        isActive: true,
+        client: { select: { name: true } },
+      },
+    }),
+    prisma.blogPost.findMany({
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        isActive: true,
+        category: { select: { name: true } },
+      },
+    }),
+    prisma.work.findMany({
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        isActive: true,
+        category: { select: { name: true } },
+      },
+    }),
+    prisma.hero.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, slug: true, isActive: true },
+    }),
+    prisma.faqGroup.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, slug: true, isActive: true },
+    }),
+    prisma.projectCategory.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, isActive: true },
+    }),
+    prisma.workCategory.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, isActive: true },
+    }),
+    prisma.blogCategory.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, isActive: true },
+    }),
+  ]);
+
+  return {
+    cardOptions: classicCards.map((card) => ({
+      id: card.id,
+      label: card.title,
+      isActive: card.isActive,
+    })),
+    advancedCardOptions: advancedCards.map((card) => ({
+      id: card.id,
+      label: card.title,
+      isActive: card.isActive,
+    })),
+    projectOptions: projects.map((project) => ({
+      id: project.id,
+      label: project.title,
+      isActive: project.isActive,
+      meta: project.client?.name ?? null,
+    })),
+    postOptions: posts.map((post) => ({
+      id: post.id,
+      label: post.title,
+      isActive: post.isActive,
+      meta: post.category?.name ?? null,
+    })),
+    workOptions: works.map((work) => ({
+      id: work.id,
+      label: work.title,
+      isActive: work.isActive,
+      meta: work.category?.name ?? null,
+    })),
+    heroOptions: heroes
+      .filter((hero) => hero.isActive)
+      .map((hero) => ({
+        id: hero.id,
+        label: `${hero.name} (${hero.slug})`,
+      })),
+    faqOptions: faqs
+      .filter((faq) => faq.isActive)
+      .map((faq) => ({
+        id: faq.id,
+        label: `${faq.name} (${faq.slug})`,
+      })),
+    projectCategoryOptions: projectCategories
+      .filter((category) => category.isActive)
+      .map((category) => ({ id: category.id, label: category.name })),
+    workCategoryOptions: workCategories
+      .filter((category) => category.isActive)
+      .map((category) => ({ id: category.id, label: category.name })),
+    blogCategoryOptions: blogCategories
+      .filter((category) => category.isActive)
+      .map((category) => ({ id: category.id, label: category.name })),
+  };
+}
+
 export default async function EditPagePage({ params }: EditPageProps) {
   const { id } = await params;
   const page = await prisma.page.findUnique({
@@ -90,11 +221,47 @@ export default async function EditPagePage({ params }: EditPageProps) {
       works: { select: { id: true } },
       projects: { select: { id: true } },
       posts: { select: { id: true } },
+      sections: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        include: {
+          cards: { orderBy: { sortOrder: "asc" }, select: { cardId: true } },
+          projects: {
+            orderBy: { sortOrder: "asc" },
+            select: { projectId: true },
+          },
+          posts: { orderBy: { sortOrder: "asc" }, select: { postId: true } },
+          works: { orderBy: { sortOrder: "asc" }, select: { workId: true } },
+        },
+      },
     },
   });
   if (!page) notFound();
 
   if (page.type === "ADVANCED") {
+    const options = await loadBuilderOptions();
+    const builderSections: BuilderSection[] = page.sections.map((section) => ({
+      id: section.id,
+      type: section.type as PageSectionTypeValue,
+      label: section.label,
+      title: section.title,
+      subtitle: section.subtitle,
+      content: section.content,
+      settings: section.settings,
+      sortOrder: section.sortOrder,
+      isActive: section.isActive,
+      heroId: section.heroId,
+      faqGroupId: section.faqGroupId,
+      projectCategoryId: section.projectCategoryId,
+      workCategoryId: section.workCategoryId,
+      blogCategoryId: section.blogCategoryId,
+      cardIds: section.cards.map((row) => row.cardId),
+      projectIds: section.projects.map((row) => row.projectId),
+      postIds: section.posts.map((row) => row.postId),
+      workIds: section.works.map((row) => row.workId),
+    }));
+
+    const publicHref = page.slug === "anasayfa" ? "/" : `/${page.slug}`;
+
     return (
       <div className="space-y-6">
         <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
@@ -105,19 +272,53 @@ export default async function EditPagePage({ params }: EditPageProps) {
             <ArrowLeft className="h-4 w-4" />
             Sayfalara dön
           </Link>
-          <h1 className="mt-3 text-xl font-semibold text-slate-800 sm:text-2xl">
-            {page.title}
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">Gelişmiş sayfa</p>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium tracking-wide text-[#405189] uppercase">
+                Gelişmiş Sayfa
+              </p>
+              <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
+                {page.title}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">/{page.slug}</p>
+            </div>
+            {page.isActive ? (
+              <Link
+                href={publicHref}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Ön yüzde aç
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            ) : null}
+          </div>
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-8 text-center">
-          <LayoutTemplate className="mx-auto h-10 w-10 text-amber-600" />
-          <p className="mt-3 text-sm font-medium text-amber-800">
-            Gelişmiş sayfa builder henüz hazır değil.
-          </p>
-          <p className="mt-1 text-sm text-amber-700">
-            Klasik sayfa özelliği tamamlandıktan sonra bu ekranı geliştireceğiz.
-          </p>
+
+        <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-base font-semibold text-slate-800">
+            Sayfa bilgileri
+          </h2>
+          <AdvancedPageMetaForm
+            mode="edit"
+            initial={{
+              id: page.id,
+              title: page.title,
+              slug: page.slug,
+              sortOrder: page.sortOrder,
+              isActive: page.isActive,
+              seoTitle: page.seoTitle ?? "",
+              seoDescription: page.seoDescription ?? "",
+            }}
+          />
+        </div>
+
+        <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
+          <PageBuilder
+            pageId={page.id}
+            sections={builderSections}
+            {...options}
+          />
         </div>
       </div>
     );

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import {
   createHeroAction,
   updateHeroAction,
@@ -160,42 +161,26 @@ export function HeroForm({
           <p className="mt-1 text-sm text-slate-500">Otomatik geçiş ve kontroller</p>
         </div>
         <div className="grid gap-4 p-5 md:grid-cols-2">
-          <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-            <input
-              type="checkbox"
-              name="isActive"
-              defaultChecked={initial?.isActive ?? true}
-              className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-            />
-            <span className="text-sm font-medium text-slate-700">Aktif</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-            <input
-              type="checkbox"
-              name="autoplay"
-              defaultChecked={initial?.autoplay ?? true}
-              className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-            />
-            <span className="text-sm font-medium text-slate-700">Otomatik slayt geçişi</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-            <input
-              type="checkbox"
-              name="showDots"
-              defaultChecked={initial?.showDots ?? true}
-              className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-            />
-            <span className="text-sm font-medium text-slate-700">Nokta göstergeleri</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-            <input
-              type="checkbox"
-              name="showArrows"
-              defaultChecked={initial?.showArrows ?? true}
-              className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-            />
-            <span className="text-sm font-medium text-slate-700">Ok kontrolleri</span>
-          </label>
+          <AdminSwitch
+            name="isActive"
+            label="Aktif"
+            defaultChecked={initial?.isActive ?? true}
+          />
+          <AdminSwitch
+            name="autoplay"
+            label="Otomatik slayt geçişi"
+            defaultChecked={initial?.autoplay ?? true}
+          />
+          <AdminSwitch
+            name="showDots"
+            label="Nokta göstergeleri"
+            defaultChecked={initial?.showDots ?? true}
+          />
+          <AdminSwitch
+            name="showArrows"
+            label="Ok kontrolleri"
+            defaultChecked={initial?.showArrows ?? true}
+          />
           <div>
             <label htmlFor="intervalMs" className="mb-1.5 block text-sm font-medium text-slate-700">
               Geçiş süresi (ms)

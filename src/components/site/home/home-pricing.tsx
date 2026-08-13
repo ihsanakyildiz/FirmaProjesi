@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
+import type { PricingPlanView } from "@/lib/pricing";
 
-const PLANS = [
+const FALLBACK_PLANS: PricingPlanView[] = [
   {
     id: "trial",
     name: "Deneme",
     blurb: "Test ve keşif için",
-    monthly: "Ücretsiz",
-    yearly: "Ücretsiz",
+    priceMonthly: "Ücretsiz",
+    priceYearly: "Ücretsiz",
+    showPeriod: false,
     featured: false,
     features: [
       { label: "Tek ekip üyesi", included: true },
@@ -19,13 +21,16 @@ const PLANS = [
       { label: "Özel e-posta hesabı", included: false },
       { label: "Öncelikli destek", included: false },
     ],
+    ctaLabel: "Başlayın",
+    ctaHref: "/iletisim",
   },
   {
     id: "standard",
     name: "Standart",
     blurb: "Büyüyen ekipler için",
-    monthly: "₺14.900",
-    yearly: "₺149.000",
+    priceMonthly: "₺14.900",
+    priceYearly: "₺149.000",
+    showPeriod: true,
     featured: true,
     features: [
       { label: "5 ekip üyesi", included: true },
@@ -34,13 +39,16 @@ const PLANS = [
       { label: "15.000 kişiye kadar", included: true },
       { label: "7/24 destek", included: true },
     ],
+    ctaLabel: "Başlayın",
+    ctaHref: "/iletisim",
   },
   {
     id: "business",
     name: "Kurumsal",
     blurb: "İleri seviye projeler",
-    monthly: "₺24.900",
-    yearly: "₺249.000",
+    priceMonthly: "₺24.900",
+    priceYearly: "₺249.000",
+    showPeriod: true,
     featured: false,
     features: [
       { label: "50 ekip üyesi", included: true },
@@ -49,11 +57,39 @@ const PLANS = [
       { label: "Özel e-posta hesabı", included: true },
       { label: "Öncelikli destek", included: true },
     ],
+    ctaLabel: "Başlayın",
+    ctaHref: "/iletisim",
   },
 ];
 
-export function HomePricing() {
+export type HomePricingCta = {
+  label?: string | null;
+  url?: string | null;
+};
+
+export function HomePricing({
+  title,
+  subtitle,
+  plans,
+  primaryCta,
+  secondaryCta,
+}: {
+  title?: string | null;
+  subtitle?: string | null;
+  plans?: PricingPlanView[];
+  primaryCta?: HomePricingCta;
+  secondaryCta?: HomePricingCta;
+} = {}) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const heading =
+    title?.trim() || "Şeffaf fiyatlandırma, özel entegrasyonlar";
+  const lead = subtitle?.trim() || null;
+  const list = plans && plans.length > 0 ? plans : FALLBACK_PLANS;
+
+  const primaryLabel = primaryCta?.label?.trim() || "Ücretsiz Teklif Alın";
+  const primaryUrl = primaryCta?.url?.trim() || "/iletisim";
+  const secondaryLabel = secondaryCta?.label?.trim() || "Nasıl çalışıyoruz?";
+  const secondaryUrl = secondaryCta?.url?.trim() || "/hakkimizda";
 
   return (
     <section className="relative overflow-hidden py-20">
@@ -61,8 +97,9 @@ export function HomePricing() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight text-site-fg sm:text-4xl">
-            Şeffaf fiyatlandırma, özel entegrasyonlar
+            {heading}
           </h2>
+          {lead ? <p className="mt-3 text-site-muted">{lead}</p> : null}
           <div className="mt-6 inline-flex rounded-full border border-site-border bg-site-card p-1">
             <button
               type="button"
@@ -90,81 +127,98 @@ export function HomePricing() {
         </div>
 
         <div className="mt-12 grid items-stretch gap-5 lg:grid-cols-3">
-          {PLANS.map((plan) => (
-            <article
-              key={plan.id}
-              className={`rounded-[1.75rem] border p-7 shadow-sm transition ${
-                plan.featured
-                  ? "border-transparent bg-site-primary text-white shadow-xl shadow-violet-500/30 lg:-translate-y-3 lg:scale-[1.02]"
-                  : "border-site-border bg-site-card text-site-fg"
-              }`}
-            >
-              <h3 className="text-xl font-bold">{plan.name}</h3>
-              <p className={`mt-1 text-sm ${plan.featured ? "text-white/80" : "text-site-muted"}`}>
-                {plan.blurb}
-              </p>
-              <p className="mt-6 text-4xl font-extrabold tracking-tight">
-                {billing === "monthly" ? plan.monthly : plan.yearly}
-                {plan.id !== "trial" ? (
-                  <span className={`ml-1 text-sm font-medium ${plan.featured ? "text-white/70" : "text-site-muted"}`}>
-                    / {billing === "monthly" ? "ay" : "yıl"}
-                  </span>
-                ) : null}
-              </p>
-
-              <Link
-                href="/iletisim"
-                className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
+          {list.map((plan) => {
+            const price =
+              billing === "monthly" ? plan.priceMonthly : plan.priceYearly;
+            return (
+              <article
+                key={plan.id}
+                className={`rounded-[1.75rem] border p-7 shadow-sm transition ${
                   plan.featured
-                    ? "bg-white text-site-primary hover:bg-violet-50"
-                    : "border border-site-fg/20 text-site-fg hover:border-site-primary hover:text-site-primary"
+                    ? "border-transparent bg-site-primary text-white shadow-xl shadow-violet-500/30 lg:-translate-y-3 lg:scale-[1.02]"
+                    : "border-site-border bg-site-card text-site-fg"
                 }`}
               >
-                Başlayın
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-
-              <ul className="mt-7 space-y-3">
-                {plan.features.map((feature) => (
-                  <li
-                    key={feature.label}
-                    className={`flex items-center gap-2.5 text-sm ${
-                      feature.included
-                        ? plan.featured
-                          ? "text-white"
-                          : "text-site-fg"
-                        : plan.featured
-                          ? "text-white/40"
-                          : "text-site-muted/50"
+                <h3 className="text-xl font-bold">{plan.name}</h3>
+                {plan.blurb ? (
+                  <p
+                    className={`mt-1 text-sm ${
+                      plan.featured ? "text-white/80" : "text-site-muted"
                     }`}
                   >
-                    <Check
-                      className={`h-4 w-4 ${
+                    {plan.blurb}
+                  </p>
+                ) : null}
+                <p className="mt-6 text-4xl font-extrabold tracking-tight">
+                  {price}
+                  {plan.showPeriod ? (
+                    <span
+                      className={`ml-1 text-sm font-medium ${
+                        plan.featured ? "text-white/70" : "text-site-muted"
+                      }`}
+                    >
+                      / {billing === "monthly" ? "ay" : "yıl"}
+                    </span>
+                  ) : null}
+                </p>
+
+                <Link
+                  href={plan.ctaHref || "/iletisim"}
+                  className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                    plan.featured
+                      ? "bg-white text-site-primary hover:bg-violet-50"
+                      : "border border-site-fg/20 text-site-fg hover:border-site-primary hover:text-site-primary"
+                  }`}
+                >
+                  {plan.ctaLabel || "Başlayın"}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+                <ul className="mt-7 space-y-3">
+                  {plan.features.map((feature) => (
+                    <li
+                      key={feature.label}
+                      className={`flex items-center gap-2.5 text-sm ${
                         feature.included
                           ? plan.featured
                             ? "text-white"
-                            : "text-site-primary"
-                          : "opacity-40"
+                            : "text-site-fg"
+                          : plan.featured
+                            ? "text-white/40"
+                            : "text-site-muted/50"
                       }`}
-                    />
-                    {feature.label}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
+                    >
+                      <Check
+                        className={`h-4 w-4 ${
+                          feature.included
+                            ? plan.featured
+                              ? "text-white"
+                              : "text-site-primary"
+                            : "opacity-40"
+                        }`}
+                      />
+                      {feature.label}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link
-            href="/iletisim"
+            href={primaryUrl}
             className="inline-flex items-center gap-2 rounded-full bg-site-primary px-5 py-3 text-sm font-semibold text-white"
           >
-            Ücretsiz Teklif Alın
+            {primaryLabel}
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/hakkimizda" className="text-sm font-semibold text-site-fg underline underline-offset-4">
-            Nasıl çalışıyoruz?
+          <Link
+            href={secondaryUrl}
+            className="text-sm font-semibold text-site-fg underline underline-offset-4"
+          >
+            {secondaryLabel}
           </Link>
         </div>
       </div>

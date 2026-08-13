@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import { FileUp, ImageIcon, Loader2, Save, Trash2, Upload } from "lucide-react";
 import { settingGroups, type SettingFieldDef, type SettingGroupDef, type SettingsScope } from "@/config/settings";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
@@ -205,16 +206,12 @@ function FieldInput({
 
   if (field.type === "boolean") {
     return (
-      <label className="inline-flex cursor-pointer items-center gap-3">
-        <input
-          id={field.key}
-          name={field.key}
-          type="checkbox"
-          defaultChecked={value === "true"}
-          className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-        />
-        <span className="text-sm text-slate-600">Aktif</span>
-      </label>
+      <AdminSwitch
+        name={field.key}
+        label={field.label}
+        description={field.hint}
+        defaultChecked={value === "true"}
+      />
     );
   }
 
@@ -294,11 +291,13 @@ export function SettingsForm({
                     : undefined
                 }
               >
-                <label htmlFor={field.key} className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {field.label}
-                </label>
+                {field.type !== "boolean" ? (
+                  <label htmlFor={field.key} className="mb-1.5 block text-sm font-medium text-slate-700">
+                    {field.label}
+                  </label>
+                ) : null}
                 <FieldInput field={field} value={values[field.key] ?? field.defaultValue ?? ""} />
-                {field.hint ? (
+                {field.hint && field.type !== "boolean" ? (
                   <p
                     className={`mt-1.5 text-xs leading-relaxed text-slate-400 ${
                       field.hint.trim().startsWith("<") ? "break-all font-mono text-[11px]" : ""

@@ -89,6 +89,7 @@ model WorkCategory {
   updatedAt      DateTime       @updatedAt
   works          Work[]
   menuItems      MenuItem[]
+  pageSections   PageSection[]
 
   @@index([parentId])
   @@index([isActive, sortOrder])
@@ -105,6 +106,8 @@ model Work {
   summary        String?       @db.Text
   content        String?       @db.LongText
   image          String?       @db.VarChar(500)
+  /// Tam sayfa site ekran görüntüsü — ana sayfada hover ile kaydırma
+  previewImage   String?       @db.VarChar(500)
   isActive       Boolean       @default(true)
   sortOrder      Int           @default(0)
   seoTitle       String?       @db.VarChar(191)
@@ -116,6 +119,7 @@ model Work {
   projects       Project[]     @relation("WorkToProjects")
   pages          Page[]        @relation("PageToWorks")
   menuItems      MenuItem[]
+  sectionLinks   PageSectionWork[]
 
   @@index([categoryId])
   @@index([isActive, sortOrder])
@@ -142,6 +146,7 @@ model ProjectCategory {
   updatedAt      DateTime          @updatedAt
   projects       Project[]
   menuItems      MenuItem[]
+  pageSections   PageSection[]
 
   @@index([parentId])
   @@index([isActive, sortOrder])
@@ -173,6 +178,11 @@ model Project {
   seoTitle        String?               @db.VarChar(191)
   seoDescription  String?               @db.VarChar(500)
   statusNote      String?               @db.VarChar(255)
+  brochurePdf     String?               @db.VarChar(500)
+  brochureZip     String?               @db.VarChar(500)
+  highlights      String?               @db.Text
+  faqGroupId      String?
+  faqGroup        FaqGroup?             @relation(fields: [faqGroupId], references: [id], onDelete: SetNull)
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   features        ProjectFeature[]      @relation("ProjectToFeatures")
@@ -181,9 +191,11 @@ model Project {
   works           Work[]                @relation("WorkToProjects")
   pages           Page[]                @relation("PageToProjects")
   menuItems       MenuItem[]
+  sectionLinks    PageSectionProject[]
 
   @@index([categoryId])
   @@index([clientId])
+  @@index([faqGroupId])
   @@index([isActive, sortOrder])
   @@index([isFeatured, isActive])
   @@map("projects")
@@ -242,13 +254,18 @@ model ProjectFeature {
   slug        String    @unique @db.VarChar(191)
   description String?   @db.Text
   icon        String?   @db.VarChar(100)
+  /// İkon rengi (hex, örn. #7c3aed)
+  iconColor   String?   @db.VarChar(20)
   isActive    Boolean   @default(true)
+  /// Ana sayfa “Neden En İyisiyiz” accordion’ında göster
+  showOnHome  Boolean   @default(false)
   sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   projects    Project[] @relation("ProjectToFeatures")
 
   @@index([isActive, sortOrder])
+  @@index([showOnHome, isActive, sortOrder])
   @@map("project_features")
 }
 
@@ -272,6 +289,7 @@ model BlogCategory {
   updatedAt      DateTime       @updatedAt
   posts          BlogPost[]
   menuItems      MenuItem[]
+  pageSections   PageSection[]
 
   @@index([parentId])
   @@index([isActive, sortOrder])
@@ -297,6 +315,7 @@ model BlogPost {
   updatedAt      DateTime      @updatedAt
   pages          Page[]        @relation("PageToPosts")
   menuItems      MenuItem[]
+  sectionLinks   PageSectionPost[]
 
   @@index([categoryId])
   @@index([isActive, sortOrder])
@@ -308,30 +327,132 @@ enum PageType {
   ADVANCED
 }
 
+/// Gelişmiş sayfa bölüm tipleri (Elementor benzeri bloklar)
+enum PageSectionType {
+  HERO
+  TRUSTED_CLIENTS
+  CARDS
+  ADVANCED_CARD
+  PROJECTS
+  WORKS
+  BLOG
+  FAQ
+  RICH_TEXT
+  PRICING
+  CTA
+}
+
 /// CMS sayfaları — klasik içerik veya gelişmiş builder
 model Page {
-  id             String    @id @default(cuid())
-  type           PageType  @default(CLASSIC)
-  title          String    @db.VarChar(191)
-  slug           String    @unique @db.VarChar(191)
-  summary        String?   @db.Text
-  content        String?   @db.LongText
-  image          String?   @db.VarChar(500)
-  isActive       Boolean   @default(true)
-  sortOrder      Int       @default(0)
-  seoTitle       String?   @db.VarChar(191)
-  seoDescription String?   @db.VarChar(500)
-  /// Gelişmiş sayfa builder verisi (JSON) — ileride
-  builderData    String?   @db.LongText
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  works          Work[]    @relation("PageToWorks")
-  projects       Project[] @relation("PageToProjects")
-  posts          BlogPost[] @relation("PageToPosts")
+  id             String        @id @default(cuid())
+  type           PageType      @default(CLASSIC)
+  title          String        @db.VarChar(191)
+  slug           String        @unique @db.VarChar(191)
+  summary        String?       @db.Text
+  content        String?       @db.LongText
+  image          String?       @db.VarChar(500)
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  seoTitle       String?       @db.VarChar(191)
+  seoDescription String?       @db.VarChar(500)
+  /// Eski alan — yeni yapı PageSection kullanır
+  builderData    String?       @db.LongText
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  works          Work[]        @relation("PageToWorks")
+  projects       Project[]     @relation("PageToProjects")
+  posts          BlogPost[]    @relation("PageToPosts")
   menuItems      MenuItem[]
+  sections       PageSection[]
 
   @@index([type, isActive, sortOrder])
   @@map("pages")
+}
+
+/// Gelişmiş sayfa bölümü — sıralanabilir blok
+model PageSection {
+  id                  String            @id @default(cuid())
+  pageId              String
+  page                Page              @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type                PageSectionType
+  /// Admin listesinde görünen etiket
+  label               String?           @db.VarChar(191)
+  title               String?           @db.VarChar(255)
+  subtitle            String?           @db.Text
+  content             String?           @db.LongText
+  /// JSON: limit, ctaLabel, ctaUrl, showFeatures, anchorId vb.
+  settings            String?           @db.Text
+  sortOrder           Int               @default(0)
+  isActive            Boolean           @default(true)
+  heroId              String?
+  hero                Hero?             @relation(fields: [heroId], references: [id], onDelete: SetNull)
+  faqGroupId          String?
+  faqGroup            FaqGroup?         @relation(fields: [faqGroupId], references: [id], onDelete: SetNull)
+  projectCategoryId   String?
+  projectCategory     ProjectCategory?  @relation(fields: [projectCategoryId], references: [id], onDelete: SetNull)
+  workCategoryId      String?
+  workCategory        WorkCategory?     @relation(fields: [workCategoryId], references: [id], onDelete: SetNull)
+  blogCategoryId      String?
+  blogCategory        BlogCategory?     @relation(fields: [blogCategoryId], references: [id], onDelete: SetNull)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  cards               PageSectionCard[]
+  projects            PageSectionProject[]
+  posts               PageSectionPost[]
+  works               PageSectionWork[]
+
+  @@index([pageId, sortOrder])
+  @@index([pageId, isActive])
+  @@index([type])
+  @@map("page_sections")
+}
+
+model PageSectionCard {
+  sectionId String
+  cardId    String
+  sortOrder Int         @default(0)
+  section   PageSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  card      Card        @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, cardId])
+  @@index([cardId])
+  @@map("page_section_cards")
+}
+
+model PageSectionProject {
+  sectionId String
+  projectId String
+  sortOrder Int         @default(0)
+  section   PageSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, projectId])
+  @@index([projectId])
+  @@map("page_section_projects")
+}
+
+model PageSectionPost {
+  sectionId String
+  postId    String
+  sortOrder Int         @default(0)
+  section   PageSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  post      BlogPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, postId])
+  @@index([postId])
+  @@map("page_section_posts")
+}
+
+model PageSectionWork {
+  sectionId String
+  workId    String
+  sortOrder Int         @default(0)
+  section   PageSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  work      Work        @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@id([sectionId, workId])
+  @@index([workId])
+  @@map("page_section_works")
 }
 
 /// Hero alanları (örn. Anasayfa Hero) — birden fazla slayt
@@ -346,9 +467,10 @@ model Hero {
   intervalMs  Int         @default(6000)
   showDots    Boolean     @default(true)
   showArrows  Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  slides      HeroSlide[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  slides       HeroSlide[]
+  pageSections PageSection[]
 
   @@index([isActive, sortOrder])
   @@map("heroes")
@@ -437,22 +559,57 @@ enum CardMediaType {
   ICON
 }
 
-/// Ön yüz kartları (hizmet / özellik kartları vb.)
+enum CardType {
+  CLASSIC
+  ADVANCED
+}
+
+/// Görselin içeriğe göre konumu (gelişmiş kart)
+enum CardLayout {
+  MEDIA_LEFT
+  MEDIA_RIGHT
+  MEDIA_TOP
+  MEDIA_BOTTOM
+}
+
+/// Ön yüz kartları — klasik (ikon/görsel) veya gelişmiş (neden biz / split layout)
 model Card {
   id        String        @id @default(cuid())
+  type      CardType      @default(CLASSIC)
   title     String        @db.VarChar(191)
+  /// Gelişmiş kartta bölüm rozeti (örn. Neden Biz)
+  badgeText String?       @db.VarChar(120)
+  /// Gelişmiş kartta sağ/sol metin başlığı
+  subtitle  String?       @db.VarChar(255)
+  /// Zengin metin açıklama (HTML)
+  description String?     @db.LongText
+  /// JSON dizi: ["özellik 1", "özellik 2"]
+  features  String?       @db.Text
+  layout    CardLayout    @default(MEDIA_LEFT)
   mediaType CardMediaType @default(ICON)
-  /// Kapak görseli (mediaType = IMAGE)
+  /// Kapak / yan görsel
   image     String?       @db.VarChar(500)
-  /// Lucide ikon adı — örn. Globe (mediaType = ICON)
+  /// Lucide ikon adı — klasik kart (mediaType = ICON)
   icon      String?       @db.VarChar(100)
-  /// Kart tıklanınca açılacak sayfa / URL
-  href      String        @db.VarChar(500)
-  isActive  Boolean       @default(true)
-  sortOrder Int           @default(0)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  /// Çerçeve + sparkle (gelişmiş)
+  showFrame    Boolean    @default(true)
+  showSparkles Boolean    @default(true)
+  videoLabel   String?    @db.VarChar(100)
+  videoUrl     String?    @db.VarChar(500)
+  profileName  String?    @db.VarChar(120)
+  profileRole  String?    @db.VarChar(120)
+  profileImage String?    @db.VarChar(500)
+  statValue    String?    @db.VarChar(40)
+  statLabel    String?    @db.VarChar(100)
+  /// Kart / CTA linki
+  href         String            @default("#") @db.VarChar(500)
+  isActive     Boolean           @default(true)
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  sectionLinks PageSectionCard[]
 
+  @@index([type, isActive, sortOrder])
   @@index([isActive, sortOrder])
   @@map("cards")
 }
@@ -467,7 +624,9 @@ model FaqGroup {
   sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  items       FaqItem[]
+  items        FaqItem[]
+  projects     Project[]
+  pageSections PageSection[]
 
   @@index([isActive, sortOrder])
   @@map("faq_groups")
@@ -488,6 +647,29 @@ model FaqItem {
   @@index([groupId, sortOrder])
   @@index([groupId, isActive])
   @@map("faq_items")
+}
+
+/// Fiyatlandırma paketleri — anasayfa / gelişmiş sayfa PRICING bölümü
+model PricingPlan {
+  id           String   @id @default(cuid())
+  name         String   @db.VarChar(191)
+  blurb        String?  @db.VarChar(255)
+  priceMonthly String   @db.VarChar(80)
+  priceYearly  String   @db.VarChar(80)
+  /// false ise fiyat yanında /ay /yıl gösterilmez (örn. Ücretsiz)
+  showPeriod   Boolean  @default(true)
+  featured     Boolean  @default(false)
+  /// JSON: [{ "label": string, "included": boolean }]
+  features     String?  @db.Text
+  ctaLabel     String   @default("Başlayın") @db.VarChar(100)
+  ctaHref      String   @default("/iletisim") @db.VarChar(500)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("pricing_plans")
 }
 
 enum MenuLinkType {

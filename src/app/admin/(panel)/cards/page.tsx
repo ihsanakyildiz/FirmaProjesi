@@ -27,8 +27,8 @@ export default async function CardsPage() {
               Kartlar
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Başlık, görsel veya ücretsiz Lucide ikon ve tıklanınca açılacak sayfa linki ile
-              kartlar oluşturun.
+              Klasik hizmet kartları veya gelişmiş “Neden Biz” tarzı split kartlar
+              oluşturun. Yeni kart eklerken tipi seçersiniz.
             </p>
           </div>
           <Link

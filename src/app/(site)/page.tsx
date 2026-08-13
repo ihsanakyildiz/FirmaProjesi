@@ -8,32 +8,71 @@ import { HomeProjects } from "@/components/site/home/home-projects";
 import { HomeServices } from "@/components/site/home/home-services";
 import { HomeTrusted } from "@/components/site/home/home-trusted";
 import { HomeWhyUs } from "@/components/site/home/home-why-us";
+import { HomeWorks } from "@/components/site/home/home-works";
+import { PageSectionsRenderer } from "@/components/site/page-sections-renderer";
 import { DEFAULT_HERO_SLIDE, getHeroBySlug } from "@/lib/heroes";
 import { getFaqGroupBySlug } from "@/lib/faqs";
+import {
+  getAdvancedPageBySlug,
+  resolvePageSections,
+} from "@/lib/pages";
+import { getActivePricingPlans } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Ana Sayfa",
-  description: "Web tasarım, yazılım ve dijital çözümler stüdyosu",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const advanced = await getAdvancedPageBySlug("anasayfa").catch(() => null);
+  if (advanced) {
+    return {
+      title: advanced.seoTitle || advanced.title || "Ana Sayfa",
+      description:
+        advanced.seoDescription ||
+        "Web tasarım, yazılım ve dijital çözümler stüdyosu",
+    };
+  }
+  return {
+    title: "Ana Sayfa",
+    description: "Web tasarım, yazılım ve dijital çözümler stüdyosu",
+  };
+}
 
 export default async function HomePage() {
-  const [settings, hero, cards, projects, posts, faqGroup] = await Promise.all([
-    getSettingsMap().catch(() => ({}) as Record<string, string>),
+  const settings = await getSettingsMap().catch(() => ({}) as Record<string, string>);
+  const siteName = settings.site_name || "İhsan Akyıldız";
+
+  const advancedHome = await getAdvancedPageBySlug("anasayfa").catch(() => null);
+  if (advancedHome && advancedHome.sections.length > 0) {
+    const sections = await resolvePageSections(advancedHome.sections);
+    return <PageSectionsRenderer sections={sections} siteName={siteName} />;
+  }
+
+  const [hero, cards, clients, projects, projectFeatures, works, workCategories, posts, faqGroup, pricingPlans] =
+    await Promise.all([
     getHeroBySlug("anasayfa-hero").catch(() => null),
     prisma.card
       .findMany({
         where: { isActive: true },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        take: 6,
+      })
+      .catch(() => []),
+    prisma.projectClient
+      .findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          logo: true,
+          website: true,
+          sector: true,
+        },
       })
       .catch(() => []),
     prisma.project
       .findMany({
         where: { isActive: true },
         orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-        take: 3,
+        take: 12,
         select: {
           id: true,
           title: true,
@@ -41,6 +80,41 @@ export default async function HomePage() {
           slug: true,
           image: true,
         },
+      })
+      .catch(() => []),
+    prisma.projectFeature
+      .findMany({
+        where: { isActive: true, showOnHome: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: 8,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+        },
+      })
+      .catch(() => []),
+    prisma.work
+      .findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
+        take: 18,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          image: true,
+          previewImage: true,
+          categoryId: true,
+          category: { select: { id: true, name: true } },
+        },
+      })
+      .catch(() => []),
+    prisma.workCategory
+      .findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, name: true },
       })
       .catch(() => []),
     prisma.blogPost
@@ -59,9 +133,9 @@ export default async function HomePage() {
       })
       .catch(() => []),
     getFaqGroupBySlug("anasayfa-sss").catch(() => null),
+    getActivePricingPlans().catch(() => []),
   ]);
 
-  const siteName = settings.site_name || "İhsan Akyıldız";
   const slide = hero?.slides?.[0];
   const collage =
     slide?.media
@@ -75,6 +149,10 @@ export default async function HomePage() {
         alt: item.alt || item.label || "Logo",
         label: item.label || "Logo",
       })) ?? [];
+
+  const classicCards = cards.filter((card) => card.type === "CLASSIC").slice(0, 6);
+  const advancedCard =
+    cards.find((card) => card.type === "ADVANCED") ?? null;
 
   return (
     <>
@@ -95,28 +173,88 @@ export default async function HomePage() {
         backgroundStyle={slide?.backgroundStyle ?? "grid"}
       />
 
-      <HomeTrusted />
+      <HomeTrusted
+        clients={clients.map((client) => ({
+          id: client.id,
+          name: client.name,
+          logo: client.logo,
+          website: client.website,
+          sector: client.sector,
+        }))}
+      />
 
       <div id="hizmetler">
         <HomeServices
-          items={cards.map((card) => ({
+          items={classicCards.map((card) => ({
             title: card.title,
             href: card.href || "/hizmetler",
             icon: card.icon,
-            description: undefined,
+            image: card.image,
+            mediaType: card.mediaType,
+            description: card.description ?? undefined,
           }))}
         />
       </div>
 
-      <HomeWhyUs />
+      <HomeWhyUs
+        card={
+          advancedCard
+            ? {
+                title: advancedCard.title,
+                badgeText: advancedCard.badgeText,
+                subtitle: advancedCard.subtitle,
+                description: advancedCard.description,
+                features: advancedCard.features,
+                layout: advancedCard.layout,
+                image: advancedCard.image,
+                showFrame: advancedCard.showFrame,
+                showSparkles: advancedCard.showSparkles,
+                videoLabel: advancedCard.videoLabel,
+                videoUrl: advancedCard.videoUrl,
+                profileName: advancedCard.profileName,
+                profileRole: advancedCard.profileRole,
+                profileImage: advancedCard.profileImage,
+                statValue: advancedCard.statValue,
+                statLabel: advancedCard.statLabel,
+              }
+            : null
+        }
+      />
 
       <div id="projeler">
         <HomeProjects
+          features={projectFeatures.map((feature) => ({
+            id: feature.id,
+            name: feature.name,
+            description: feature.description,
+          }))}
           projects={projects.map((project) => ({
             title: project.title,
             summary: project.summary || "Detaylar için projeyi inceleyin.",
             image: project.image,
             href: `/projeler/${project.slug}`,
+          }))}
+        />
+      </div>
+
+      <div id="yapilan-isler">
+        <HomeWorks
+          categories={workCategories
+            .filter((category) =>
+              works.some((work) => work.categoryId === category.id),
+            )
+            .map((category) => ({
+              id: category.id,
+              name: category.name,
+            }))}
+          works={works.map((work) => ({
+            id: work.id,
+            title: work.title,
+            href: `/yapilan-isler/${work.slug}`,
+            image: work.image,
+            previewImage: work.previewImage,
+            categoryId: work.categoryId,
+            categoryName: work.category?.name ?? null,
           }))}
         />
       </div>
@@ -132,7 +270,7 @@ export default async function HomePage() {
       />
 
       <div id="fiyatlandirma">
-        <HomePricing />
+        <HomePricing plans={pricingPlans} />
       </div>
 
       <div id="sss">

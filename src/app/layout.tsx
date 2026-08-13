@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { DeferredAnalytics } from "@/components/site/deferred-analytics";
 import { PerformanceHead } from "@/components/site/performance-head";
+import { RouteLoadingIndicator } from "@/components/route-loading-indicator";
 import { getSettingsMap, isSettingEnabled } from "@/lib/settings";
 import { getWebpCompanion } from "@/lib/uploads";
 import "./globals.css";
@@ -148,7 +149,9 @@ export default async function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} antialiased`}
-      >        {children}
+      >
+        <RouteLoadingIndicator />
+        {children}
         <DeferredAnalytics
           enabled={!thirdPartyDisabled}
           defer={deferAnalytics}

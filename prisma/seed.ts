@@ -625,6 +625,69 @@ async function main() {
     }
   }
 
+  const pricingCount = await prisma.pricingPlan.count();
+  if (pricingCount === 0) {
+    const defaultPlans = [
+      {
+        name: "Deneme",
+        blurb: "Test ve keşif için",
+        priceMonthly: "Ücretsiz",
+        priceYearly: "Ücretsiz",
+        showPeriod: false,
+        featured: false,
+        features: JSON.stringify([
+          { label: "Tek ekip üyesi", included: true },
+          { label: "Temel UI blokları", included: true },
+          { label: "10 GB depolama", included: true },
+          { label: "Özel e-posta hesabı", included: false },
+          { label: "Öncelikli destek", included: false },
+        ]),
+        ctaLabel: "Başlayın",
+        ctaHref: "/iletisim",
+        sortOrder: 0,
+      },
+      {
+        name: "Standart",
+        blurb: "Büyüyen ekipler için",
+        priceMonthly: "₺14.900",
+        priceYearly: "₺149.000",
+        showPeriod: true,
+        featured: true,
+        features: JSON.stringify([
+          { label: "5 ekip üyesi", included: true },
+          { label: "Tüm medya kanalları", included: true },
+          { label: "Gelişmiş CRM özellikleri", included: true },
+          { label: "15.000 kişiye kadar", included: true },
+          { label: "7/24 destek", included: true },
+        ]),
+        ctaLabel: "Başlayın",
+        ctaHref: "/iletisim",
+        sortOrder: 1,
+      },
+      {
+        name: "Kurumsal",
+        blurb: "İleri seviye projeler",
+        priceMonthly: "₺24.900",
+        priceYearly: "₺249.000",
+        showPeriod: true,
+        featured: false,
+        features: JSON.stringify([
+          { label: "50 ekip üyesi", included: true },
+          { label: "Geniş UI kütüphanesi", included: true },
+          { label: "100 GB depolama", included: true },
+          { label: "Özel e-posta hesabı", included: true },
+          { label: "Öncelikli destek", included: true },
+        ]),
+        ctaLabel: "Başlayın",
+        ctaHref: "/iletisim",
+        sortOrder: 2,
+      },
+    ];
+
+    await prisma.pricingPlan.createMany({ data: defaultPlans });
+    console.log("Default pricing plans seeded.");
+  }
+
   console.log("Seed tamamlandı.");
   console.log(`Admin: ${email}`);
   await prisma.$disconnect();

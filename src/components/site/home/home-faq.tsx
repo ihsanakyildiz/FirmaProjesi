@@ -36,22 +36,32 @@ const FALLBACK: FaqViewItem[] = [
   },
 ];
 
-export function HomeFaq({ items }: { items?: FaqViewItem[] }) {
+export function HomeFaq({
+  items,
+  title,
+  subtitle,
+}: {
+  items?: FaqViewItem[];
+  title?: string | null;
+  subtitle?: string | null;
+}) {
   const list = items && items.length > 0 ? items : FALLBACK;
   const [openId, setOpenId] = useState<string | null>(list[0]?.id ?? null);
   const mid = Math.ceil(list.length / 2);
   const columns = [list.slice(0, mid), list.slice(mid)];
+  const heading = title?.trim() || "Bize her şeyi sorun";
+  const lead =
+    subtitle?.trim() ||
+    "Sık sorulan sorulara hızlı yanıtlar. Daha fazlası için iletişime geçin.";
 
   return (
     <section className="bg-site-surface py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight text-site-fg sm:text-4xl">
-            Bize her şeyi sorun
+            {heading}
           </h2>
-          <p className="mt-3 text-site-muted">
-            Sık sorulan sorulara hızlı yanıtlar. Daha fazlası için iletişime geçin.
-          </p>
+          <p className="mt-3 text-site-muted">{lead}</p>
         </div>
 
         <div className="mt-12 grid gap-4 lg:grid-cols-2">

@@ -8,11 +8,18 @@ type LucideIconPickerProps = {
   value: string;
   onChange: (name: string) => void;
   name?: string;
+  /** Önizleme rengi (hex) */
+  color?: string;
 };
 
 const PAGE_SIZE = 120;
 
-export function LucideIconPicker({ value, onChange, name = "icon" }: LucideIconPickerProps) {
+export function LucideIconPicker({
+  value,
+  onChange,
+  name = "icon",
+  color,
+}: LucideIconPickerProps) {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -38,7 +45,10 @@ export function LucideIconPicker({ value, onChange, name = "icon" }: LucideIconP
       <input type="hidden" name={name} value={value} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#e9ebec] bg-[#f3f6f9] text-[#405189]">
+        <div
+          className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#e9ebec] bg-[#f3f6f9]"
+          style={{ color: color || "#405189" }}
+        >
           {value ? (
             <LucideIconByName name={value} className="h-6 w-6" />
           ) : (

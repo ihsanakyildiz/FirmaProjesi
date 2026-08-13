@@ -1,0 +1,59 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { parsePricingFeatures } from "@/lib/pricing";
+import { prisma } from "@/lib/prisma";
+import { PricingPlanForm } from "../../pricing-plan-form";
+
+type EditPricingPlanPageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: EditPricingPlanPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const plan = await prisma.pricingPlan.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  return { title: plan ? `Düzenle: ${plan.name}` : "Paket Düzenle" };
+}
+
+export default async function EditPricingPlanPage({
+  params,
+}: EditPricingPlanPageProps) {
+  const { id } = await params;
+  const plan = await prisma.pricingPlan.findUnique({ where: { id } });
+  if (!plan) notFound();
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
+        <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+          Fiyatlandırma
+        </p>
+        <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
+          Paketi Düzenle
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">{plan.name}</p>
+      </div>
+      <PricingPlanForm
+        mode="edit"
+        initial={{
+          id: plan.id,
+          name: plan.name,
+          blurb: plan.blurb,
+          priceMonthly: plan.priceMonthly,
+          priceYearly: plan.priceYearly,
+          showPeriod: plan.showPeriod,
+          featured: plan.featured,
+          features: parsePricingFeatures(plan.features),
+          ctaLabel: plan.ctaLabel,
+          ctaHref: plan.ctaHref,
+          sortOrder: plan.sortOrder,
+          isActive: plan.isActive,
+        }}
+      />
+    </div>
+  );
+}

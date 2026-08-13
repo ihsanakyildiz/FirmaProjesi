@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ImageIcon, Loader2, Save, Trash2, Upload } from "lucide-react";
+import { AdminSwitch } from "@/components/admin/admin-switch";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { SearchableSelect } from "@/components/admin/searchable-select";
 import { resolveWorkSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX, clampSeoText } from "@/lib/seo";
@@ -24,6 +25,7 @@ type WorkFormValues = {
   summary?: string;
   content?: string;
   image?: string;
+  previewImage?: string;
   sortOrder?: number;
   isActive?: boolean;
   seoTitle?: string;
@@ -90,7 +92,10 @@ export function WorkForm({
   );
   const [image, setImage] = useState(initial?.image ?? "");
   const [preview, setPreview] = useState(initial?.image ?? "");
+  const [previewImage, setPreviewImage] = useState(initial?.previewImage ?? "");
+  const [previewScroll, setPreviewScroll] = useState(initial?.previewImage ?? "");
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (state.success) {
@@ -151,6 +156,7 @@ export function WorkForm({
     <form action={formAction} className="space-y-6">
       {mode === "edit" && initial?.id ? <input type="hidden" name="id" value={initial.id} /> : null}
       <input type="hidden" name="image" value={image} />
+      <input type="hidden" name="previewImage" value={previewImage} />
 
       {state.error ? (
         <div
@@ -339,15 +345,11 @@ export function WorkForm({
           </div>
 
           <div className="flex items-end md:col-span-2">
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-[#e9ebec] px-4 py-2.5">
-              <input
-                type="checkbox"
-                name="isActive"
-                defaultChecked={initial?.isActive ?? true}
-                className="h-4 w-4 rounded border-slate-300 text-[#0ab39c] focus:ring-[#0ab39c]"
-              />
-              <span className="text-sm font-medium text-slate-700">Aktif (yayında)</span>
-            </label>
+            <AdminSwitch
+              name="isActive"
+              label="Aktif (yayında)"
+              defaultChecked={initial?.isActive ?? true}
+            />
           </div>
 
           <div className="md:col-span-2">
@@ -489,57 +491,129 @@ export function WorkForm({
 
       <section className="rounded-lg border border-[#e9ebec] bg-white shadow-sm">
         <div className="border-b border-[#e9ebec] px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-800">Görsel</h2>
-          <p className="mt-1 text-sm text-slate-500">Kapak görseli (otomatik WebP)</p>
+          <h2 className="text-base font-semibold text-slate-800">Görseller</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Kapak görseli ve ana sayfa hover kaydırması için tam sayfa ekran görüntüsü
+          </p>
         </div>
-        <div className="p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex h-28 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[#e9ebec] bg-[#f3f6f9]">
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <ImageIcon className="h-8 w-8 text-slate-300" />
-              )}
-            </div>
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <Upload className="h-4 w-4" />
-                  Görsel Seç
-                </button>
+        <div className="space-y-8 p-5">
+          <div>
+            <p className="mb-3 text-sm font-medium text-slate-700">Kapak görseli</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex h-28 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[#e9ebec] bg-[#f3f6f9]">
                 {preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-slate-300" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setImage("");
-                      setPreview("");
-                      if (fileRef.current) fileRef.current.value = "";
-                    }}
-                    className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600"
+                    onClick={() => fileRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
-                    <Trash2 className="h-4 w-4" />
-                    Kaldır
+                    <Upload className="h-4 w-4" />
+                    Görsel Seç
                   </button>
-                ) : null}
+                  {preview ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImage("");
+                        setPreview("");
+                        if (fileRef.current) fileRef.current.value = "";
+                      }}
+                      className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Kaldır
+                    </button>
+                  ) : null}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  name="image_file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setPreview(URL.createObjectURL(file));
+                  }}
+                />
+                <p className="text-xs text-slate-400">
+                  PNG, JPG veya WEBP — kayıtta WebP’ye çevrilir.
+                </p>
               </div>
-              <input
-                ref={fileRef}
-                type="file"
-                name="image_file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setPreview(URL.createObjectURL(file));
-                }}
-              />
-              <p className="text-xs text-slate-400">PNG, JPG veya WEBP — kayıtta WebP’ye çevrilir.</p>
+            </div>
+          </div>
+
+          <div className="border-t border-[#e9ebec] pt-6">
+            <p className="mb-1 text-sm font-medium text-slate-700">
+              Tam sayfa site görseli (ana sayfa hover)
+            </p>
+            <p className="mb-3 text-xs text-slate-400">
+              Web sitesinin uzun ekran görüntüsünü yükleyin. Ana sayfada kartın üzerine
+              gelince görsel tarayıcı gibi aşağı kayar.
+            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex h-40 w-28 shrink-0 items-start justify-center overflow-hidden rounded-lg border border-dashed border-[#e9ebec] bg-[#f3f6f9]">
+                {previewScroll ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewScroll}
+                    alt=""
+                    className="w-full object-cover object-top"
+                  />
+                ) : (
+                  <ImageIcon className="mt-12 h-8 w-8 text-slate-300" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => previewFileRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Tam Sayfa Görsel Seç
+                  </button>
+                  {previewScroll ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewImage("");
+                        setPreviewScroll("");
+                        if (previewFileRef.current) previewFileRef.current.value = "";
+                      }}
+                      className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Kaldır
+                    </button>
+                  ) : null}
+                </div>
+                <input
+                  ref={previewFileRef}
+                  type="file"
+                  name="preview_image_file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setPreviewScroll(URL.createObjectURL(file));
+                  }}
+                />
+                <p className="text-xs text-slate-400">
+                  Uzun ekran görüntüsü önerilir (en fazla ~12 MB).
+                </p>
+              </div>
             </div>
           </div>
         </div>

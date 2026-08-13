@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: "6mb",
+      // Tam sayfa site ekran görüntüleri (works previewImage) için
+      bodySizeLimit: "16mb",
     },
   },
   images: {
