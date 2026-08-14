@@ -353,12 +353,13 @@ export async function collectSystemHealth(): Promise<SystemHealthReport> {
   });
 
   const mem = process.memoryUsage();
-  const heapPct = mem.heapTotal > 0 ? mem.heapUsed / mem.heapTotal : 0;
+  const rssMb = mem.rss / (1024 * 1024);
+  const memoryStatus: HealthStatus = rssMb >= 768 ? "fail" : rssMb >= 512 ? "warn" : "ok";
   checks.push({
     id: "heap",
     label: "Uygulama belleği",
-    status: heapPct > 0.9 ? "warn" : "ok",
-    detail: `${formatBytes(mem.heapUsed)} / ${formatBytes(mem.heapTotal)} heap`,
+    status: memoryStatus,
+    detail: `RSS ${formatBytes(mem.rss)} · heap ${formatBytes(mem.heapUsed)}`,
   });
 
   const totalMem = os.totalmem();

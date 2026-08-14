@@ -1,17 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
-export function SystemHealthRefresh() {
+export function SystemHealthRefresh({ generatedAt }: { generatedAt: string }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setPending(false);
+  }, [generatedAt]);
+
+  useEffect(() => {
+    if (!pending) return;
+    const timer = window.setTimeout(() => setPending(false), 12_000);
+    return () => window.clearTimeout(timer);
+  }, [pending]);
 
   return (
     <button
       type="button"
-      onClick={() => startTransition(() => router.refresh())}
+      onClick={() => {
+        setPending(true);
+        router.refresh();
+      }}
       disabled={pending}
       className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
     >

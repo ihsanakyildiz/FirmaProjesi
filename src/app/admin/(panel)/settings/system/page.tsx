@@ -77,7 +77,7 @@ export default async function SystemHealthPage() {
               <StatusIcon status={report.overall} />
               Genel: {statusLabel[report.overall]}
             </span>
-            <SystemHealthRefresh />
+            <SystemHealthRefresh generatedAt={report.generatedAt} />
           </div>
         </div>
       </div>
