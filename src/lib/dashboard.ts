@@ -51,20 +51,27 @@ function relativeTime(date: Date, now: Date): string {
   });
 }
 
+function tallyActive(
+  rows: { isActive: boolean; _count: { _all: number } }[],
+) {
+  let total = 0;
+  let active = 0;
+  for (const row of rows) {
+    total += row._count._all;
+    if (row.isActive) active += row._count._all;
+  }
+  return { total, active };
+}
+
 export async function getDashboardData() {
   const now = new Date();
 
   const [
-    pageTotal,
-    pageActive,
-    workTotal,
-    workActive,
-    projectTotal,
-    projectActive,
-    postTotal,
-    postActive,
-    heroTotal,
-    heroActive,
+    pageCounts,
+    workCounts,
+    projectCounts,
+    postCounts,
+    heroCounts,
     cardTotal,
     faqGroupTotal,
     menuGroupTotal,
@@ -76,16 +83,11 @@ export async function getDashboardData() {
     recentProjects,
     recentPosts,
   ] = await Promise.all([
-    prisma.page.count(),
-    prisma.page.count({ where: { isActive: true } }),
-    prisma.work.count(),
-    prisma.work.count({ where: { isActive: true } }),
-    prisma.project.count(),
-    prisma.project.count({ where: { isActive: true } }),
-    prisma.blogPost.count(),
-    prisma.blogPost.count({ where: { isActive: true } }),
-    prisma.hero.count(),
-    prisma.hero.count({ where: { isActive: true } }),
+    prisma.page.groupBy({ by: ["isActive"], _count: { _all: true } }),
+    prisma.work.groupBy({ by: ["isActive"], _count: { _all: true } }),
+    prisma.project.groupBy({ by: ["isActive"], _count: { _all: true } }),
+    prisma.blogPost.groupBy({ by: ["isActive"], _count: { _all: true } }),
+    prisma.hero.groupBy({ by: ["isActive"], _count: { _all: true } }),
     prisma.card.count(),
     prisma.faqGroup.count(),
     prisma.menuGroup.count(),
@@ -137,6 +139,22 @@ export async function getDashboardData() {
       select: { id: true, title: true, updatedAt: true, isActive: true },
     }),
   ]);
+
+  const pages = tallyActive(pageCounts);
+  const works = tallyActive(workCounts);
+  const projects = tallyActive(projectCounts);
+  const posts = tallyActive(postCounts);
+  const heroes = tallyActive(heroCounts);
+  const pageTotal = pages.total;
+  const pageActive = pages.active;
+  const workTotal = works.total;
+  const workActive = works.active;
+  const projectTotal = projects.total;
+  const projectActive = projects.active;
+  const postTotal = posts.total;
+  const postActive = posts.active;
+  const heroTotal = heroes.total;
+  const heroActive = heroes.active;
 
   const stats: DashboardStat[] = [
     {

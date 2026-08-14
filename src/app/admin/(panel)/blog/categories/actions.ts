@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustBlogCache } from "@/lib/blog";
 import { auth } from "@/auth";
 import { collectDescendantIds } from "@/lib/category-tree";
 import { prisma } from "@/lib/prisma";
@@ -169,6 +170,9 @@ export async function createBlogCategoryAction(
       },
     });
 
+    bustBlogCache();
+    revalidatePath("/blog");
+    revalidatePath("/blog/kategori");
     revalidatePath("/admin/blog/categories");
     revalidatePath("/admin/blog/posts");
     return { success: true, message: "Kategori oluşturuldu." };
@@ -237,6 +241,9 @@ export async function updateBlogCategoryAction(
       },
     });
 
+    bustBlogCache();
+    revalidatePath("/blog");
+    revalidatePath("/blog/kategori");
     revalidatePath("/admin/blog/categories");
     revalidatePath(`/admin/blog/categories/${id}/edit`);
     revalidatePath("/admin/blog/posts");
@@ -359,6 +366,9 @@ export async function deleteBlogCategoryAction(input: {
       await deletePublicAsset(imagePath);
     }
 
+    bustBlogCache();
+    revalidatePath("/blog");
+    revalidatePath("/blog/kategori");
     revalidatePath("/admin/blog/categories");
     revalidatePath("/admin/blog/posts");
     return {
@@ -440,6 +450,9 @@ export async function deactivateBlogCategoryAction(input: {
       data: { isActive: false },
     });
 
+    bustBlogCache();
+    revalidatePath("/blog");
+    revalidatePath("/blog/kategori");
     revalidatePath("/admin/blog/categories");
     revalidatePath("/admin/blog/posts");
     return {
@@ -473,6 +486,9 @@ export async function activateBlogCategoryAction(categoryId: string): Promise<De
     data: { isActive: true },
   });
 
+  bustBlogCache();
+  revalidatePath("/blog");
+  revalidatePath("/blog/kategori");
   revalidatePath("/admin/blog/categories");
   revalidatePath("/admin/blog/posts");
   return { success: true, message: "Kategori aktifleştirildi." };

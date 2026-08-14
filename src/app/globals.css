@@ -314,8 +314,8 @@ body {
   display: none;
 }
 
-html.perf-smooth-scroll {
-  scroll-behavior: smooth;
+html.perf-font-swap {
+  font-synthesis: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -14,3 +14,46 @@ export function stripHtml(html: string | null | undefined): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function prepareRichHtml(
+  html: string | null | undefined,
+  options: {
+    lazyImages: boolean;
+    lazyIframes: boolean;
+    disableThirdParty: boolean;
+  },
+): string {
+  if (!html) return "";
+  let out = html;
+
+  if (options.disableThirdParty) {
+    out = out.replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "");
+    out = out.replace(/<script\b[\s\S]*?<\/script>/gi, "");
+    out = out.replace(/<(embed|object)\b[\s\S]*?>/gi, "");
+  }
+
+  out = out.replace(/<img\b([^>]*?)(\/?)>/gi, (_match, rawAttrs: string, closing: string) => {
+    let attrs = rawAttrs;
+    if (/\bloading\s*=/i.test(attrs)) {
+      attrs = attrs.replace(/\sloading\s*=\s*(['"]).*?\1/i, "");
+    }
+    if (!/\bdecoding\s*=/i.test(attrs)) {
+      attrs += ' decoding="async"';
+    }
+    attrs += options.lazyImages ? ' loading="lazy"' : ' loading="eager"';
+    if (!/\bsizes\s*=/i.test(attrs)) {
+      attrs += ' sizes="(max-width: 768px) 100vw, 720px"';
+    }
+    return `<img${attrs}${closing}>`;
+  });
+
+  if (!options.disableThirdParty) {
+    out = out.replace(/<iframe\b([^>]*?)>/gi, (match, rawAttrs: string) => {
+      if (/\bloading\s*=/i.test(rawAttrs)) return match;
+      const loading = options.lazyIframes ? "lazy" : "eager";
+      return `<iframe${rawAttrs} loading="${loading}">`;
+    });
+  }
+
+  return out;
+}

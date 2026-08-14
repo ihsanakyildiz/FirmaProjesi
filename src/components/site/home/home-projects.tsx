@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
 import { useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { stripHtml } from "@/lib/html";
@@ -83,13 +83,13 @@ function ProjectCard({ project }: { project: ProjectHighlight }) {
     stripHtml(project.summary) || "Detaylar için projeyi inceleyin.";
 
   return (
-    <Link
+    <SiteLink
       href={project.href}
       data-project-card
       className="group flex gap-4 rounded-3xl border border-site-border bg-site-card p-3 transition hover:border-site-primary/40 hover:shadow-lg"
     >
       <span className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl sm:h-28 sm:w-36">
-        <Image
+        <SiteImage
           src={
             project.image ||
             "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=400&q=80"
@@ -108,7 +108,7 @@ function ProjectCard({ project }: { project: ProjectHighlight }) {
           {summary}
         </span>
       </span>
-    </Link>
+    </SiteLink>
   );
 }
 

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { AdminPublicLink } from "@/components/admin/admin-public-link";
 import { prisma } from "@/lib/prisma";
 import { resolvePageSeo } from "@/lib/seo";
 import type { PageSectionTypeValue } from "@/lib/page-sections";
+import { publicPageHref } from "@/lib/public-urls";
 import { AdvancedPageMetaForm } from "../../advanced-page-meta-form";
 import { ClassicPageForm } from "../../classic-page-form";
 import {
@@ -260,7 +262,7 @@ export default async function EditPagePage({ params }: EditPageProps) {
       workIds: section.works.map((row) => row.workId),
     }));
 
-    const publicHref = page.slug === "anasayfa" ? "/" : `/${page.slug}`;
+    const publicHref = publicPageHref(page.slug);
 
     return (
       <div className="space-y-6">
@@ -282,16 +284,7 @@ export default async function EditPagePage({ params }: EditPageProps) {
               </h1>
               <p className="mt-1 text-sm text-slate-500">/{page.slug}</p>
             </div>
-            {page.isActive ? (
-              <Link
-                href={publicHref}
-                target="_blank"
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Ön yüzde aç
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-            ) : null}
+            <AdminPublicLink href={publicHref} variant="button" />
           </div>
         </div>
 
@@ -346,13 +339,18 @@ export default async function EditPagePage({ params }: EditPageProps) {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
-        <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
-          Klasik Sayfa
-        </p>
-        <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
-          Sayfayı Düzenle
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">{page.title}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+              Klasik Sayfa
+            </p>
+            <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
+              Sayfayı Düzenle
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">{page.title}</p>
+          </div>
+          <AdminPublicLink href={publicPageHref(page.slug)} variant="button" />
+        </div>
       </div>
 
       <ClassicPageForm

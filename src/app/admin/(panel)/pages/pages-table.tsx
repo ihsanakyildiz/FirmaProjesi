@@ -14,7 +14,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { AdminPublicLink, AdminPublicTextLink } from "@/components/admin/admin-public-link";
 import { stripHtml } from "@/lib/html";
+import { publicPageHref } from "@/lib/public-urls";
 import { deletePageAction, togglePageActiveAction } from "./actions";
 
 export type PageRow = {
@@ -296,7 +298,7 @@ export function PagesTable({ pages }: { pages: PageRow[] }) {
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[920px]">
-              <div className="grid grid-cols-[minmax(0,1.8fr)_90px_minmax(0,1fr)_60px_90px_140px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <div className="grid grid-cols-[minmax(0,1.8fr)_90px_minmax(0,1fr)_60px_90px_176px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <div>Sayfa</div>
                 <div>Tip</div>
                 <div>İlişkiler</div>
@@ -312,7 +314,7 @@ export function PagesTable({ pages }: { pages: PageRow[] }) {
                 return (
                   <div
                     key={page.id}
-                    className="grid grid-cols-[minmax(0,1.8fr)_90px_minmax(0,1fr)_60px_90px_140px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
+                    className="grid grid-cols-[minmax(0,1.8fr)_90px_minmax(0,1fr)_60px_90px_176px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f6f9]">
@@ -326,8 +328,17 @@ export function PagesTable({ pages }: { pages: PageRow[] }) {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-800">{page.title}</p>
-                        <p className="mt-0.5 truncate text-xs text-slate-400">/{page.slug}</p>
+                        <p className="truncate font-medium text-slate-800">
+                          <AdminPublicTextLink href={publicPageHref(page.slug)}>
+                            {page.title}
+                          </AdminPublicTextLink>
+                        </p>
+                        <AdminPublicTextLink
+                          href={publicPageHref(page.slug)}
+                          className="mt-0.5 block truncate font-mono text-xs text-slate-400"
+                        >
+                          {publicPageHref(page.slug)}
+                        </AdminPublicTextLink>
                       </div>
                     </div>
 
@@ -371,6 +382,7 @@ export function PagesTable({ pages }: { pages: PageRow[] }) {
                     </div>
 
                     <div className="flex items-center justify-end gap-1.5">
+                      <AdminPublicLink href={publicPageHref(page.slug)} />
                       <form action={togglePageActiveAction}>
                         <input type="hidden" name="id" value={page.id} />
                         <button

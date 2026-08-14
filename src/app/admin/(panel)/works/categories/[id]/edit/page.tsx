@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AdminPublicLink } from "@/components/admin/admin-public-link";
 import {
   buildCategoryTree,
   collectDescendantIds,
   flattenCategoryTree,
 } from "@/lib/category-tree";
 import { prisma } from "@/lib/prisma";
+import { publicWorkCategoryHref } from "@/lib/public-urls";
 import { WorkCategoryForm } from "../../category-form";
 
 type EditPageProps = {
@@ -52,13 +54,21 @@ export default async function EditWorkCategoryPage({ params }: EditPageProps) {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
-        <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
-          Yapılan İşler
-        </p>
-        <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
-          Kategoriyi Düzenle
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">{category.name}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+              Yapılan İşler
+            </p>
+            <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
+              Kategoriyi Düzenle
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">{category.name}</p>
+          </div>
+          <AdminPublicLink
+            href={publicWorkCategoryHref(category.slug)}
+            variant="button"
+          />
+        </div>
       </div>
 
       <WorkCategoryForm

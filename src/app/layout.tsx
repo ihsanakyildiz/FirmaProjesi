@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { DeferredAnalytics } from "@/components/site/deferred-analytics";
 import { PerformanceHead } from "@/components/site/performance-head";
+import { PerformanceProvider } from "@/components/site/performance-provider";
 import { RouteLoadingIndicator } from "@/components/route-loading-indicator";
+import { isAdminRequest } from "@/lib/admin-request";
+import { parsePerformance } from "@/lib/performance";
 import { getSettingsMap, isSettingEnabled } from "@/lib/settings";
 import { getWebpCompanion } from "@/lib/uploads";
 import "./globals.css";
@@ -11,18 +14,21 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   display: "swap",
+  preload: true,
 });
 
 function iconEntries(pngPath: string, sizes: string) {
@@ -37,6 +43,16 @@ function iconEntries(pngPath: string, sizes: string) {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  if (await isAdminRequest()) {
+    return {
+      title: {
+        default: "Yönetim Paneli",
+        template: "%s | Admin",
+      },
+      robots: "noindex, nofollow",
+    };
+  }
+
   try {
     const settings = await getSettingsMap();
     const siteName = settings.site_name || "İhsan Akyıldız";
@@ -110,23 +126,33 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isAdmin = await isAdminRequest();
   let settings: Record<string, string> = {};
-  try {
-    settings = await getSettingsMap();
-  } catch {
-    settings = {};
+  if (!isAdmin) {
+    try {
+      settings = await getSettingsMap();
+    } catch {
+      settings = {};
+    }
   }
 
-  const smoothScroll = isSettingEnabled(settings, "perf_instant_scroll", false);
-  const reduceMotion = isSettingEnabled(settings, "perf_reduce_motion", true);
-  const lazyImages = isSettingEnabled(settings, "perf_lazy_images", true);
-  const thirdPartyDisabled = isSettingEnabled(settings, "perf_disable_third_party", false);
+  const perf = parsePerformance(settings);
+  const smoothScroll = isAdmin
+    ? false
+    : isSettingEnabled(settings, "perf_instant_scroll", false);
+  const reduceMotion = isAdmin
+    ? false
+    : isSettingEnabled(settings, "perf_reduce_motion", true);
+  const thirdPartyDisabled = isAdmin
+    ? true
+    : isSettingEnabled(settings, "perf_disable_third_party", false);
   const deferAnalytics = isSettingEnabled(settings, "perf_defer_analytics", true);
   const delayMs = Number.parseInt(settings.perf_analytics_delay_ms || "3000", 10);
 
   const htmlClass = [
     smoothScroll ? "perf-smooth-scroll" : "",
     reduceMotion ? "perf-respect-reduced-motion" : "",
+    perf.fontDisplaySwap ? "perf-font-swap" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -135,8 +161,8 @@ export default async function RootLayout({
     <html
       lang="tr"
       className={htmlClass || undefined}
-      data-lazy-images={lazyImages ? "true" : "false"}
-      data-lazy-iframes={isSettingEnabled(settings, "perf_lazy_iframes", true) ? "true" : "false"}
+      data-lazy-images={perf.lazyImages ? "true" : "false"}
+      data-lazy-iframes={perf.lazyIframes ? "true" : "false"}
       suppressHydrationWarning
     >
       <head>
@@ -145,20 +171,24 @@ export default async function RootLayout({
             __html: `(function(){try{var a=localStorage.getItem('admin-theme');if(a==='dark'){document.documentElement.classList.add('admin-dark');document.documentElement.dataset.adminTheme='dark';}else{document.documentElement.dataset.adminTheme='light';}var s=localStorage.getItem('site-theme');if(s==='dark'){document.documentElement.classList.add('site-dark');document.documentElement.dataset.siteTheme='dark';}else{document.documentElement.dataset.siteTheme='light';}}catch(e){}})();`,
           }}
         />
-        <PerformanceHead settings={settings} />
+        {isAdmin ? null : <PerformanceHead settings={settings} />}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} antialiased`}
       >
-        <RouteLoadingIndicator />
-        {children}
-        <DeferredAnalytics
-          enabled={!thirdPartyDisabled}
-          defer={deferAnalytics}
-          delayMs={Number.isFinite(delayMs) ? delayMs : 3000}
-          googleAnalyticsId={settings.google_analytics_id || undefined}
-          googleTagManagerId={settings.google_tag_manager_id || undefined}
-        />
+        <PerformanceProvider value={perf}>
+          <RouteLoadingIndicator enabled={isAdmin || perf.showLoadingIndicator} />
+          {children}
+        </PerformanceProvider>
+        {isAdmin ? null : (
+          <DeferredAnalytics
+            enabled={!thirdPartyDisabled}
+            defer={deferAnalytics}
+            delayMs={Number.isFinite(delayMs) ? delayMs : 3000}
+            googleAnalyticsId={settings.google_analytics_id || undefined}
+            googleTagManagerId={settings.google_tag_manager_id || undefined}
+          />
+        )}
       </body>
     </html>
   );

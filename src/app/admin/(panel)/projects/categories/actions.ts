@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustProjectCache } from "@/lib/projects";
 import { auth } from "@/auth";
 import { collectDescendantIds } from "@/lib/category-tree";
 import { prisma } from "@/lib/prisma";
@@ -25,6 +26,12 @@ async function requireAdmin() {
     throw new Error("UNAUTHORIZED");
   }
   return session;
+}
+
+function revalidateProjectCategoryPublic(slug?: string | null) {
+  revalidatePath("/projeler");
+  revalidatePath("/projeler/kategori");
+  if (slug) revalidatePath(`/projeler/kategori/${slug}`);
 }
 
 async function uniqueProjectCategorySlug(base: string, excludeId?: string) {
@@ -169,6 +176,8 @@ export async function createProjectCategoryAction(
       },
     });
 
+    bustProjectCache();
+    revalidateProjectCategoryPublic(slug);
     revalidatePath("/admin/projects/categories");
     revalidatePath("/admin/projects");
     return { success: true, message: "Kategori oluşturuldu." };
@@ -237,6 +246,8 @@ export async function updateProjectCategoryAction(
       },
     });
 
+    bustProjectCache();
+    revalidateProjectCategoryPublic(slug);
     revalidatePath("/admin/projects/categories");
     revalidatePath(`/admin/projects/categories/${id}/edit`);
     revalidatePath("/admin/projects");
@@ -359,6 +370,8 @@ export async function deleteProjectCategoryAction(input: {
       await deletePublicAsset(imagePath);
     }
 
+    bustProjectCache();
+    revalidateProjectCategoryPublic(existing.slug);
     revalidatePath("/admin/projects/categories");
     revalidatePath("/admin/projects");
     return {
@@ -392,7 +405,7 @@ export async function deactivateProjectCategoryAction(input: {
 
   const existing = await prisma.projectCategory.findUnique({
     where: { id },
-    select: { id: true, name: true, isActive: true },
+    select: { id: true, name: true, slug: true, isActive: true },
   });
   if (!existing) return { error: "Kategori bulunamadı." };
 
@@ -440,6 +453,8 @@ export async function deactivateProjectCategoryAction(input: {
       data: { isActive: false },
     });
 
+    bustProjectCache();
+    revalidateProjectCategoryPublic(existing.slug);
     revalidatePath("/admin/projects/categories");
     revalidatePath("/admin/projects");
     return {
@@ -473,6 +488,8 @@ export async function activateProjectCategoryAction(categoryId: string): Promise
     data: { isActive: true },
   });
 
+  bustProjectCache();
+  revalidateProjectCategoryPublic(existing.slug);
   revalidatePath("/admin/projects/categories");
   revalidatePath("/admin/projects");
   return { success: true, message: "Kategori aktifleştirildi." };

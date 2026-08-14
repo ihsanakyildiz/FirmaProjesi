@@ -1,5 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
 import type { CardLayout } from "@prisma/client";
 import { CheckCircle2, Play } from "lucide-react";
 import { parseCardFeatures } from "@/lib/cards";
@@ -62,7 +62,7 @@ function MediaBlock({ card }: { card: AdvancedCardData }) {
   const overlay =
     videoLabel ? (
       videoUrl ? (
-        <Link
+        <SiteLink
           href={videoUrl}
           className="absolute bottom-5 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-lg transition hover:scale-[1.02]"
         >
@@ -70,7 +70,7 @@ function MediaBlock({ card }: { card: AdvancedCardData }) {
             <Play className="h-3.5 w-3.5 fill-current" />
           </span>
           {videoLabel}
-        </Link>
+        </SiteLink>
       ) : (
         <span className="absolute bottom-5 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-lg">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-site-primary text-white">
@@ -87,12 +87,13 @@ function MediaBlock({ card }: { card: AdvancedCardData }) {
         <div className="absolute -inset-3 rounded-[2rem] border-[10px] border-site-primary/25" />
       ) : null}
       <div className="relative overflow-hidden rounded-[1.6rem] shadow-2xl">
-        <Image
+        <SiteImage
           src={imageSrc}
           alt={card.subtitle || card.title}
           width={720}
           height={900}
           className="aspect-[4/5] w-full object-cover"
+          sizes="(max-width: 1024px) 90vw, 448px"
         />
         {overlay}
       </div>
@@ -150,7 +151,7 @@ function ContentBlock({ card }: { card: AdvancedCardData }) {
             <div className="flex items-center gap-3">
               {card.profileImage ? (
                 <span className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-site-primary/30">
-                  <Image
+                  <SiteImage
                     src={card.profileImage}
                     alt={card.profileName || "Profil"}
                     fill

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SiteImage } from "@/components/site/site-image";
 import {
   useCallback,
   useEffect,
@@ -30,7 +30,7 @@ function ClientCard({
       <span className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/0 via-transparent to-emerald-400/0 opacity-0 transition group-hover:from-violet-500/10 group-hover:to-emerald-400/10 group-hover:opacity-100" />
       {client.logo ? (
         <span className="relative h-10 w-full">
-          <Image
+          <SiteImage
             src={client.logo}
             alt={client.name}
             fill

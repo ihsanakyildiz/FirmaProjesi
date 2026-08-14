@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { auth } from "@/auth";
 import { DashboardActivity } from "@/components/admin/dashboard/dashboard-activity";
 import { DashboardCategories } from "@/components/admin/dashboard/dashboard-categories";
 import { DashboardChart } from "@/components/admin/dashboard/dashboard-chart";
 import { DashboardModules } from "@/components/admin/dashboard/dashboard-modules";
 import { DashboardStats } from "@/components/admin/dashboard/dashboard-stats";
 import { DashboardWelcome } from "@/components/admin/dashboard/dashboard-welcome";
+import { getAdminSession } from "@/lib/admin-session";
 import { getDashboardData } from "@/lib/dashboard";
 
 export const metadata: Metadata = {
@@ -14,9 +14,11 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminDashboardPage() {
-  const session = await auth();
+  const [session, data] = await Promise.all([
+    getAdminSession(),
+    getDashboardData(),
+  ]);
   const userName = session?.user?.name ?? "Admin";
-  const data = await getDashboardData();
 
   return (
     <div className="space-y-6">

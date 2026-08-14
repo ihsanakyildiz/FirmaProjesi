@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustProjectCache } from "@/lib/projects";
+import { bustWorkCache } from "@/lib/works";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -279,10 +281,14 @@ async function syncProjectMetrics(
 }
 
 function revalidateProjectPaths(id?: string, slug?: string) {
+  bustProjectCache();
+  bustWorkCache();
   revalidatePath("/admin/projects");
   revalidatePath("/admin/projects/categories");
   revalidatePath("/admin/projects/features");
   revalidatePath("/projeler");
+  revalidatePath("/projeler/kategori");
+  revalidatePath("/yapilan-isler");
   revalidatePath("/");
   if (id) revalidatePath(`/admin/projects/${id}/edit`);
   if (slug) revalidatePath(`/projeler/${slug}`);

@@ -1,27 +1,46 @@
 import type { Metadata } from "next";
-import { HomeCta } from "@/components/site/home/home-cta";
-import { HomeFaq } from "@/components/site/home/home-faq";
+import dynamic from "next/dynamic";
 import { HomeHero } from "@/components/site/home/home-hero";
-import { HomeInsights } from "@/components/site/home/home-insights";
-import { HomePricing } from "@/components/site/home/home-pricing";
-import { HomeProjects } from "@/components/site/home/home-projects";
-import { HomeServices } from "@/components/site/home/home-services";
-import { HomeTrusted } from "@/components/site/home/home-trusted";
-import { HomeWhyUs } from "@/components/site/home/home-why-us";
-import { HomeWorks } from "@/components/site/home/home-works";
 import { PageSectionsRenderer } from "@/components/site/page-sections-renderer";
 import { DEFAULT_HERO_SLIDE, getHeroBySlug } from "@/lib/heroes";
 import { getFaqGroupBySlug } from "@/lib/faqs";
-import {
-  getAdvancedPageBySlug,
-  resolvePageSections,
-} from "@/lib/pages";
+import { getCachedHomepageAdvanced } from "@/lib/pages";
 import { getActivePricingPlans } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 
+export const revalidate = 60;
+
+const HomeCta = dynamic(() =>
+  import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
+);
+const HomeFaq = dynamic(() =>
+  import("@/components/site/home/home-faq").then((mod) => mod.HomeFaq),
+);
+const HomeInsights = dynamic(() =>
+  import("@/components/site/home/home-insights").then((mod) => mod.HomeInsights),
+);
+const HomePricing = dynamic(() =>
+  import("@/components/site/home/home-pricing").then((mod) => mod.HomePricing),
+);
+const HomeProjects = dynamic(() =>
+  import("@/components/site/home/home-projects").then((mod) => mod.HomeProjects),
+);
+const HomeServices = dynamic(() =>
+  import("@/components/site/home/home-services").then((mod) => mod.HomeServices),
+);
+const HomeTrusted = dynamic(() =>
+  import("@/components/site/home/home-trusted").then((mod) => mod.HomeTrusted),
+);
+const HomeWhyUs = dynamic(() =>
+  import("@/components/site/home/home-why-us").then((mod) => mod.HomeWhyUs),
+);
+const HomeWorks = dynamic(() =>
+  import("@/components/site/home/home-works").then((mod) => mod.HomeWorks),
+);
+
 export async function generateMetadata(): Promise<Metadata> {
-  const advanced = await getAdvancedPageBySlug("anasayfa").catch(() => null);
+  const advanced = await getCachedHomepageAdvanced().catch(() => null);
   if (advanced) {
     return {
       title: advanced.seoTitle || advanced.title || "Ana Sayfa",
@@ -40,10 +59,14 @@ export default async function HomePage() {
   const settings = await getSettingsMap().catch(() => ({}) as Record<string, string>);
   const siteName = settings.site_name || "İhsan Akyıldız";
 
-  const advancedHome = await getAdvancedPageBySlug("anasayfa").catch(() => null);
-  if (advancedHome && advancedHome.sections.length > 0) {
-    const sections = await resolvePageSections(advancedHome.sections);
-    return <PageSectionsRenderer sections={sections} siteName={siteName} />;
+  const advancedHome = await getCachedHomepageAdvanced().catch(() => null);
+  if (advancedHome) {
+    return (
+      <PageSectionsRenderer
+        sections={advancedHome.sections}
+        siteName={siteName}
+      />
+    );
   }
 
   const [hero, cards, clients, projects, projectFeatures, works, workCategories, posts, faqGroup, pricingPlans] =

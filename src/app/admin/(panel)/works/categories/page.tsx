@@ -16,7 +16,15 @@ export const metadata: Metadata = {
 export default async function WorkCategoriesPage() {
   const categories = await prisma.workCategory.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
+    select: {
+      id: true,
+      parentId: true,
+      name: true,
+      slug: true,
+      description: true,
+      image: true,
+      isActive: true,
+      sortOrder: true,
       _count: { select: { works: true, children: true } },
     },
   });

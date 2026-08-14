@@ -139,6 +139,7 @@ function RouteLoadingIndicatorInner() {
         />
       </div>
 
+      {isAdmin ? null : (
       <div
         role="status"
         aria-live="polite"
@@ -162,11 +163,17 @@ function RouteLoadingIndicatorInner() {
           <span>Yükleniyor…</span>
         </div>
       </div>
+      )}
     </>
   );
 }
 
-export function RouteLoadingIndicator() {
+export function RouteLoadingIndicator({
+  enabled = true,
+}: {
+  enabled?: boolean;
+}) {
+  if (!enabled) return null;
   return (
     <Suspense fallback={null}>
       <RouteLoadingIndicatorInner />

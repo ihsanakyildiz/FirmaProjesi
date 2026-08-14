@@ -1,17 +1,37 @@
 import type { CardLayout } from "@prisma/client";
-import Link from "next/link";
-import { HomeCta } from "@/components/site/home/home-cta";
-import { HomeFaq } from "@/components/site/home/home-faq";
+import dynamic from "next/dynamic";
 import { HomeHero } from "@/components/site/home/home-hero";
-import { HomeInsights } from "@/components/site/home/home-insights";
-import { HomePricing } from "@/components/site/home/home-pricing";
-import { HomeProjects } from "@/components/site/home/home-projects";
-import { HomeServices } from "@/components/site/home/home-services";
-import { HomeTrusted } from "@/components/site/home/home-trusted";
-import { HomeWhyUs } from "@/components/site/home/home-why-us";
-import { HomeWorks } from "@/components/site/home/home-works";
+import { SiteLink } from "@/components/site/site-link";
 import { DEFAULT_HERO_SLIDE } from "@/lib/heroes";
 import type { ResolvedPageSection } from "@/lib/pages";
+
+const HomeCta = dynamic(() =>
+  import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
+);
+const HomeFaq = dynamic(() =>
+  import("@/components/site/home/home-faq").then((mod) => mod.HomeFaq),
+);
+const HomeInsights = dynamic(() =>
+  import("@/components/site/home/home-insights").then((mod) => mod.HomeInsights),
+);
+const HomePricing = dynamic(() =>
+  import("@/components/site/home/home-pricing").then((mod) => mod.HomePricing),
+);
+const HomeProjects = dynamic(() =>
+  import("@/components/site/home/home-projects").then((mod) => mod.HomeProjects),
+);
+const HomeServices = dynamic(() =>
+  import("@/components/site/home/home-services").then((mod) => mod.HomeServices),
+);
+const HomeTrusted = dynamic(() =>
+  import("@/components/site/home/home-trusted").then((mod) => mod.HomeTrusted),
+);
+const HomeWhyUs = dynamic(() =>
+  import("@/components/site/home/home-why-us").then((mod) => mod.HomeWhyUs),
+);
+const HomeWorks = dynamic(() =>
+  import("@/components/site/home/home-works").then((mod) => mod.HomeWorks),
+);
 
 function SectionShell({
   anchorId,
@@ -88,12 +108,12 @@ function CtaSection({
             ) : null}
             {ctaLabel ? (
               <div className="mt-8">
-                <Link
+                <SiteLink
                   href={ctaUrl || "/iletisim"}
                   className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
                 >
                   {ctaLabel}
-                </Link>
+                </SiteLink>
               </div>
             ) : null}
           </div>

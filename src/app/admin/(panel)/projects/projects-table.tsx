@@ -16,7 +16,9 @@ import {
   X,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/admin/searchable-select";
+import { AdminPublicLink, AdminPublicTextLink } from "@/components/admin/admin-public-link";
 import { stripHtml } from "@/lib/html";
+import { publicProjectCategoryHref, publicProjectHref } from "@/lib/public-urls";
 import {
   deleteProjectAction,
   toggleProjectActiveAction,
@@ -418,7 +420,7 @@ export function ProjectsTable({
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[980px]">
-              <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_170px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_210px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <div>Proje</div>
                 <div>Kategori</div>
                 <div>Özellikler</div>
@@ -430,7 +432,7 @@ export function ProjectsTable({
               {filtered.map((project) => (
                 <div
                   key={project.id}
-                  className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_170px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
+                  className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_210px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f6f9]">
@@ -448,7 +450,11 @@ export function ProjectsTable({
                         {project.isFeatured ? (
                           <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />
                         ) : null}
-                        <p className="truncate font-medium text-slate-800">{project.title}</p>
+                        <p className="truncate font-medium text-slate-800">
+                          <AdminPublicTextLink href={publicProjectHref(project.slug)}>
+                            {project.title}
+                          </AdminPublicTextLink>
+                        </p>
                       </div>
                       {project.client?.name ? (
                         <p className="mt-0.5 truncate text-xs text-slate-500">
@@ -468,14 +474,24 @@ export function ProjectsTable({
                           {project.statusNote}
                         </p>
                       ) : null}
-                      <code className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
-                        {project.slug}
-                      </code>
+                      <AdminPublicTextLink
+                        href={publicProjectHref(project.slug)}
+                        className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500"
+                      >
+                        {publicProjectHref(project.slug)}
+                      </AdminPublicTextLink>
                     </div>
                   </div>
 
                   <div>
-                    {project.category ? (
+                    {project.category?.slug ? (
+                      <AdminPublicTextLink
+                        href={publicProjectCategoryHref(project.category.slug)}
+                        className="inline-flex rounded-md bg-[#405189]/10 px-2 py-1 text-xs font-medium text-[#405189]"
+                      >
+                        {project.category.name}
+                      </AdminPublicTextLink>
+                    ) : project.category ? (
                       <span className="inline-flex rounded-md bg-[#405189]/10 px-2 py-1 text-xs font-medium text-[#405189]">
                         {project.category.name}
                       </span>
@@ -523,6 +539,7 @@ export function ProjectsTable({
                   </div>
 
                   <div className="flex items-center justify-end gap-1.5">
+                    <AdminPublicLink href={publicProjectHref(project.slug)} />
                     <form action={toggleProjectFeaturedAction}>
                       <input type="hidden" name="id" value={project.id} />
                       <button

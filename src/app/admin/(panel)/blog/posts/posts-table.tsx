@@ -15,7 +15,9 @@ import {
   X,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/admin/searchable-select";
+import { AdminPublicLink, AdminPublicTextLink } from "@/components/admin/admin-public-link";
 import { stripHtml } from "@/lib/html";
+import { publicBlogCategoryHref, publicBlogPostHref } from "@/lib/public-urls";
 import { deleteBlogPostAction, toggleBlogPostActiveAction } from "./actions";
 
 export type BlogPostRow = {
@@ -343,7 +345,7 @@ export function BlogPostsTable({
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[860px]">
-              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_60px_90px_140px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_60px_90px_176px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <div>Yazı</div>
                 <div>Kategori</div>
                 <div>Sıra</div>
@@ -354,7 +356,7 @@ export function BlogPostsTable({
               {filtered.map((post) => (
                 <div
                   key={post.id}
-                  className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_60px_90px_140px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
+                  className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_60px_90px_176px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f6f9]">
@@ -368,7 +370,17 @@ export function BlogPostsTable({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-800">{post.title}</p>
+                      <p className="truncate font-medium text-slate-800">
+                        <AdminPublicTextLink href={publicBlogPostHref(post.slug)}>
+                          {post.title}
+                        </AdminPublicTextLink>
+                      </p>
+                      <AdminPublicTextLink
+                        href={publicBlogPostHref(post.slug)}
+                        className="mt-0.5 block truncate font-mono text-[11px] text-slate-400"
+                      >
+                        {publicBlogPostHref(post.slug)}
+                      </AdminPublicTextLink>
                       {post.summary ? (
                         <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
                           {stripHtml(post.summary)}
@@ -384,9 +396,12 @@ export function BlogPostsTable({
 
                   <div>
                     {post.category ? (
-                      <span className="inline-flex rounded-md bg-[#405189]/10 px-2 py-1 text-xs font-medium text-[#405189]">
+                      <AdminPublicTextLink
+                        href={publicBlogCategoryHref(post.category.slug)}
+                        className="inline-flex rounded-md bg-[#405189]/10 px-2 py-1 text-xs font-medium text-[#405189]"
+                      >
                         {post.category.name}
-                      </span>
+                      </AdminPublicTextLink>
                     ) : (
                       <span className="text-xs text-slate-400">Kategorisiz</span>
                     )}
@@ -409,6 +424,7 @@ export function BlogPostsTable({
                   </div>
 
                   <div className="flex items-center justify-end gap-1.5">
+                    <AdminPublicLink href={publicBlogPostHref(post.slug)} />
                     <form action={toggleBlogPostActiveAction}>
                       <input type="hidden" name="id" value={post.id} />
                       <button

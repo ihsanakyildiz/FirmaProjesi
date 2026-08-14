@@ -12,7 +12,15 @@ export const metadata: Metadata = {
 export default async function PagesPage() {
   const pages = await prisma.page.findMany({
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    include: {
+    select: {
+      id: true,
+      type: true,
+      title: true,
+      slug: true,
+      summary: true,
+      image: true,
+      isActive: true,
+      sortOrder: true,
       _count: { select: { works: true, projects: true, posts: true } },
     },
   });

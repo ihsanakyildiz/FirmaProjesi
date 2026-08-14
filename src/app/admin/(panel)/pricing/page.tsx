@@ -12,6 +12,16 @@ export const metadata: Metadata = {
 export default async function PricingAdminPage() {
   const plans = await prisma.pricingPlan.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      blurb: true,
+      priceMonthly: true,
+      priceYearly: true,
+      featured: true,
+      isActive: true,
+      sortOrder: true,
+    },
   });
 
   return (

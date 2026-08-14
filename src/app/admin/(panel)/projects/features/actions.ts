@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustProjectCache } from "@/lib/projects";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
@@ -123,6 +124,7 @@ export async function createProjectFeatureAction(
       },
     });
 
+    bustProjectCache();
     revalidatePath("/admin/projects/features");
     revalidatePath("/admin/projects");
     revalidatePath("/");
@@ -179,6 +181,7 @@ export async function updateProjectFeatureAction(
       },
     });
 
+    bustProjectCache();
     revalidatePath("/admin/projects/features");
     revalidatePath(`/admin/projects/features/${id}/edit`);
     revalidatePath("/admin/projects");
@@ -211,6 +214,7 @@ export async function deleteProjectFeatureAction(input: {
 
   try {
     await prisma.projectFeature.delete({ where: { id } });
+    bustProjectCache();
     revalidatePath("/admin/projects/features");
     revalidatePath("/admin/projects");
     return {
@@ -247,6 +251,7 @@ export async function toggleProjectFeatureActiveAction(input: {
     data: { isActive: input.isActive },
   });
 
+  bustProjectCache();
   revalidatePath("/admin/projects/features");
   revalidatePath("/admin/projects");
   return {

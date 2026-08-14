@@ -12,7 +12,15 @@ export const metadata: Metadata = {
 export default async function MenusPage() {
   const groups = await prisma.menuGroup.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { _count: { select: { items: true } } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      isActive: true,
+      sortOrder: true,
+      _count: { select: { items: true } },
+    },
   });
 
   return (

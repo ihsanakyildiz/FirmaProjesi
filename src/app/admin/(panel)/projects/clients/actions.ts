@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustProjectCache } from "@/lib/projects";
 import { auth } from "@/auth";
 import { normalizeProjectUrl } from "@/lib/project-portfolio";
 import { prisma } from "@/lib/prisma";
@@ -127,6 +128,7 @@ export async function createProjectClientAction(
       },
     });
 
+    bustProjectCache();
     revalidatePath("/admin/projects/clients");
     revalidatePath("/admin/projects");
     return { success: true, message: "Müşteri oluşturuldu." };
@@ -193,6 +195,7 @@ export async function updateProjectClientAction(
       },
     });
 
+    bustProjectCache();
     revalidatePath("/admin/projects/clients");
     revalidatePath(`/admin/projects/clients/${id}/edit`);
     revalidatePath("/admin/projects");
@@ -225,6 +228,7 @@ export async function deleteProjectClientAction(input: {
     await prisma.projectClient.delete({ where: { id } });
     if (existing.logo) await deletePublicAsset(existing.logo);
 
+    bustProjectCache();
     revalidatePath("/admin/projects/clients");
     revalidatePath("/admin/projects");
     return {
@@ -261,6 +265,7 @@ export async function toggleProjectClientActiveAction(input: {
     data: { isActive: input.isActive },
   });
 
+  bustProjectCache();
   revalidatePath("/admin/projects/clients");
   revalidatePath("/admin/projects");
   return {

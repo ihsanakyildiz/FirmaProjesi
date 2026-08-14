@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
 import { useId, useRef } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Autoplay, EffectCards, EffectCoverflow, EffectFade, Navigation, Pagination } from "swiper/modules";
@@ -59,7 +59,7 @@ function InsightArticle({ post }: { post: InsightCard }) {
   return (
     <article className="group h-full overflow-hidden rounded-3xl border border-site-border bg-site-card shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
       <div className="relative aspect-[16/11] overflow-hidden">
-        <Image
+        <SiteImage
           src={
             post.image ||
             "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80"
@@ -80,13 +80,13 @@ function InsightArticle({ post }: { post: InsightCard }) {
           {post.title}
         </h3>
         <p className="mt-2 line-clamp-2 text-sm text-site-muted">{summary}</p>
-        <Link
+        <SiteLink
           href={post.href}
           className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-site-primary"
         >
           Okumaya devam
           <ArrowRight className="h-4 w-4" />
-        </Link>
+        </SiteLink>
       </div>
     </article>
   );

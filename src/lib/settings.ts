@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
   getAllSettingDefs,
@@ -5,7 +6,7 @@ import {
   type SettingsScope,
 } from "@/config/settings";
 
-export async function getSettingsMap(): Promise<Record<string, string>> {
+export async function getSettingsMapUncached(): Promise<Record<string, string>> {
   const rows = await prisma.setting.findMany();
   const map: Record<string, string> = {};
 
@@ -19,6 +20,12 @@ export async function getSettingsMap(): Promise<Record<string, string>> {
 
   return map;
 }
+
+export const getSettingsMap = unstable_cache(
+  async () => getSettingsMapUncached(),
+  ["settings-map"],
+  { tags: ["settings"], revalidate: 60 },
+);
 
 export async function ensureDefaultSettings(scope: SettingsScope = "all") {
   const existing = await prisma.setting.findMany({ select: { key: true } });

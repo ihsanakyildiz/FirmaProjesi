@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AdminPublicLink } from "@/components/admin/admin-public-link";
 import {
   buildCategoryTree,
   flattenCategoryTree,
 } from "@/lib/category-tree";
 import { prisma } from "@/lib/prisma";
 import { resolveProjectSeo } from "@/lib/seo";
+import { publicProjectHref } from "@/lib/public-urls";
 import { ProjectForm } from "../../project-form";
 
 type EditProjectPageProps = {
@@ -107,13 +109,18 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
-        <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
-          Projeler
-        </p>
-        <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
-          Projeyi Düzenle
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">{project.title}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+              Projeler
+            </p>
+            <h1 className="mt-1 text-xl font-semibold text-slate-800 sm:text-2xl">
+              Projeyi Düzenle
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">{project.title}</p>
+          </div>
+          <AdminPublicLink href={publicProjectHref(project.slug)} variant="button" />
+        </div>
       </div>
 
       <ProjectForm

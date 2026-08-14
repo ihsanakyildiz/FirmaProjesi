@@ -12,6 +12,17 @@ export const metadata: Metadata = {
 export default async function CardsPage() {
   const cards = await prisma.card.findMany({
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: {
+      id: true,
+      type: true,
+      title: true,
+      mediaType: true,
+      image: true,
+      icon: true,
+      href: true,
+      isActive: true,
+      sortOrder: true,
+    },
   });
 
   return (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Gauge, Zap } from "lucide-react";
 import { performanceSettingGroups } from "@/config/settings";
 import { parseLastCacheCleared } from "@/lib/cache-manager";
-import { ensureDefaultSettings, getSettingsMap } from "@/lib/settings";
+import { ensureDefaultSettings, getSettingsMapUncached } from "@/lib/settings";
 import { SettingsForm } from "../settings-form";
 import { CachePanel } from "./cache-panel";
 
@@ -40,7 +40,7 @@ function formatClearedAt(iso?: string) {
 
 export default async function PerformanceSettingsPage() {
   await ensureDefaultSettings("performance");
-  const values = await getSettingsMap();
+  const values = await getSettingsMapUncached();
   const last = parseLastCacheCleared(values.perf_cache_last_cleared);
 
   return (

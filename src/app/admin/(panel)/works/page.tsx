@@ -23,9 +23,21 @@ export default async function WorksPage({ searchParams }: WorksPageProps) {
   const [works, categories] = await Promise.all([
     prisma.work.findMany({
       orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        summary: true,
+        image: true,
+        isActive: true,
+        sortOrder: true,
+        categoryId: true,
+        statusNote: true,
         category: { select: { id: true, name: true, slug: true } },
-        projects: { select: { id: true, title: true }, orderBy: { sortOrder: "asc" } },
+        projects: {
+          select: { id: true, title: true },
+          orderBy: { sortOrder: "asc" },
+        },
       },
     }),
     prisma.workCategory.findMany({

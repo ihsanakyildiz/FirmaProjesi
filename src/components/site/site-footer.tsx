@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink } from "@/components/site/site-link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import type { SiteNavItem } from "./site-types";
 
@@ -31,12 +31,12 @@ export function SiteFooter({
     <footer className="border-t border-site-border bg-site-surface">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
         <div className="md:col-span-2 lg:col-span-1">
-          <Link href="/" className="inline-flex items-center gap-2.5">
+          <SiteLink href="/" className="inline-flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-site-primary text-sm font-bold text-white">
               {siteName.slice(0, 1).toUpperCase()}
             </span>
             <span className="text-lg font-bold text-site-fg">{siteName}</span>
-          </Link>
+          </SiteLink>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-site-muted">
             {description}
           </p>
@@ -61,12 +61,12 @@ export function SiteFooter({
           <ul className="mt-4 space-y-2">
             {items.slice(0, 6).map((item) => (
               <li key={item.href + item.label}>
-                <Link
+                <SiteLink
                   href={item.href}
                   className="text-sm text-site-muted transition hover:text-site-primary"
                 >
                   {item.label}
-                </Link>
+                </SiteLink>
               </li>
             ))}
           </ul>
@@ -78,24 +78,24 @@ export function SiteFooter({
           </h3>
           <ul className="mt-4 space-y-2 text-sm text-site-muted">
             <li>
-              <Link href="/hizmetler" className="hover:text-site-primary">
+              <SiteLink href="/hizmetler" className="hover:text-site-primary">
                 Web Tasarım
-              </Link>
+              </SiteLink>
             </li>
             <li>
-              <Link href="/hizmetler" className="hover:text-site-primary">
+              <SiteLink href="/hizmetler" className="hover:text-site-primary">
                 Yazılım Geliştirme
-              </Link>
+              </SiteLink>
             </li>
             <li>
-              <Link href="/hizmetler" className="hover:text-site-primary">
+              <SiteLink href="/hizmetler" className="hover:text-site-primary">
                 Kurumsal Kimlik
-              </Link>
+              </SiteLink>
             </li>
             <li>
-              <Link href="/projeler" className="hover:text-site-primary">
+              <SiteLink href="/projeler" className="hover:text-site-primary">
                 Projeler
-              </Link>
+              </SiteLink>
             </li>
           </ul>
         </div>
@@ -137,12 +137,12 @@ export function SiteFooter({
             © {year} {siteName}. Tüm hakları saklıdır.
           </p>
           <div className="flex gap-4">
-            <Link href="/gizlilik" className="hover:text-site-primary">
+            <SiteLink href="/gizlilik" className="hover:text-site-primary">
               Gizlilik
-            </Link>
-            <Link href="/iletisim" className="hover:text-site-primary">
+            </SiteLink>
+            <SiteLink href="/iletisim" className="hover:text-site-primary">
               İletişim
-            </Link>
+            </SiteLink>
           </div>
         </div>
       </div>

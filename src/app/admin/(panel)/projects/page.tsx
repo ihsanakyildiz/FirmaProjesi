@@ -23,10 +23,26 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
   const [projects, categories, features] = await Promise.all([
     prisma.project.findMany({
       orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { title: "asc" }],
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        summary: true,
+        image: true,
+        isActive: true,
+        isFeatured: true,
+        projectYear: true,
+        projectUrl: true,
+        sortOrder: true,
+        categoryId: true,
+        clientId: true,
+        statusNote: true,
         category: { select: { id: true, name: true, slug: true } },
         client: { select: { id: true, name: true, slug: true, sector: true } },
-        features: { select: { id: true, name: true, slug: true }, orderBy: { sortOrder: "asc" } },
+        features: {
+          select: { id: true, name: true, slug: true },
+          orderBy: { sortOrder: "asc" },
+        },
       },
     }),
     prisma.projectCategory.findMany({

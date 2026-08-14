@@ -12,7 +12,16 @@ export const metadata: Metadata = {
 export default async function ProjectFeaturesPage() {
   const features = await prisma.projectFeature.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      icon: true,
+      iconColor: true,
+      isActive: true,
+      showOnHome: true,
+      sortOrder: true,
       _count: { select: { projects: true } },
     },
   });

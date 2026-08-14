@@ -1,28 +1,55 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
-import { HomeCta } from "@/components/site/home/home-cta";
+import { preload } from "react-dom";
 import { WorkDetailView } from "@/components/site/work/work-detail-view";
-import { stripHtml } from "@/lib/html";
-import { prisma } from "@/lib/prisma";
+import { prepareRichHtml, stripHtml } from "@/lib/html";
+import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { getSettingsMap } from "@/lib/settings";
+import {
+  getCachedFallbackWorkSkills,
+  getCachedWorkBySlug,
+  getCachedWorkSlugs,
+} from "@/lib/works";
+
+const HomeCta = dynamic(() =>
+  import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
+);
+
+export const revalidate = 60;
 
 type WorkDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export async function generateStaticParams() {
+  const rows = await getCachedWorkSlugs().catch(() => []);
+  return rows.map((row) => ({ slug: row.slug }));
+}
+
 export async function generateMetadata({
   params,
 }: WorkDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const work = await prisma.work.findFirst({
-    where: { slug, isActive: true },
-    select: { title: true, seoTitle: true, seoDescription: true, summary: true },
-  });
+  const work = await getCachedWorkBySlug(slug).catch(() => null);
   if (!work) return { title: "Çalışma" };
+
+  const settings = await getSettingsMap().catch(
+    () => ({}) as Record<string, string>,
+  );
+  const perf = parsePerformance(settings);
+  const cover = withCdnUrl(work.image, perf.cdnUrl);
+  const description =
+    work.seoDescription || stripHtml(work.summary) || undefined;
+
   return {
     title: work.seoTitle || work.title,
-    description:
-      work.seoDescription || stripHtml(work.summary) || undefined,
+    description,
+    openGraph: {
+      title: work.seoTitle || work.title,
+      description,
+      images: cover ? [{ url: cover }] : undefined,
+    },
   };
 }
 
@@ -30,34 +57,7 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
   const { slug } = await params;
 
   const [work, settings] = await Promise.all([
-    prisma.work.findFirst({
-      where: { slug, isActive: true },
-      include: {
-        category: { select: { id: true, name: true, slug: true } },
-        projects: {
-          where: { isActive: true },
-          orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-          take: 6,
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            summary: true,
-            features: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-              take: 8,
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                icon: true,
-              },
-            },
-          },
-        },
-      },
-    }),
+    getCachedWorkBySlug(slug).catch(() => null),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
 
@@ -84,31 +84,35 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
   let skills = Array.from(skillMap.values()).slice(0, 8);
 
   if (skills.length === 0) {
-    skills = await prisma.projectFeature.findMany({
-      where: { isActive: true, showOnHome: true },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      take: 6,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        icon: true,
-      },
-    });
+    skills = await getCachedFallbackWorkSkills().catch(() => []);
   }
+
+  const perf = parsePerformance(settings);
+  const cover = withCdnUrl(work.image, perf.cdnUrl);
+
+  if (cover) {
+    preload(cover, { as: "image", fetchPriority: "high" });
+  }
+
+  const content = prepareRichHtml(work.content, {
+    lazyImages: perf.lazyImages,
+    lazyIframes: perf.lazyIframes,
+    disableThirdParty: perf.disableThirdParty,
+  });
 
   return (
     <>
       <WorkDetailView
         title={work.title}
         summary={work.summary}
-        content={work.content}
-        image={work.image}
+        content={content}
+        image={cover}
         categoryName={work.category?.name ?? null}
         categorySlug={work.category?.slug ?? null}
         phone={settings.contact_phone || ""}
         email={settings.contact_email || ""}
         address={settings.contact_address || ""}
+        disableThirdParty={perf.disableThirdParty}
         social={{
           facebook: settings.social_facebook || undefined,
           twitter: settings.social_twitter || undefined,
@@ -121,6 +125,7 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
           title: project.title,
           slug: project.slug,
           summary: project.summary,
+          image: withCdnUrl(project.image, perf.cdnUrl),
         }))}
       />
       <HomeCta />

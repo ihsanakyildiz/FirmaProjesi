@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ensureDefaultSettings, getSettingsMap } from "@/lib/settings";
+import { ensureDefaultSettings, getSettingsMapUncached } from "@/lib/settings";
 import { SettingsForm } from "./settings-form";
 
 export const metadata: Metadata = {
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   await ensureDefaultSettings();
-  const values = await getSettingsMap();
+  const values = await getSettingsMapUncached();
 
   return (
     <div className="space-y-6">

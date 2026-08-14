@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustWorkCache } from "@/lib/works";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveWorkSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/seo";
@@ -49,6 +50,17 @@ async function uniqueWorkSlug(base: string, excludeId?: string) {
     candidate = `${slug}-${i}`;
     i += 1;
   }
+}
+
+function revalidateWorkPublic(slug?: string | null) {
+  bustWorkCache();
+  revalidatePath("/admin/works");
+  revalidatePath("/admin/works/categories");
+  revalidatePath("/admin/projects");
+  revalidatePath("/");
+  revalidatePath("/yapilan-isler");
+  revalidatePath("/yapilan-isler/kategori");
+  if (slug) revalidatePath(`/yapilan-isler/${slug}`);
 }
 
 async function assertValidCategory(categoryId: string | null) {
@@ -213,10 +225,7 @@ export async function createWorkAction(
       },
     });
 
-    revalidatePath("/admin/works");
-    revalidatePath("/admin/works/categories");
-    revalidatePath("/admin/projects");
-    revalidatePath("/");
+    revalidateWorkPublic(slug);
     return { success: true, message: "Çalışma oluşturuldu." };
   } catch (error) {
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
@@ -330,11 +339,8 @@ export async function updateWorkAction(
       },
     });
 
-    revalidatePath("/admin/works");
     revalidatePath(`/admin/works/${id}/edit`);
-    revalidatePath("/admin/works/categories");
-    revalidatePath("/admin/projects");
-    revalidatePath("/");
+    revalidateWorkPublic(slug);
     return { success: true, message: "Çalışma güncellendi." };
   } catch (error) {
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
@@ -371,10 +377,7 @@ export async function deleteWorkAction(formData: FormData): Promise<DeleteWorkRe
     await deletePublicAsset(previewImagePath);
   }
 
-  revalidatePath("/admin/works");
-  revalidatePath("/admin/works/categories");
-  revalidatePath("/admin/projects");
-  revalidatePath("/");
+  revalidateWorkPublic(existing.slug);
   return { success: true, message: "Çalışma silindi." };
 }
 
@@ -396,6 +399,5 @@ export async function toggleWorkActiveAction(formData: FormData) {
     data: { isActive: !existing.isActive },
   });
 
-  revalidatePath("/admin/works");
-  revalidatePath("/admin/works/categories");
+  revalidateWorkPublic(existing.slug);
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import {
   getSettingDefsByScope,
@@ -191,6 +191,9 @@ export async function saveSettingsAction(
       }
     }
 
+    revalidateTag("settings");
+    revalidateTag("site");
+    revalidateTag("pages");
     revalidatePath("/");
     revalidatePath("/admin/settings");
     revalidatePath("/admin/settings/performance");

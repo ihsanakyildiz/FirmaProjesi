@@ -15,7 +15,9 @@ import {
   X,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/admin/searchable-select";
+import { AdminPublicLink, AdminPublicTextLink } from "@/components/admin/admin-public-link";
 import { stripHtml } from "@/lib/html";
+import { publicWorkCategoryHref, publicWorkHref } from "@/lib/public-urls";
 import { deleteWorkAction, toggleWorkActiveAction } from "./actions";
 
 export type WorkRow = {
@@ -345,7 +347,7 @@ export function WorksTable({
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[980px]">
-              <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_140px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_176px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <div>Çalışma</div>
                 <div>Kategori</div>
                 <div>Projeler</div>
@@ -357,7 +359,7 @@ export function WorksTable({
               {filtered.map((work) => (
                 <div
                   key={work.id}
-                  className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_140px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
+                  className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_60px_90px_176px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f6f9]">
@@ -371,7 +373,17 @@ export function WorksTable({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-800">{work.title}</p>
+                      <p className="truncate font-medium text-slate-800">
+                        <AdminPublicTextLink href={publicWorkHref(work.slug)}>
+                          {work.title}
+                        </AdminPublicTextLink>
+                      </p>
+                      <AdminPublicTextLink
+                        href={publicWorkHref(work.slug)}
+                        className="mt-0.5 block truncate font-mono text-[11px] text-slate-400"
+                      >
+                        {publicWorkHref(work.slug)}
+                      </AdminPublicTextLink>
                       {work.summary ? (
                         <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
                           {stripHtml(work.summary)}
@@ -386,7 +398,14 @@ export function WorksTable({
                   </div>
 
                   <div>
-                    {work.category ? (
+                    {work.category?.slug ? (
+                      <AdminPublicTextLink
+                        href={publicWorkCategoryHref(work.category.slug)}
+                        className="inline-flex rounded-md bg-[#405189]/10 px-2 py-1 text-xs font-medium text-[#405189]"
+                      >
+                        {work.category.name}
+                      </AdminPublicTextLink>
+                    ) : work.category ? (
                       <span className="inline-flex rounded-md bg-[#405189]/10 px-2 py-1 text-xs font-medium text-[#405189]">
                         {work.category.name}
                       </span>
@@ -434,6 +453,7 @@ export function WorksTable({
                   </div>
 
                   <div className="flex items-center justify-end gap-1.5">
+                    <AdminPublicLink href={publicWorkHref(work.slug)} />
                     <form action={toggleWorkActiveAction}>
                       <input type="hidden" name="id" value={work.id} />
                       <button

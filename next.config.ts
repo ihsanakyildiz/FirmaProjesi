@@ -1,14 +1,24 @@
 import type { NextConfig } from "next";
 
+const htmlCacheSeconds = Number(process.env.PERF_HTML_CACHE_SECONDS || "0");
+const assetCacheDays = Number(process.env.PERF_ASSET_CACHE_DAYS || "365");
+const staleWhileRevalidate =
+  process.env.PERF_STALE_WHILE_REVALIDATE !== "false";
+const assetMaxAge = Math.max(1, assetCacheDays) * 86_400;
+const assetCacheControl = `public, max-age=${assetMaxAge}, immutable${
+  staleWhileRevalidate ? `, stale-while-revalidate=${assetMaxAge}` : ""
+}`;
+
 const nextConfig: NextConfig = {
   experimental: {
+    optimizePackageImports: ["lucide-react"],
     serverActions: {
-      // Tam sayfa site ekran görüntüleri (works previewImage) için
       bodySizeLimit: "16mb",
     },
   },
   images: {
-    formats: ["image/webp"],
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
@@ -19,13 +29,33 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    const htmlHeaders =
+      htmlCacheSeconds > 0
+        ? [
+            {
+              source: "/",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: `public, s-maxage=${htmlCacheSeconds}${
+                    staleWhileRevalidate
+                      ? `, stale-while-revalidate=${Math.max(htmlCacheSeconds, 60)}`
+                      : ""
+                  }`,
+                },
+              ],
+            },
+          ]
+        : [];
+
     return [
+      ...htmlHeaders,
       {
         source: "/uploads/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            value: assetCacheControl,
           },
         ],
       },

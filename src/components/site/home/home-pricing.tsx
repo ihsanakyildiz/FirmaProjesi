@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { SiteLink } from "@/components/site/site-link";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import type { PricingPlanView } from "@/lib/pricing";
@@ -162,7 +162,7 @@ export function HomePricing({
                   ) : null}
                 </p>
 
-                <Link
+                <SiteLink
                   href={plan.ctaHref || "/iletisim"}
                   className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
                     plan.featured
@@ -172,7 +172,7 @@ export function HomePricing({
                 >
                   {plan.ctaLabel || "Başlayın"}
                   <ArrowRight className="h-4 w-4" />
-                </Link>
+                </SiteLink>
 
                 <ul className="mt-7 space-y-3">
                   {plan.features.map((feature) => (
@@ -207,19 +207,19 @@ export function HomePricing({
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link
+          <SiteLink
             href={primaryUrl}
             className="inline-flex items-center gap-2 rounded-full bg-site-primary px-5 py-3 text-sm font-semibold text-white"
           >
             {primaryLabel}
             <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
+          </SiteLink>
+          <SiteLink
             href={secondaryUrl}
             className="text-sm font-semibold text-site-fg underline underline-offset-4"
           >
             {secondaryLabel}
-          </Link>
+          </SiteLink>
         </div>
       </div>
     </section>

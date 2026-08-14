@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { bustWorkCache } from "@/lib/works";
 import { auth } from "@/auth";
 import { collectDescendantIds } from "@/lib/category-tree";
 import { prisma } from "@/lib/prisma";
@@ -25,6 +26,12 @@ async function requireAdmin() {
     throw new Error("UNAUTHORIZED");
   }
   return session;
+}
+
+function revalidateWorkCategoryPublic(slug?: string | null) {
+  revalidatePath("/yapilan-isler");
+  revalidatePath("/yapilan-isler/kategori");
+  if (slug) revalidatePath(`/yapilan-isler/kategori/${slug}`);
 }
 
 async function uniqueWorkCategorySlug(base: string, excludeId?: string) {
@@ -169,6 +176,8 @@ export async function createWorkCategoryAction(
       },
     });
 
+    bustWorkCache();
+    revalidateWorkCategoryPublic(slug);
     revalidatePath("/admin/works/categories");
     revalidatePath("/admin/works");
     return { success: true, message: "Kategori oluşturuldu." };
@@ -237,6 +246,8 @@ export async function updateWorkCategoryAction(
       },
     });
 
+    bustWorkCache();
+    revalidateWorkCategoryPublic(slug);
     revalidatePath("/admin/works/categories");
     revalidatePath(`/admin/works/categories/${id}/edit`);
     revalidatePath("/admin/works");
@@ -359,6 +370,8 @@ export async function deleteWorkCategoryAction(input: {
       await deletePublicAsset(imagePath);
     }
 
+    bustWorkCache();
+    revalidateWorkCategoryPublic(existing.slug);
     revalidatePath("/admin/works/categories");
     revalidatePath("/admin/works");
     return {
@@ -392,7 +405,7 @@ export async function deactivateWorkCategoryAction(input: {
 
   const existing = await prisma.workCategory.findUnique({
     where: { id },
-    select: { id: true, name: true, isActive: true },
+    select: { id: true, name: true, slug: true, isActive: true },
   });
   if (!existing) return { error: "Kategori bulunamadı." };
 
@@ -440,6 +453,8 @@ export async function deactivateWorkCategoryAction(input: {
       data: { isActive: false },
     });
 
+    bustWorkCache();
+    revalidateWorkCategoryPublic(existing.slug);
     revalidatePath("/admin/works/categories");
     revalidatePath("/admin/works");
     return {
@@ -473,6 +488,8 @@ export async function activateWorkCategoryAction(categoryId: string): Promise<De
     data: { isActive: true },
   });
 
+  bustWorkCache();
+  revalidateWorkCategoryPublic(existing.slug);
   revalidatePath("/admin/works/categories");
   revalidatePath("/admin/works");
   return { success: true, message: "Kategori aktifleştirildi." };

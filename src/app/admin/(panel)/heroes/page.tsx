@@ -12,7 +12,17 @@ export const metadata: Metadata = {
 export default async function HeroesPage() {
   const heroes = await prisma.hero.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { _count: { select: { slides: true } } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      isActive: true,
+      sortOrder: true,
+      autoplay: true,
+      intervalMs: true,
+      _count: { select: { slides: true } },
+    },
   });
 
   return (

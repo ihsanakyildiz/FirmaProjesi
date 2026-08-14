@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { SiteLink } from "@/components/site/site-link";
 import { useState } from "react";
 import {
   ChevronDown,
@@ -21,33 +21,33 @@ function NavDropdown({ item }: { item: SiteNavItem }) {
 
   if (!hasChildren) {
     return (
-      <Link
+      <SiteLink
         href={item.href}
         className="px-3 py-2 text-sm font-medium text-site-fg/80 transition hover:text-site-primary"
       >
         {item.label}
-      </Link>
+      </SiteLink>
     );
   }
 
   return (
     <div className="group relative">
-      <Link
+      <SiteLink
         href={item.href}
         className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-site-fg/80 transition hover:text-site-primary"
       >
         {item.label}
         <ChevronDown className="h-3.5 w-3.5 opacity-60 transition group-hover:rotate-180" />
-      </Link>
+      </SiteLink>
       <div className="invisible absolute top-full left-0 z-50 min-w-[200px] translate-y-2 rounded-2xl border border-site-border bg-site-card p-2 opacity-0 shadow-xl transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
         {item.children!.map((child) => (
-          <Link
+          <SiteLink
             key={child.href + child.label}
             href={child.href}
             className="block rounded-xl px-3 py-2 text-sm text-site-fg/80 transition hover:bg-site-primary-soft hover:text-site-primary"
           >
             {child.label}
-          </Link>
+          </SiteLink>
         ))}
       </div>
     </div>
@@ -100,14 +100,14 @@ export function SiteHeader({
       )}
 
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5">
+        <SiteLink href="/" className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-site-primary text-sm font-bold text-white shadow-md shadow-violet-500/30">
             {siteName.slice(0, 1).toUpperCase()}
           </span>
           <span className="truncate text-lg font-bold tracking-tight text-site-fg">
             {siteName}
           </span>
-        </Link>
+        </SiteLink>
 
         <nav className="ml-auto hidden items-center lg:flex">
           {items.map((item) => (
@@ -131,12 +131,12 @@ export function SiteHeader({
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <Link
+          <SiteLink
             href={ctaHref}
             className="hidden rounded-full bg-site-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/25 transition hover:brightness-110 sm:inline-flex"
           >
             {ctaLabel}
-          </Link>
+          </SiteLink>
           <button
             type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-site-border text-site-fg lg:hidden"
@@ -153,33 +153,33 @@ export function SiteHeader({
           <div className="space-y-1">
             {items.map((item) => (
               <div key={item.label + item.href}>
-                <Link
+                <SiteLink
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className="block rounded-xl px-3 py-2.5 text-sm font-medium text-site-fg hover:bg-site-primary-soft"
                 >
                   {item.label}
-                </Link>
+                </SiteLink>
                 {item.children?.map((child) => (
-                  <Link
+                  <SiteLink
                     key={child.href + child.label}
                     href={child.href}
                     onClick={() => setOpen(false)}
                     className="block rounded-xl py-2 pr-3 pl-6 text-sm text-site-muted hover:text-site-primary"
                   >
                     {child.label}
-                  </Link>
+                  </SiteLink>
                 ))}
               </div>
             ))}
           </div>
-          <Link
+          <SiteLink
             href={ctaHref}
             onClick={() => setOpen(false)}
             className="mt-4 flex items-center justify-center rounded-full bg-site-primary px-4 py-3 text-sm font-semibold text-white"
           >
             {ctaLabel}
-          </Link>
+          </SiteLink>
         </div>
       ) : null}
     </header>

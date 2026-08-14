@@ -1,28 +1,59 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
-import { prisma } from "@/lib/prisma";
-import { stripHtml } from "@/lib/html";
+import dynamic from "next/dynamic";
+import { ProjectCard } from "@/components/site/project/project-card";
+import { ProjectCategorySidebar } from "@/components/site/project/project-category-sidebar";
+import { SitePagination } from "@/components/site/site-pagination";
+import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { getSettingsMap } from "@/lib/settings";
+import {
+  PROJECT_GRID_PAGE_SIZE,
+  getCachedProjectCategoryIndex,
+  getCachedProjectListing,
+} from "@/lib/projects";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Projeler",
   description: "Portföy projelerimizi inceleyin",
 };
 
-export default async function ProjectsIndexPage() {
-  const projects = await prisma.project.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      summary: true,
-      image: true,
-      category: { select: { name: true } },
-    },
-  });
+const HomeCta = dynamic(() =>
+  import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
+);
+
+type ProjectsIndexPageProps = {
+  searchParams: Promise<{ sayfa?: string }>;
+};
+
+function pageHref(page: number) {
+  return page <= 1 ? "/projeler" : `/projeler?sayfa=${page}`;
+}
+
+export default async function ProjectsIndexPage({
+  searchParams,
+}: ProjectsIndexPageProps) {
+  const query = await searchParams;
+  const requestedPage = Number.parseInt(query.sayfa ?? "1", 10);
+  const currentPage =
+    Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+
+  const [projects, categories, settings] = await Promise.all([
+    getCachedProjectListing().catch(() => []),
+    getCachedProjectCategoryIndex().catch(() => []),
+    getSettingsMap().catch(() => ({}) as Record<string, string>),
+  ]);
+  const perf = parsePerformance(settings);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(projects.length / PROJECT_GRID_PAGE_SIZE),
+  );
+  const page = Math.min(currentPage, totalPages);
+  const gridProjects = projects.slice(
+    (page - 1) * PROJECT_GRID_PAGE_SIZE,
+    page * PROJECT_GRID_PAGE_SIZE,
+  );
 
   return (
     <>
@@ -42,54 +73,39 @@ export default async function ProjectsIndexPage() {
       </section>
 
       <section className="py-14">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {projects.length === 0 ? (
-            <p className="py-16 text-center text-sm text-site-muted">
-              Henüz yayınlanmış proje yok.
-            </p>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={`/projeler/${project.slug}`}
-                  className="group overflow-hidden rounded-3xl border border-site-border bg-site-card shadow-sm transition hover:-translate-y-1 hover:border-site-primary/35 hover:shadow-xl"
-                >
-                  <div className="relative aspect-[16/11] overflow-hidden bg-slate-100">
-                    {project.image ? (
-                      <Image
-                        src={project.image}
-                        alt={project.title}
-                        fill
-                        className="object-cover transition duration-500 group-hover:scale-105"
-                        sizes="(max-width:768px) 100vw, 33vw"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="p-5">
-                    {project.category ? (
-                      <p className="text-xs font-semibold tracking-wide text-site-primary uppercase">
-                        {project.category.name}
-                      </p>
-                    ) : null}
-                    <h2 className="mt-1 text-lg font-semibold text-site-fg group-hover:text-site-primary">
-                      {project.title}
-                    </h2>
-                    <p className="mt-2 line-clamp-2 text-sm text-site-muted">
-                      {stripHtml(project.summary) ||
-                        "Detaylar için projeyi inceleyin."}
-                    </p>
-                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-site-primary">
-                      İncele
-                      <ArrowUpRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
+          <ProjectCategorySidebar categories={categories} />
+          <div className="min-w-0">
+            {gridProjects.length === 0 ? (
+              <p className="py-10 text-sm text-site-muted">
+                Henüz yayınlanmış proje yok.
+              </p>
+            ) : (
+              <>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {gridProjects.map((project, index) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={{
+                        ...project,
+                        image: withCdnUrl(project.image, perf.cdnUrl),
+                      }}
+                      imagePriority={index === 0}
+                    />
+                  ))}
+                </div>
+                <SitePagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  hrefForPage={pageHref}
+                />
+              </>
+            )}
+          </div>
         </div>
       </section>
+
+      <HomeCta />
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -386,6 +386,8 @@ export async function togglePageActiveAction(formData: FormData) {
 }
 
 function revalidatePublicPage(slug: string) {
+  revalidateTag("pages");
+  revalidateTag("site");
   revalidatePath(`/${slug}`);
   if (slug === "anasayfa") {
     revalidatePath("/");

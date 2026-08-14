@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
+import { usePerformance } from "@/components/site/performance-provider";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 export type HomeWorkItem = {
@@ -61,6 +62,7 @@ const FALLBACK_CATEGORIES: HomeWorkCategory[] = [
 ];
 
 function WorkPreviewCard({ work }: { work: HomeWorkItem }) {
+  const perf = usePerformance();
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [hovered, setHovered] = useState(false);
@@ -106,6 +108,8 @@ function WorkPreviewCard({ work }: { work: HomeWorkItem }) {
               ref={imgRef}
               src={scrollSrc}
               alt={work.title}
+              loading={perf.lazyImages ? "lazy" : "eager"}
+              decoding="async"
               onLoad={measure}
               className="absolute top-0 left-0 w-full max-w-none will-change-transform"
               style={{
@@ -114,7 +118,7 @@ function WorkPreviewCard({ work }: { work: HomeWorkItem }) {
               }}
             />
           ) : (
-            <Image
+            <SiteImage
               src={scrollSrc}
               alt={work.title}
               fill
@@ -129,12 +133,12 @@ function WorkPreviewCard({ work }: { work: HomeWorkItem }) {
         )}
 
         <div className="pointer-events-none absolute inset-0 bg-site-primary/0 transition duration-300 group-hover:bg-site-primary/20" />
-        <Link
+        <SiteLink
           href={work.href}
           className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 scale-90 rounded-full bg-site-primary px-5 py-2.5 text-sm font-semibold whitespace-nowrap text-white opacity-0 shadow-lg transition duration-300 group-hover:scale-100 group-hover:opacity-100"
         >
           İncele
-        </Link>
+        </SiteLink>
       </div>
       <div className="px-5 py-4">
         <h3 className="text-center text-base font-semibold text-site-fg">

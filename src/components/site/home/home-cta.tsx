@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink } from "@/components/site/site-link";
 import { ArrowRight } from "lucide-react";
 
 export function HomeCta() {
@@ -33,9 +33,9 @@ export function HomeCta() {
           </form>
           <p className="mt-4 text-xs text-white/70">
             İstediğiniz zaman ayrılabilirsiniz.{" "}
-            <Link href="/gizlilik" className="underline underline-offset-2">
+            <SiteLink href="/gizlilik" className="underline underline-offset-2">
               Gizlilik politikası
-            </Link>
+            </SiteLink>
           </p>
         </div>
       </div>

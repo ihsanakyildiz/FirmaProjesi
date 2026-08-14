@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { bustBlogCache } from "@/lib/blog";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveBlogSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/seo";
@@ -49,6 +50,17 @@ async function uniqueBlogPostSlug(base: string, excludeId?: string) {
     candidate = `${slug}-${i}`;
     i += 1;
   }
+}
+
+function revalidateBlogPublic(slug?: string | null) {
+  bustBlogCache();
+  revalidateTag("pages");
+  revalidatePath("/admin/blog/posts");
+  revalidatePath("/admin/blog/categories");
+  revalidatePath("/blog");
+  revalidatePath("/blog/kategori");
+  revalidatePath("/");
+  if (slug) revalidatePath(`/blog/${slug}`);
 }
 
 async function assertValidCategory(categoryId: string | null) {
@@ -169,8 +181,7 @@ export async function createBlogPostAction(
       },
     });
 
-    revalidatePath("/admin/blog/posts");
-    revalidatePath("/admin/blog/categories");
+    revalidateBlogPublic(slug);
     return { success: true, message: "Yazı oluşturuldu." };
   } catch (error) {
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
@@ -258,9 +269,8 @@ export async function updateBlogPostAction(
       },
     });
 
-    revalidatePath("/admin/blog/posts");
     revalidatePath(`/admin/blog/posts/${id}/edit`);
-    revalidatePath("/admin/blog/categories");
+    revalidateBlogPublic(slug);
     return { success: true, message: "Yazı güncellendi." };
   } catch (error) {
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
@@ -290,8 +300,7 @@ export async function deleteBlogPostAction(formData: FormData): Promise<DeleteBl
     await deletePublicAsset(imagePath);
   }
 
-  revalidatePath("/admin/blog/posts");
-  revalidatePath("/admin/blog/categories");
+  revalidateBlogPublic(existing.slug);
   return { success: true, message: "Yazı silindi." };
 }
 
@@ -316,6 +325,5 @@ export async function toggleBlogPostActiveAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/blog/posts");
-  revalidatePath("/admin/blog/categories");
+  revalidateBlogPublic(existing.slug);
 }

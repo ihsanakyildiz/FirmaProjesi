@@ -13,12 +13,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { AdminPublicLink, AdminPublicTextLink } from "@/components/admin/admin-public-link";
 import {
   buildCategoryTree,
   flattenCategoryTree,
   type CategoryTreeNode,
 } from "@/lib/category-tree";
 import { stripHtml } from "@/lib/html";
+import { publicWorkCategoryHref } from "@/lib/public-urls";
 import {
   activateWorkCategoryAction,
   deactivateWorkCategoryAction,
@@ -64,7 +66,7 @@ function CategoryTreeRows({
         return (
           <div key={category.id}>
             <div
-              className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_70px_60px_90px_170px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
+              className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_70px_60px_90px_210px] items-center gap-2 border-b border-[#e9ebec] px-4 py-3 text-sm last:border-0"
               style={{ paddingLeft: `${16 + category.depth * 22}px` }}
             >
               <div className="flex min-w-0 items-center gap-2">
@@ -100,7 +102,11 @@ function CategoryTreeRows({
 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate font-medium text-slate-800">{category.name}</p>
+                    <p className="truncate font-medium text-slate-800">
+                      <AdminPublicTextLink href={publicWorkCategoryHref(category.slug)}>
+                        {category.name}
+                      </AdminPublicTextLink>
+                    </p>
                     {category.depth > 0 ? (
                       <span className="rounded bg-[#405189]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#405189]">
                         Alt · Seviye {category.depth}
@@ -120,9 +126,12 @@ function CategoryTreeRows({
               </div>
 
               <div>
-                <code className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                  {category.slug}
-                </code>
+                <AdminPublicTextLink
+                  href={publicWorkCategoryHref(category.slug)}
+                  className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600"
+                >
+                  {publicWorkCategoryHref(category.slug)}
+                </AdminPublicTextLink>
               </div>
 
               <div className="text-slate-600">
@@ -151,6 +160,7 @@ function CategoryTreeRows({
               </div>
 
               <div className="flex items-center justify-end gap-1.5">
+                <AdminPublicLink href={publicWorkCategoryHref(category.slug)} />
                 <Link
                   href={`/admin/works/categories/new?parentId=${category.id}`}
                   title="Alt kategori ekle"
@@ -349,7 +359,7 @@ export function WorkCategoriesTable({
 
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
-            <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_70px_60px_90px_170px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+            <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_70px_60px_90px_210px] gap-2 border-b border-[#e9ebec] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
               <div>Kategori</div>
               <div>Slug</div>
               <div>İçerik</div>

@@ -37,15 +37,19 @@ export function resolveMenuItemHref(item: MenuItemWithLinks): string | null {
     case "PAGE":
       return item.page ? `/${item.page.slug}` : null;
     case "WORK_CATEGORY":
-      return item.workCategory ? `/yapilan-isler` : null;
+      return item.workCategory
+        ? `/yapilan-isler/kategori/${item.workCategory.slug}`
+        : null;
     case "WORK":
       return item.work ? `/yapilan-isler/${item.work.slug}` : null;
     case "PROJECT_CATEGORY":
-      return item.projectCategory ? `/projeler/${item.projectCategory.slug}` : null;
+      return item.projectCategory
+        ? `/projeler/kategori/${item.projectCategory.slug}`
+        : null;
     case "PROJECT":
       return item.project ? `/projeler/${item.project.slug}` : null;
     case "BLOG_CATEGORY":
-      return item.blogCategory ? `/blog/${item.blogCategory.slug}` : null;
+      return item.blogCategory ? `/blog/kategori/${item.blogCategory.slug}` : null;
     case "BLOG_POST":
       return item.blogPost ? `/blog/${item.blogPost.slug}` : null;
     default: {

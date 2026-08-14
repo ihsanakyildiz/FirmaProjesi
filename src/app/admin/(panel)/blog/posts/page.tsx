@@ -23,7 +23,16 @@ export default async function BlogPostsPage({ searchParams }: BlogPostsPageProps
   const [posts, categories] = await Promise.all([
     prisma.blogPost.findMany({
       orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        summary: true,
+        image: true,
+        isActive: true,
+        sortOrder: true,
+        categoryId: true,
+        statusNote: true,
         category: { select: { id: true, name: true, slug: true } },
       },
     }),

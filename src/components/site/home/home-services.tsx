@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
 import {
   ArrowUpRight,
   ClipboardList,
@@ -110,7 +110,7 @@ function ServiceCard({
         }`}
       >
         {card.mediaType === "IMAGE" && card.image ? (
-          <Image
+          <SiteImage
             src={card.image}
             alt={card.title}
             fill
@@ -143,13 +143,13 @@ function ServiceCard({
           Profesyonel ekibimizle ölçülebilir sonuçlar üreten çözümler sunuyoruz.
         </p>
       )}
-      <Link
+      <SiteLink
         href={card.href}
         className="mt-5 inline-flex items-center justify-center gap-1 text-sm font-semibold text-site-primary transition group-hover:gap-2"
       >
         Daha fazla
         <ArrowUpRight className="h-4 w-4" />
-      </Link>
+      </SiteLink>
     </article>
   );
 }
@@ -328,22 +328,22 @@ export function HomeServices({
         {showPrimary || showSecondary ? (
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             {showPrimary ? (
-              <Link
+              <SiteLink
                 href={primaryUrl}
                 className="inline-flex items-center gap-2 rounded-full bg-site-primary px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-500/25"
               >
                 {primaryLabel}
                 <ArrowUpRight className="h-4 w-4" />
-              </Link>
+              </SiteLink>
             ) : null}
             {showSecondary ? (
-              <Link
+              <SiteLink
                 href={secondaryUrl}
                 className="inline-flex items-center gap-2 rounded-full border border-site-primary/40 bg-site-card px-5 py-3 text-sm font-semibold text-site-fg"
               >
                 <Phone className="h-4 w-4 text-site-primary" />
                 {secondaryLabel}
-              </Link>
+              </SiteLink>
             ) : null}
           </div>
         ) : null}

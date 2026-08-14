@@ -1,6 +1,6 @@
-import Image from "next/image";
-import Link from "next/link";
 import { ArrowUpRight, Rocket, Star } from "lucide-react";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
 
 export type HomeHeroProps = {
   siteName: string;
@@ -103,19 +103,19 @@ export function HomeHero({
           ) : null}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
+            <SiteLink
               href={ctaUrl || "/iletisim"}
               className="inline-flex items-center gap-2 rounded-full bg-site-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition hover:-translate-y-0.5 hover:brightness-110"
             >
               {ctaLabel}
               <ArrowUpRight className="h-4 w-4" />
-            </Link>
-            <Link
+            </SiteLink>
+            <SiteLink
               href="/projeler"
               className="inline-flex items-center gap-2 rounded-full border border-site-border bg-site-card px-6 py-3.5 text-sm font-semibold text-site-fg transition hover:border-site-primary hover:text-site-primary"
             >
               Projeleri İncele
-            </Link>
+            </SiteLink>
           </div>
 
           <div className="mt-10">
@@ -148,7 +148,7 @@ export function HomeHero({
           <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-violet-500/20 via-fuchsia-400/10 to-emerald-300/20 blur-2xl" />
           <div className="relative grid grid-cols-2 gap-4">
             <div className="site-animate-float relative col-span-2 aspect-[16/10] overflow-hidden rounded-[1.6rem] shadow-xl">
-              <Image
+              <SiteImage
                 src={images[0]?.src ?? DEFAULT_COLLAGE[0].src}
                 alt={images[0]?.alt ?? "Hero"}
                 fill
@@ -158,7 +158,7 @@ export function HomeHero({
               />
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] shadow-lg">
-              <Image
+              <SiteImage
                 src={images[1]?.src ?? DEFAULT_COLLAGE[1].src}
                 alt={images[1]?.alt ?? "Hero"}
                 fill
@@ -167,7 +167,7 @@ export function HomeHero({
               />
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] shadow-lg">
-              <Image
+              <SiteImage
                 src={images[2]?.src ?? DEFAULT_COLLAGE[2].src}
                 alt={images[2]?.alt ?? "Hero"}
                 fill
@@ -192,7 +192,7 @@ export function HomeHero({
                   key={src}
                   className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white site-dark:border-slate-800"
                 >
-                  <Image src={src} alt="" fill className="object-cover" sizes="36px" />
+                  <SiteImage src={src} alt="" fill className="object-cover" sizes="36px" />
                 </span>
               ))}
             </div>

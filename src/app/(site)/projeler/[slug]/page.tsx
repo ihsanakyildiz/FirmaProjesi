@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
+import { preload } from "react-dom";
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -10,34 +10,68 @@ import {
   Phone,
   Share2,
 } from "lucide-react";
-import { HomeCta } from "@/components/site/home/home-cta";
-import { ProjectFaqAccordion } from "@/components/site/project/project-faq-accordion";
-import { ProjectQuoteForm } from "@/components/site/project/project-quote-form";
+import { SiteImage } from "@/components/site/site-image";
+import { SiteLink } from "@/components/site/site-link";
 import { LucideIconByName } from "@/lib/lucide-icons";
 import { parseProjectHighlights } from "@/lib/project-portfolio";
-import { prisma } from "@/lib/prisma";
+import {
+  getCachedProjectBySlug,
+  getCachedProjectSlugs,
+  getCachedSiblingProjects,
+  projectCategoryHref,
+} from "@/lib/projects";
+import { prepareRichHtml, stripHtml } from "@/lib/html";
+import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { getSettingsMap } from "@/lib/settings";
-import { stripHtml } from "@/lib/html";
+
+const HomeCta = dynamic(() =>
+  import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
+);
+const ProjectFaqAccordion = dynamic(() =>
+  import("@/components/site/project/project-faq-accordion").then(
+    (mod) => mod.ProjectFaqAccordion,
+  ),
+);
+const ProjectQuoteForm = dynamic(() =>
+  import("@/components/site/project/project-quote-form").then(
+    (mod) => mod.ProjectQuoteForm,
+  ),
+);
+
+export const revalidate = 60;
 
 type ProjectDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export async function generateStaticParams() {
+  const rows = await getCachedProjectSlugs().catch(() => []);
+  return rows.map((row) => ({ slug: row.slug }));
+}
+
 export async function generateMetadata({
   params,
 }: ProjectDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = await prisma.project.findFirst({
-    where: { slug, isActive: true },
-    select: { title: true, seoTitle: true, seoDescription: true, summary: true },
-  });
+  const project = await getCachedProjectBySlug(slug).catch(() => null);
   if (!project) return { title: "Proje" };
+
+  const settings = await getSettingsMap().catch(
+    () => ({}) as Record<string, string>,
+  );
+  const perf = parsePerformance(settings);
+  const cover = withCdnUrl(project.image, perf.cdnUrl);
+  const description =
+    project.seoDescription || stripHtml(project.summary) || undefined;
+
   return {
     title: project.seoTitle || project.title,
-    description:
-      project.seoDescription ||
-      stripHtml(project.summary) ||
-      undefined,
+    description,
+    openGraph: {
+      title: project.seoTitle || project.title,
+      description,
+      images: cover ? [{ url: cover }] : undefined,
+    },
   };
 }
 
@@ -47,86 +81,68 @@ export default async function ProjectDetailPage({
   const { slug } = await params;
 
   const [project, settings] = await Promise.all([
-    prisma.project.findFirst({
-      where: { slug, isActive: true },
-      include: {
-        category: { select: { id: true, name: true, slug: true } },
-        client: { select: { name: true, logo: true } },
-        features: {
-          where: { isActive: true },
-          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            icon: true,
-            iconColor: true,
-          },
-        },
-        gallery: {
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, image: true, alt: true },
-        },
-        metrics: {
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, label: true, value: true },
-        },
-        faqGroup: {
-          include: {
-            items: {
-              where: { isActive: true },
-              orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-              select: { id: true, question: true, answer: true },
-            },
-          },
-        },
-      },
-    }),
+    getCachedProjectBySlug(slug).catch(() => null),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
 
   if (!project) notFound();
 
-  const siblingProjects = await prisma.project.findMany({
-    where: {
-      isActive: true,
-      ...(project.categoryId
-        ? { categoryId: project.categoryId }
-        : {}),
-    },
-    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    take: 10,
-    select: { id: true, title: true, slug: true },
-  });
+  const siblingProjects = await getCachedSiblingProjects(
+    project.categoryId,
+  ).catch(() => []);
 
   const highlights = parseProjectHighlights(project.highlights);
   const phone = settings.contact_phone || "";
-  const sideImage = project.gallery[0]?.image ?? null;
+  const perf = parsePerformance(settings);
+  const cover = withCdnUrl(project.image, perf.cdnUrl);
+  const gallery = project.gallery.map((item) => ({
+    ...item,
+    image: withCdnUrl(item.image, perf.cdnUrl) ?? item.image,
+  }));
+  const sideImage = gallery[0]?.image ?? null;
   const summaryText = stripHtml(project.summary);
+  const brochurePdf = withCdnUrl(project.brochurePdf, perf.cdnUrl);
+  const brochureZip = withCdnUrl(project.brochureZip, perf.cdnUrl);
+  const content = prepareRichHtml(project.content, {
+    lazyImages: perf.lazyImages,
+    lazyIframes: perf.lazyIframes,
+    disableThirdParty: perf.disableThirdParty,
+  });
+
+  if (cover) {
+    preload(cover, { as: "image", fetchPriority: "high" });
+  }
 
   return (
     <>
       <section className="relative overflow-hidden border-b border-site-border bg-site-surface py-14">
         <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-60" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="text-sm text-site-muted">
-            <Link href="/" className="hover:text-site-primary">
-              Ana Sayfa
-            </Link>
-            <span className="mx-2">›</span>
-            <Link href="/projeler" className="hover:text-site-primary">
-              Projeler
-            </Link>
-            {project.category ? (
-              <>
-                <span className="mx-2">›</span>
-                <span>{project.category.name}</span>
-              </>
-            ) : null}
-          </nav>
-          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-site-fg sm:text-5xl">
-            {project.title}
-          </h1>
+        <div className="relative mx-auto grid max-w-7xl px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
+          <div className="lg:col-span-2">
+            <nav className="text-sm text-site-muted">
+              <SiteLink href="/" className="hover:text-site-primary">
+                Ana Sayfa
+              </SiteLink>
+              <span className="mx-2">›</span>
+              <SiteLink href="/projeler" className="hover:text-site-primary">
+                Projeler
+              </SiteLink>
+              {project.category ? (
+                <>
+                  <span className="mx-2">›</span>
+                  <SiteLink
+                    href={projectCategoryHref(project.category.slug)}
+                    className="hover:text-site-primary"
+                  >
+                    {project.category.name}
+                  </SiteLink>
+                </>
+              ) : null}
+            </nav>
+            <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-site-fg sm:text-5xl">
+              {project.title}
+            </h1>
+          </div>
         </div>
       </section>
 
@@ -142,7 +158,7 @@ export default async function ProjectDetailPage({
                   const active = item.id === project.id;
                   return (
                     <li key={item.id}>
-                      <Link
+                      <SiteLink
                         href={`/projeler/${item.slug}`}
                         className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
                           active
@@ -152,22 +168,22 @@ export default async function ProjectDetailPage({
                       >
                         <span className="truncate">{item.title}</span>
                         {active ? <ArrowUpRight className="h-4 w-4" /> : null}
-                      </Link>
+                      </SiteLink>
                     </li>
                   );
                 })}
               </ul>
             </div>
 
-            {(project.brochurePdf || project.brochureZip) && (
+            {(brochurePdf || brochureZip) && (
               <div className="rounded-3xl border border-site-border bg-site-card p-5 shadow-sm">
                 <h3 className="font-display text-lg font-semibold text-site-fg">
                   Proje Dosyaları
                 </h3>
                 <div className="mt-4 space-y-3">
-                  {project.brochurePdf ? (
+                  {brochurePdf ? (
                     <a
-                      href={project.brochurePdf}
+                      href={brochurePdf}
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center gap-3 rounded-2xl border border-site-border px-3 py-3 text-sm font-medium text-site-fg transition hover:border-site-primary/40"
@@ -178,9 +194,9 @@ export default async function ProjectDetailPage({
                       PDF Broşür
                     </a>
                   ) : null}
-                  {project.brochureZip ? (
+                  {brochureZip ? (
                     <a
-                      href={project.brochureZip}
+                      href={brochureZip}
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center gap-3 rounded-2xl border border-site-border px-3 py-3 text-sm font-medium text-site-fg transition hover:border-site-primary/40"
@@ -208,22 +224,22 @@ export default async function ProjectDetailPage({
                   {phone}
                 </a>
               ) : null}
-              <Link
+              <SiteLink
                 href="/iletisim"
                 className="mt-5 inline-flex rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-site-primary"
               >
                 Ücretsiz Teklif
-              </Link>
+              </SiteLink>
             </div>
 
             <ProjectQuoteForm projectTitle={project.title} />
           </aside>
 
           <div>
-            {project.image ? (
+            {cover ? (
               <div className="relative aspect-[16/9] overflow-hidden rounded-[1.75rem] border border-site-border shadow-sm">
-                <Image
-                  src={project.image}
+                <SiteImage
+                  src={cover}
                   alt={project.title}
                   fill
                   priority
@@ -295,10 +311,10 @@ export default async function ProjectDetailPage({
               </div>
             )}
 
-            {project.content ? (
+            {content.trim() ? (
               <div
                 className="site-rich-content mt-8"
-                dangerouslySetInnerHTML={{ __html: project.content }}
+                dangerouslySetInnerHTML={{ __html: content }}
               />
             ) : null}
 
@@ -352,9 +368,9 @@ export default async function ProjectDetailPage({
             {sideImage ? (
               <div className="mt-10 grid items-center gap-6 md:grid-cols-2">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-site-border">
-                  <Image
+                  <SiteImage
                     src={sideImage}
-                    alt={project.gallery[0]?.alt || project.title}
+                    alt={gallery[0]?.alt || project.title}
                     fill
                     className="object-cover"
                     sizes="(max-width:768px) 100vw, 35vw"
@@ -401,14 +417,14 @@ export default async function ProjectDetailPage({
               </div>
             ) : null}
 
-            {project.gallery.length > 1 ? (
+            {gallery.length > 1 ? (
               <div className="mt-10 grid gap-4 sm:grid-cols-2">
-                {project.gallery.slice(1).map((item) => (
+                {gallery.slice(1).map((item) => (
                   <div
                     key={item.id}
                     className="relative aspect-[16/11] overflow-hidden rounded-3xl border border-site-border"
                   >
-                    <Image
+                    <SiteImage
                       src={item.image}
                       alt={item.alt || project.title}
                       fill
@@ -424,36 +440,38 @@ export default async function ProjectDetailPage({
               <ProjectFaqAccordion items={project.faqGroup.items} />
             ) : null}
 
-            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-site-border pt-6">
-              <span className="inline-flex items-center gap-2 text-sm font-medium text-site-muted">
-                <Share2 className="h-4 w-4" />
-                Paylaş
-              </span>
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(project.title)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
-              >
-                X
-              </a>
-              <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`/projeler/${project.slug}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
-              >
-                LinkedIn
-              </a>
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`/projeler/${project.slug}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
-              >
-                Facebook
-              </a>
-            </div>
+            {perf.disableThirdParty ? null : (
+              <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-site-border pt-6">
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-site-muted">
+                  <Share2 className="h-4 w-4" />
+                  Paylaş
+                </span>
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(project.title)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
+                >
+                  X
+                </a>
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`/projeler/${project.slug}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
+                >
+                  LinkedIn
+                </a>
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`/projeler/${project.slug}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
+                >
+                  Facebook
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </section>

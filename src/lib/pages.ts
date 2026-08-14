@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
   defaultLimitForType,
@@ -512,3 +513,21 @@ export async function resolvePageSections(
 
   return resolved;
 }
+
+export const getCachedHomepageAdvanced = unstable_cache(
+  async () => {
+    const advanced = await getAdvancedPageBySlug("anasayfa");
+    if (!advanced || advanced.sections.length === 0) {
+      return null;
+    }
+    const sections = await resolvePageSections(advanced.sections);
+    return {
+      title: advanced.title,
+      seoTitle: advanced.seoTitle,
+      seoDescription: advanced.seoDescription,
+      sections,
+    };
+  },
+  ["homepage-advanced"],
+  { tags: ["site", "pages"], revalidate: 60 },
+);

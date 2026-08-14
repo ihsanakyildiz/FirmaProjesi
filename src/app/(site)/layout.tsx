@@ -29,7 +29,10 @@ function fallbackNav(): SiteNavItem[] {
       href: "/hizmetler",
       children: [
         { label: "Hizmetler", href: "/hizmetler" },
+        { label: "Yapılan İşler", href: "/yapilan-isler" },
+        { label: "İş Kategorileri", href: "/yapilan-isler/kategori" },
         { label: "Projeler", href: "/projeler" },
+        { label: "Proje Kategorileri", href: "/projeler/kategori" },
         { label: "SSS", href: "/#sss" },
         { label: "Fiyatlandırma", href: "/#fiyatlandirma" },
       ],
@@ -39,7 +42,7 @@ function fallbackNav(): SiteNavItem[] {
       href: "/blog",
       children: [
         { label: "Tüm Yazılar", href: "/blog" },
-        { label: "Kategoriler", href: "/blog" },
+        { label: "Kategoriler", href: "/blog/kategori" },
       ],
     },
     { label: "İletişim", href: "/iletisim" },

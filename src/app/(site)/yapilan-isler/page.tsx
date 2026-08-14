@@ -1,28 +1,56 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
-import { prisma } from "@/lib/prisma";
-import { stripHtml } from "@/lib/html";
+import dynamic from "next/dynamic";
+import { WorkCard } from "@/components/site/work/work-card";
+import { WorkCategorySidebar } from "@/components/site/work/work-category-sidebar";
+import { SitePagination } from "@/components/site/site-pagination";
+import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { getSettingsMap } from "@/lib/settings";
+import {
+  WORK_GRID_PAGE_SIZE,
+  getCachedWorkCategoryIndex,
+  getCachedWorkListing,
+} from "@/lib/works";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Yapılan İşler",
   description: "Tamamladığımız çalışmalar ve hizmet örnekleri",
 };
 
-export default async function WorksIndexPage() {
-  const works = await prisma.work.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      summary: true,
-      image: true,
-      category: { select: { name: true } },
-    },
-  });
+const HomeCta = dynamic(() =>
+  import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
+);
+
+type WorksIndexPageProps = {
+  searchParams: Promise<{ sayfa?: string }>;
+};
+
+function pageHref(page: number) {
+  return page <= 1 ? "/yapilan-isler" : `/yapilan-isler?sayfa=${page}`;
+}
+
+export default async function WorksIndexPage({
+  searchParams,
+}: WorksIndexPageProps) {
+  const query = await searchParams;
+  const requestedPage = Number.parseInt(query.sayfa ?? "1", 10);
+  const currentPage =
+    Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+
+  const [works, categories, settings] = await Promise.all([
+    getCachedWorkListing().catch(() => []),
+    getCachedWorkCategoryIndex().catch(() => []),
+    getSettingsMap().catch(() => ({}) as Record<string, string>),
+  ]);
+  const perf = parsePerformance(settings);
+
+  const totalPages = Math.max(1, Math.ceil(works.length / WORK_GRID_PAGE_SIZE));
+  const page = Math.min(currentPage, totalPages);
+  const gridWorks = works.slice(
+    (page - 1) * WORK_GRID_PAGE_SIZE,
+    page * WORK_GRID_PAGE_SIZE,
+  );
 
   return (
     <>
@@ -42,54 +70,39 @@ export default async function WorksIndexPage() {
       </section>
 
       <section className="py-14">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {works.length === 0 ? (
-            <p className="py-16 text-center text-sm text-site-muted">
-              Henüz yayınlanmış çalışma yok.
-            </p>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {works.map((work) => (
-                <Link
-                  key={work.id}
-                  href={`/yapilan-isler/${work.slug}`}
-                  className="group overflow-hidden rounded-3xl border border-site-border bg-site-card shadow-sm transition hover:-translate-y-1 hover:border-site-primary/35 hover:shadow-xl"
-                >
-                  <div className="relative aspect-[16/11] overflow-hidden bg-slate-100">
-                    {work.image ? (
-                      <Image
-                        src={work.image}
-                        alt={work.title}
-                        fill
-                        className="object-cover transition duration-500 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-violet-100 to-slate-100" />
-                    )}
-                  </div>
-                  <div className="p-5">
-                    {work.category?.name ? (
-                      <p className="text-xs font-semibold tracking-wide text-site-primary uppercase">
-                        {work.category.name}
-                      </p>
-                    ) : null}
-                    <h2 className="mt-1 flex items-start justify-between gap-2 font-display text-lg font-bold text-site-fg group-hover:text-site-primary">
-                      <span>{work.title}</span>
-                      <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 opacity-60" />
-                    </h2>
-                    {work.summary ? (
-                      <p className="mt-2 line-clamp-2 text-sm text-site-muted">
-                        {stripHtml(work.summary)}
-                      </p>
-                    ) : null}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
+          <WorkCategorySidebar categories={categories} />
+          <div className="min-w-0">
+            {gridWorks.length === 0 ? (
+              <p className="py-10 text-sm text-site-muted">
+                Henüz yayınlanmış çalışma yok.
+              </p>
+            ) : (
+              <>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {gridWorks.map((work, index) => (
+                    <WorkCard
+                      key={work.id}
+                      work={{
+                        ...work,
+                        image: withCdnUrl(work.image, perf.cdnUrl),
+                      }}
+                      imagePriority={index === 0}
+                    />
+                  ))}
+                </div>
+                <SitePagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  hrefForPage={pageHref}
+                />
+              </>
+            )}
+          </div>
         </div>
       </section>
+
+      <HomeCta />
     </>
   );
 }

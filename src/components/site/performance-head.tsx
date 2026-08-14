@@ -28,6 +28,8 @@ export function PerformanceHead({ settings }: PerformanceHeadProps) {
           type={logo.endsWith(".svg") ? "image/svg+xml" : logo.endsWith(".webp") ? "image/webp" : undefined}
         />
       ) : null}
+      <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://images.unsplash.com" />
     </>
   );
 }
