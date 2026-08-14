@@ -172,6 +172,10 @@ export default async function HomePage() {
         alt: item.alt || item.label || "Logo",
         label: item.label || "Logo",
       })) ?? [];
+  const avatars =
+    slide?.media
+      ?.filter((item) => item.kind === "AVATAR")
+      .map((item) => ({ src: item.image, alt: item.alt || "" })) ?? [];
 
   const classicCards = cards.filter((card) => card.type === "CLASSIC").slice(0, 6);
   const advancedCard =
@@ -191,8 +195,10 @@ export default async function HomePage() {
         showStars={slide?.showStars ?? true}
         starCount={slide?.starCount ?? 5}
         showAvatars={slide?.showAvatars ?? true}
+        layout={slide?.layout ?? "SPLIT_COLLAGE"}
         collageImages={collage}
         logos={logos}
+        avatars={avatars}
         backgroundStyle={slide?.backgroundStyle ?? "grid"}
       />
 

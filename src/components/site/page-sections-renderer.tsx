@@ -153,6 +153,10 @@ export function PageSectionsRenderer({
                   alt: item.alt || item.label || "Logo",
                   label: item.label || "Logo",
                 })) ?? [];
+            const avatars =
+              slide?.media
+                ?.filter((item) => item.kind === "AVATAR")
+                .map((item) => ({ src: item.image, alt: item.alt || "" })) ?? [];
 
             return (
               <SectionShell key={section.id} anchorId={anchor}>
@@ -172,8 +176,10 @@ export function PageSectionsRenderer({
                   showStars={slide?.showStars ?? true}
                   starCount={slide?.starCount ?? 5}
                   showAvatars={slide?.showAvatars ?? true}
+                  layout={slide?.layout ?? "SPLIT_COLLAGE"}
                   collageImages={collage}
                   logos={logos}
+                  avatars={avatars}
                   backgroundStyle={slide?.backgroundStyle ?? "grid"}
                 />
               </SectionShell>

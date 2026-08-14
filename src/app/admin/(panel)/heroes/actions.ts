@@ -536,6 +536,7 @@ export async function createHeroSlideAction(
     const created = await prisma.heroSlide.create({ data: slideData });
     await syncSlideMedia(created.id, data.mediaOrder, data.mediaFiles);
 
+    revalidatePath("/");
     revalidatePath("/admin/heroes");
     revalidatePath(`/admin/heroes/${heroId}/edit`);
     return {
@@ -613,6 +614,7 @@ export async function updateHeroSlideAction(
 
     await syncSlideMedia(id, data.mediaOrder, data.mediaFiles);
 
+    revalidatePath("/");
     revalidatePath("/admin/heroes");
     revalidatePath(`/admin/heroes/${existing.heroId}/edit`);
     revalidatePath(`/admin/heroes/${existing.heroId}/slides/${id}/edit`);
@@ -649,6 +651,7 @@ export async function deleteHeroSlideAction(formData: FormData): Promise<DeleteH
     ...existing.media.map((item) => deletePublicAsset(item.image)),
   ]);
 
+  revalidatePath("/");
   revalidatePath("/admin/heroes");
   revalidatePath(`/admin/heroes/${existing.heroId}/edit`);
   return { success: true, message: "Slayt silindi." };
@@ -672,6 +675,7 @@ export async function toggleHeroSlideActiveAction(formData: FormData) {
     data: { isActive: !existing.isActive },
   });
 
+  revalidatePath("/");
   revalidatePath("/admin/heroes");
   revalidatePath(`/admin/heroes/${existing.heroId}/edit`);
 }

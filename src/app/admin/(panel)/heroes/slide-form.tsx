@@ -1002,16 +1002,14 @@ export function HeroSlideForm({
           <input type="hidden" name="ctaUrl" value={ctaUrl} />
           <input type="hidden" name="trustLabel" value={trustLabel} />
           <input type="hidden" name="sortOrder" value={sortOrder} />
-          {isActive ? <input type="hidden" name="isActive" value="true" /> : null}
         </>
       ) : null}
       {tab !== "media" ? (
-        <>
-          {showAvatars ? <input type="hidden" name="showAvatars" value="true" /> : null}
-          {showStars ? <input type="hidden" name="showStars" value="true" /> : null}
-          <input type="hidden" name="starCount" value={starCount} />
-        </>
+        <input type="hidden" name="starCount" value={starCount} />
       ) : null}
+      <input type="hidden" name="isActive" value={isActive ? "true" : "false"} />
+      <input type="hidden" name="showAvatars" value={showAvatars ? "true" : "false"} />
+      <input type="hidden" name="showStars" value={showStars ? "true" : "false"} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
