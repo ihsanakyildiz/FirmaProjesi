@@ -1,4 +1,3 @@
-import path from "node:path";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
@@ -8,7 +7,7 @@ import {
 } from "@/config/settings";
 
 export function getDetectedSitePath() {
-  return path.resolve(process.cwd());
+  return process.cwd();
 }
 
 export async function syncDetectedSitePath() {
