@@ -63,6 +63,46 @@ async function fileExists(absolutePath: string) {
   }
 }
 
+export function resolvePublicUploadFile(urlPath: string) {
+  const normalized = urlPath.replace(/\\/g, "/").split("?")[0].split("#")[0];
+  if (!normalized.startsWith("/uploads/") || normalized.includes("..")) {
+    return null;
+  }
+
+  const absolutePath = path.resolve(PUBLIC_ROOT, normalized.slice(1));
+  if (!isInsidePublicRoot(absolutePath)) {
+    return null;
+  }
+
+  return absolutePath;
+}
+
+export function mimeForUploadPath(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case ".webp":
+      return "image/webp";
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".gif":
+      return "image/gif";
+    case ".avif":
+      return "image/avif";
+    case ".svg":
+      return "image/svg+xml";
+    case ".ico":
+      return "image/x-icon";
+    case ".json":
+    case ".webmanifest":
+      return "application/manifest+json";
+    default:
+      return "application/octet-stream";
+  }
+}
+
 function isInsidePublicRoot(absolutePath: string) {
   const root = path.resolve(PUBLIC_ROOT);
   const target = path.resolve(absolutePath);

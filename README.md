@@ -366,6 +366,16 @@ ProxyPreserveHost On
 RequestHeader set X-Forwarded-Proto "https" early
 RequestHeader set X-Forwarded-Host "www.ihsanakyildiz.com.tr" early
 RequestHeader set X-Forwarded-Port "443" early
+
+# Yüklenen görseller Next public/uploads altında; Apache DocumentRoot (public_html) boş kalır.
+# /uploads Apache'den doğrudan servis edilmezse tarayıcı 404 verir.
+Alias /uploads "/home/ihsanproje/web/ihsanakyildiz.com.tr/apps/proje/public/uploads"
+<Directory "/home/ihsanproje/web/ihsanakyildiz.com.tr/apps/proje/public/uploads">
+    Options -Indexes +FollowSymLinks
+    Require all granted
+</Directory>
+ProxyPass /uploads !
+
 ProxyPass / http://127.0.0.1:3001/
 ProxyPassReverse / http://127.0.0.1:3001/
 ```
@@ -379,6 +389,15 @@ sudo v-restart-web
 # veya
 sudo systemctl reload apache2
 ```
+
+`Alias` custom dosyada çalışmazsa Hestia `public_html` içine sembolik bağ:
+
+```bash
+ln -sfn /home/ihsanproje/web/ihsanakyildiz.com.tr/apps/proje/public/uploads \
+  /home/ihsanproje/web/ihsanakyildiz.com.tr/public_html/uploads
+```
+
+Kontrol: `curl -I https://www.ihsanakyildiz.com.tr/uploads/heroes/DOSYA.webp` → 200.
 
 ### Admin girişi 500 — Digest `2452230101`
 
