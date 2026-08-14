@@ -27,7 +27,7 @@ async function requireAdmin() {
 }
 
 async function uniqueMenuGroupSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "menu";
+  const slug = slugify(base) || "menu";
   let candidate = slug;
   let i = 2;
   while (true) {

@@ -26,7 +26,7 @@ async function requireAdmin() {
 }
 
 async function uniqueFaqGroupSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "sss";
+  const slug = slugify(base) || "sss";
   let candidate = slug;
   let i = 2;
   while (true) {

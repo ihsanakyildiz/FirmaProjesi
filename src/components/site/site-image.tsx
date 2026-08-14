@@ -4,6 +4,7 @@ import Image, { type ImageProps } from "next/image";
 import { usePerformance } from "@/components/site/performance-provider";
 
 export function SiteImage({
+  alt = "",
   priority,
   quality,
   sizes,
@@ -18,6 +19,7 @@ export function SiteImage({
   return (
     <Image
       {...rest}
+      alt={alt}
       priority={priority}
       fetchPriority={priority ? "high" : rest.fetchPriority}
       loading={resolvedLoading}

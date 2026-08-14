@@ -292,7 +292,10 @@ export async function getDashboardData() {
   ]
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     .slice(0, 8)
-    .map(({ updatedAt: _updatedAt, ...rest }) => rest);
+    .map(({ updatedAt, ...rest }) => {
+      void updatedAt;
+      return rest;
+    });
 
   const modules: DashboardModule[] = [
     {

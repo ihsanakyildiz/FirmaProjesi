@@ -41,7 +41,7 @@ async function requireAdmin() {
 }
 
 async function uniquePageSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "sayfa";
+  const slug = slugify(base) || "sayfa";
   let candidate = slug;
   let i = 2;
 

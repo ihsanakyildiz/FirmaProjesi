@@ -29,7 +29,7 @@ async function requireAdmin() {
 }
 
 async function uniqueBlogCategorySlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "kategori";
+  const slug = slugify(base) || "kategori";
   let candidate = slug;
   let i = 2;
 

@@ -35,7 +35,7 @@ function revalidateProjectCategoryPublic(slug?: string | null) {
 }
 
 async function uniqueProjectCategorySlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "proje-kategori";
+  const slug = slugify(base) || "proje-kategori";
   let candidate = slug;
   let i = 2;
 

@@ -34,7 +34,7 @@ async function requireAdmin() {
 }
 
 async function uniqueWorkSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "calisma";
+  const slug = slugify(base) || "calisma";
   let candidate = slug;
   let i = 2;
 

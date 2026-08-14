@@ -55,9 +55,11 @@ export function DeferredAnalytics({
     if (!enabled) return;
     if (!googleAnalyticsId && !googleTagManagerId) return;
 
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let idleId: number | undefined;
     let loaded = false;
+    const handles: {
+      timeoutId?: ReturnType<typeof setTimeout>;
+      idleId?: number;
+    } = {};
 
     const run = () => {
       if (loaded) return;
@@ -67,9 +69,9 @@ export function DeferredAnalytics({
     };
 
     const cleanup = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (idleId !== undefined && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
+      if (handles.timeoutId) clearTimeout(handles.timeoutId);
+      if (handles.idleId !== undefined && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(handles.idleId);
       }
       window.removeEventListener("scroll", run);
       window.removeEventListener("pointerdown", run);
@@ -85,10 +87,12 @@ export function DeferredAnalytics({
     window.addEventListener("pointerdown", run, { once: true });
     window.addEventListener("keydown", run, { once: true });
 
-    timeoutId = setTimeout(run, Math.max(0, delayMs));
+    handles.timeoutId = setTimeout(run, Math.max(0, delayMs));
 
     if ("requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(run, { timeout: Math.max(delayMs, 2000) });
+      handles.idleId = window.requestIdleCallback(run, {
+        timeout: Math.max(delayMs, 2000),
+      });
     }
 
     return cleanup;

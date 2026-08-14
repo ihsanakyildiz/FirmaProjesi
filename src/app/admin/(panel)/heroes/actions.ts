@@ -43,7 +43,7 @@ async function requireAdmin() {
 }
 
 async function uniqueHeroSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "hero";
+  const slug = slugify(base) || "hero";
   let candidate = slug;
   let i = 2;
   while (true) {

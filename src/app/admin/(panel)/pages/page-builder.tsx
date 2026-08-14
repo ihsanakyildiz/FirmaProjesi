@@ -7,6 +7,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   closestCenter,
@@ -663,12 +664,12 @@ function SectionEditor({
             <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
               Alt CTA butonları
             </p>
-            <a
+            <Link
               href="/admin/pricing"
               className="text-xs font-semibold text-[#405189] hover:underline"
             >
               Paketleri yönet →
-            </a>
+            </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>

@@ -34,7 +34,7 @@ async function requireAdmin() {
 }
 
 async function uniqueProjectClientSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "musteri";
+  const slug = slugify(base) || "musteri";
   let candidate = slug;
   let i = 2;
 

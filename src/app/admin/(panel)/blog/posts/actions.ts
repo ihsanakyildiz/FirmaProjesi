@@ -34,7 +34,7 @@ async function requireAdmin() {
 }
 
 async function uniqueBlogPostSlug(base: string, excludeId?: string) {
-  let slug = slugify(base) || "yazi";
+  const slug = slugify(base) || "yazi";
   let candidate = slug;
   let i = 2;
 
