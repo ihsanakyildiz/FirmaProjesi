@@ -18,6 +18,7 @@ import {
   Settings,
   Sparkles,
   Tags,
+  HeartPulse,
   type LucideIcon,
 } from "lucide-react";
 
@@ -122,6 +123,11 @@ export const adminNavSections: AdminNavSection[] = [
             label: "Performans",
             href: "/admin/settings/performance",
             icon: Gauge,
+          },
+          {
+            label: "Sistem Sağlığı",
+            href: "/admin/settings/system",
+            icon: HeartPulse,
           },
           {
             label: "Diller",
