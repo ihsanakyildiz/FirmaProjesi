@@ -1,3 +1,4 @@
+import path from "node:path";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
@@ -5,6 +6,27 @@ import {
   getSettingGroupsByScope,
   type SettingsScope,
 } from "@/config/settings";
+
+export function getDetectedSitePath() {
+  return path.resolve(process.cwd());
+}
+
+export async function syncDetectedSitePath() {
+  const value = getDetectedSitePath();
+  await prisma.setting.upsert({
+    where: { key: "site_path" },
+    update: { value },
+    create: {
+      key: "site_path",
+      value,
+      label: "Site Dizin Yolu",
+      type: "text",
+      group: "general",
+      sortOrder: 4,
+    },
+  });
+  return value;
+}
 
 export async function getSettingsMapUncached(): Promise<Record<string, string>> {
   const rows = await prisma.setting.findMany();
@@ -17,6 +39,8 @@ export async function getSettingsMapUncached(): Promise<Record<string, string>> 
   for (const row of rows) {
     map[row.key] = row.value;
   }
+
+  map.site_path = getDetectedSitePath();
 
   return map;
 }
@@ -52,7 +76,8 @@ export async function ensureDefaultSettings(scope: SettingsScope = "all") {
       const meta = groupByKey.get(def.key)!;
       return {
         key: def.key,
-        value: def.defaultValue ?? "",
+        value:
+          def.key === "site_path" ? getDetectedSitePath() : (def.defaultValue ?? ""),
         label: meta.label,
         type: meta.type,
         group: meta.group,

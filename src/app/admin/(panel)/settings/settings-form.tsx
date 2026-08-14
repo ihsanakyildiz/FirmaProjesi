@@ -222,7 +222,12 @@ function FieldInput({
       type={field.type === "url" || field.type === "email" || field.type === "tel" ? field.type : "text"}
       defaultValue={value}
       placeholder={field.placeholder}
-      className={baseClass}
+      readOnly={field.readOnly}
+      className={
+        field.readOnly
+          ? `${baseClass} cursor-default bg-slate-50 text-slate-700 focus:border-[#e9ebec] focus:ring-0`
+          : baseClass
+      }
     />
   );
 }

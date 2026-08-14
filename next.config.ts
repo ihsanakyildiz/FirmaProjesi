@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
     serverActions: {
       bodySizeLimit: "16mb",
+      allowedOrigins: [
+        "www.ihsanakyildiz.com.tr",
+        "ihsanakyildiz.com.tr",
+      ],
     },
   },
   images: {

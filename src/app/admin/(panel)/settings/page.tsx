@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { ensureDefaultSettings, getSettingsMapUncached } from "@/lib/settings";
+import {
+  ensureDefaultSettings,
+  getSettingsMapUncached,
+  syncDetectedSitePath,
+} from "@/lib/settings";
 import { SettingsForm } from "./settings-form";
 
 export const metadata: Metadata = {
@@ -9,6 +13,7 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   await ensureDefaultSettings();
+  await syncDetectedSitePath();
   const values = await getSettingsMapUncached();
 
   return (

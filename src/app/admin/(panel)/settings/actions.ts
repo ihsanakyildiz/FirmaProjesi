@@ -9,6 +9,7 @@ import {
   type SettingsScope,
 } from "@/config/settings";
 import { prisma } from "@/lib/prisma";
+import { getDetectedSitePath } from "@/lib/settings";
 import {
   deletePublicAsset,
   saveOptimizedImage,
@@ -86,6 +87,10 @@ async function resolveFieldValue(
     }
 
     return existing || previous;
+  }
+
+  if (def.key === "site_path") {
+    return getDetectedSitePath();
   }
 
   return String(formData.get(def.key) ?? "").trim();

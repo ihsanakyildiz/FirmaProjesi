@@ -15,6 +15,8 @@ export type SettingFieldDef = {
   placeholder?: string;
   hint?: string;
   defaultValue?: string;
+  /** Formda düzenlenemez; sunucu değeri yazılır */
+  readOnly?: boolean;
   accept?: string;
   recommendedSize?: string;
   uploadDir?: string;
@@ -72,8 +74,9 @@ export const settingGroups: SettingGroupDef[] = [
         key: "site_path",
         label: "Site Dizin Yolu",
         type: "text",
-        placeholder: "/var/www/html veya C:\\xampp\\htdocs\\ihsanakyildiz",
-        hint: "Sunucudaki proje kök dizini",
+        readOnly: true,
+        placeholder: "Otomatik algılanır",
+        hint: "Sunucuda çalışan uygulamanın kök dizini otomatik algılanır ve kaydedilir. Elle değiştirilemez.",
         defaultValue: "",
       },
       {

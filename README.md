@@ -260,6 +260,165 @@ npm run dev
 
 ---
 
+## Canlıya alma (Apache / Hestia + PM2)
+
+Yerel `npm run dev` ile canlı ortam aynı şey değildir. Canlıda Next.js **Apache arkasında** `127.0.0.1` üzerinde çalışır; tarayıcı HTTPS ile gelir. Aşağıdaki ayrıntılar atlanırsa site açılır ama **admin girişi 500** verir veya içerik boş görünür.
+
+Bu kurulum Oracle Ubuntu + Hestia tarzı panel, kullanıcı `ihsanproje`, domain `ihsanakyildiz.com.tr` içindir. Başka sunucuda yolları ve portu kendi ortamınıza göre değiştirin.
+
+### Mimari
+
+```text
+Tarayıcı  →  HTTPS Apache (443)
+                 ProxyPass →  127.0.0.1:3001  (PM2: ihsanakyildiz)
+```
+
+Aynı makinede başka bir Next uygulaması **3000** kullanıyorsa (ör. `alchat`) bu proje **3001** (veya boş bir port) kullanmalıdır. `PORT=3000` ile çakışma: ikinci süreç ayağa kalkmaz veya yanlış uygulamayı görürsünüz.
+
+Uygulama dizini örneği:
+
+```text
+/home/ihsanproje/web/ihsanakyildiz.com.tr/apps/proje
+```
+
+### Ortam değişkenleri (üretim `.env`)
+
+```env
+DATABASE_URL="mysql://KULLANICI:SIFRE@127.0.0.1:3306/VERITABANI"
+AUTH_SECRET="en-az-32-karakter-rastgele"
+AUTH_URL="https://www.ihsanakyildiz.com.tr"
+AUTH_TRUST_HOST=true
+
+ADMIN_EMAIL="admin@ornek.com"
+ADMIN_PASSWORD="güçlü-sifre"
+ADMIN_NAME="Admin"
+```
+
+| Değişken | Neden kritik |
+| --- | --- |
+| `AUTH_URL` | Tarayıcıdaki **tam** kök URL. `www` ile açıyorsanız `www` yazın. Apex (`https://ihsanakyildiz.com.tr`) ile `www` karışınca oturum ve Server Action kırılır. |
+| `AUTH_TRUST_HOST=true` | Apache reverse proxy’de Auth.js aksi halde `UntrustedHost` fırlatır; giriş sayfası Application error verir. |
+| `ADMIN_*` | Yalnızca `npm run db:seed` / `npx prisma db seed` bunları `users` tablosuna yazar. `.env` tek başına admin oluşturmaz. |
+
+Şifre içinde `@`, `#`, `:` varsa `DATABASE_URL` içinde **URL-encode** edin; Prisma `P1013` verir.
+
+Kodda `next.config.ts` → `experimental.serverActions.allowedOrigins` hem `www.ihsanakyildiz.com.tr` hem `ihsanakyildiz.com.tr` içerir. Domain değişirse bu listeyi güncelleyip **yeniden derleyin**.
+
+### Şema ≠ içerik
+
+`npx prisma db push` yalnızca tabloları oluşturur. phpMyAdmin’de 34 tablo görüp satır sayısı **0** ise site boştur; seed veya dump yok demektir.
+
+```bash
+cd /home/ihsanproje/web/ihsanakyildiz.com.tr/apps/proje
+npx prisma generate
+npx prisma db push
+npx prisma db seed
+```
+
+Seed çıktısında `users` sayısı ve `Admin: ...` e-postası görünmeli. Sonra `users` tablosunda en az 1 satır olmalı.
+
+Yerel XAMPP içeriğini taşımak için dump import edin; seed yalnızca örnek + admin hesabıdır.
+
+### Derleme ve PM2
+
+```bash
+npm ci
+npm run build
+PORT=3001 HOSTNAME=127.0.0.1 NODE_ENV=production pm2 start npm --name ihsanakyildiz -- start
+# veya ecosystem / mevcut process:
+pm2 restart ihsanakyildiz
+```
+
+PM2 ortamında `PORT=3001` ve `HOSTNAME=127.0.0.1` olsun (dışarıya açık 0.0.0.0 gerekmez). Kontrol:
+
+```bash
+curl -I http://127.0.0.1:3001
+pm2 logs ihsanakyildiz --lines 80 --err
+```
+
+`curl` **200** dönmeli. Apache 502 ise Next ayakta değildir veya port yanlıştır.
+
+Kod güncellemesi:
+
+```bash
+git pull
+npm ci
+npx prisma generate
+npx prisma db push
+npm run build
+pm2 restart ihsanakyildiz
+```
+
+`next.config.ts`, `middleware` veya Auth ayarı değiştiyse **mutlaka** `npm run build`. Yalnızca `pm2 restart` eski derlemeyi çalıştırır. `AUTH_TRUST_HOST` `.env` değişikliği için restart yeterlidir.
+
+### Apache reverse proxy (SSL vhost)
+
+`.htaccess` içindeki `ProxyPass` Hestia’da **güvenilir değildir**. Çalışan yol: SSL vhost custom dosyası (sudo gerekir):
+
+```text
+/home/ihsanproje/conf/web/ihsanakyildiz.com.tr/apache2.ssl.conf_custom
+```
+
+Örnek (portu kendi Next portunuzla değiştirin):
+
+```apache
+ProxyPreserveHost On
+RequestHeader set X-Forwarded-Proto "https" early
+RequestHeader set X-Forwarded-Host "www.ihsanakyildiz.com.tr" early
+RequestHeader set X-Forwarded-Port "443" early
+ProxyPass / http://127.0.0.1:3001/
+ProxyPassReverse / http://127.0.0.1:3001/
+```
+
+Başka siteden (ör. `gettimevo`) kopyalanmış `X-Forwarded-Host` **kullanmayın**. Host, ziyaretçinin gördüğü kanonik alan adıyla aynı olmalıdır.
+
+Sonra:
+
+```bash
+sudo v-restart-web
+# veya
+sudo systemctl reload apache2
+```
+
+### Admin girişi 500 — Digest `2452230101`
+
+Belirti: `Application error: a server-side exception... Digest: 2452230101`
+
+Yanlış şifre değildir. Next.js Server Action, `Origin` ile `x-forwarded-host` uyuşmazsa isteği keser:
+
+```text
+'x-forwarded-host' header with value 'ihsanakyildiz.com.tr'
+does not match 'origin' header with value 'www.ihsanakyildiz.com.tr'
+[Error: Invalid Server Actions request.]
+```
+
+Çözüm:
+
+1. Apache’de `X-Forwarded-Host` = `www.ihsanakyildiz.com.tr` (kanonik URL)
+2. `AUTH_URL` aynı kanonik URL
+3. `AUTH_TRUST_HOST=true`
+4. Gerekirse `allowedOrigins` + `npm run build`
+5. Giriş adresini kanonik tutun: `https://www.ihsanakyildiz.com.tr/admin/login`
+
+Auth.js proxy hatası (`UntrustedHost`) de aynı Application error sayfasını üretir; `AUTH_TRUST_HOST=true` ve doğru `AUTH_URL` ile çözülür.
+
+### Kontrol listesi
+
+- [ ] Port çakışması yok (`3000` başka uygulamadaysa `3001`)
+- [ ] `curl -I http://127.0.0.1:PORT` → 200
+- [ ] Apache `ProxyPass` doğru porta
+- [ ] `X-Forwarded-Host` / `AUTH_URL` / tarayıcı adresi **aynı** (www veya www’siz, karıştırmayın)
+- [ ] `AUTH_TRUST_HOST=true`
+- [ ] `db push` + **seed** (veya dump); `users` boş değil
+- [ ] `npm run build` güncel, PM2 restart edildi
+- [ ] Giriş: kanonik `https://www..../admin/login`
+
+### Güvenlik
+
+`.env` ve veritabanı şifrelerini sohbet / ekran görüntüsüne yapıştırmayın. Sızdıysa MySQL kullanıcısı, `AUTH_SECRET` ve admin şifresini değiştirip seed’i (veya kullanıcı kaydını) güncelleyin.
+
+---
+
 ## npm komutları
 
 | Komut | Açıklama |

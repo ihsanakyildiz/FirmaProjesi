@@ -1,6 +1,9 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
+  // Apache/Hestia reverse proxy: Host header AUTH_URL ile birebir eşleşmezse
+  // Auth.js UntrustedHost fırlatır ve giriş sayfası Application error verir.
+  trustHost: true,
   pages: {
     signIn: "/admin/login",
   },
