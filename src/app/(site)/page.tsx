@@ -171,6 +171,7 @@ export default async function HomePage() {
         src: item.image,
         alt: item.alt || item.label || "Logo",
         label: item.label || "Logo",
+        href: item.href,
       })) ?? [];
   const avatars =
     slide?.media

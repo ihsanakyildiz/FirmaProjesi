@@ -19,7 +19,7 @@ export type HomeHeroProps = {
   showAvatars?: boolean;
   layout?: HeroLayoutValue | string | null;
   collageImages?: Array<{ src: string; alt: string }>;
-  logos?: Array<{ src: string; alt: string; label: string }>;
+  logos?: Array<{ src: string; alt: string; label: string; href?: string | null }>;
   avatars?: Array<{ src: string; alt: string }>;
   backgroundStyle?: string | null;
 };
@@ -164,18 +164,38 @@ export function HomeHero({
         ) : null}
         {logos.length > 0 ? (
           <div
-            className={`mt-4 flex flex-wrap items-center gap-6 opacity-70 grayscale ${
+            className={`mt-4 flex flex-wrap items-center gap-6 ${
               isCentered ? "justify-center" : ""
             }`}
           >
-            {logos.slice(0, 8).map((logo, index) => (
-              <span
-                key={`${logo.src}-${index}`}
-                className="text-sm font-semibold text-site-fg"
-              >
-                {logo.label && logo.label !== "Logo" ? logo.label : `Marka ${index + 1}`}
-              </span>
-            ))}
+            {logos.slice(0, 8).map((logo, index) => {
+              const image = (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logo.src}
+                  alt={logo.alt || logo.label || "Logo"}
+                  className="h-10 w-auto max-w-[140px] object-contain opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0"
+                />
+              );
+
+              if (logo.href) {
+                return (
+                  <SiteLink
+                    key={`${logo.src}-${index}`}
+                    href={logo.href}
+                    className="inline-flex"
+                  >
+                    {image}
+                  </SiteLink>
+                );
+              }
+
+              return (
+                <span key={`${logo.src}-${index}`} className="inline-flex">
+                  {image}
+                </span>
+              );
+            })}
           </div>
         ) : null}
       </div>

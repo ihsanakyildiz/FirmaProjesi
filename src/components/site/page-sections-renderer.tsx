@@ -152,6 +152,7 @@ export function PageSectionsRenderer({
                   src: item.image,
                   alt: item.alt || item.label || "Logo",
                   label: item.label || "Logo",
+                  href: item.href,
                 })) ?? [];
             const avatars =
               slide?.media
