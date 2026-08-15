@@ -4,13 +4,15 @@ import { SiteLink } from "@/components/site/site-link";
 import type { HeroLayoutValue } from "@/lib/heroes";
 
 export type HomeHeroProps = {
-  siteName: string;
+  kicker?: string | null;
   badgeText?: string | null;
   headline: string;
   headlineAccent?: string | null;
   subheadline?: string | null;
   ctaLabel?: string | null;
   ctaUrl?: string | null;
+  ctaSecondaryLabel?: string | null;
+  ctaSecondaryUrl?: string | null;
   trustLabel?: string | null;
   showStars?: boolean;
   starCount?: number;
@@ -22,28 +24,6 @@ export type HomeHeroProps = {
   backgroundStyle?: string | null;
 };
 
-const DEFAULT_COLLAGE = [
-  {
-    src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80",
-    alt: "Ekip çalışması",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1551434678-e076c223a6922?auto=format&fit=crop&w=800&q=80",
-    alt: "Tasarım toplantısı",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80",
-    alt: "Dijital üretim",
-  },
-];
-
-const DEFAULT_AVATARS = [
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80",
-  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80",
-  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80",
-];
-
 function resolveLayout(value?: string | null): HeroLayoutValue {
   if (value === "FULL_BLEED" || value === "CENTERED" || value === "SPLIT_COLLAGE") {
     return value;
@@ -52,19 +32,21 @@ function resolveLayout(value?: string | null): HeroLayoutValue {
 }
 
 export function HomeHero({
-  siteName,
-  badgeText = "Ömür Boyu Güncelleme",
+  kicker,
+  badgeText,
   headline,
   headlineAccent,
   subheadline,
-  ctaLabel = "Başlayın",
-  ctaUrl = "/iletisim",
-  trustLabel = "Güvenen markalar",
+  ctaLabel,
+  ctaUrl,
+  ctaSecondaryLabel,
+  ctaSecondaryUrl,
+  trustLabel,
   showStars = true,
   starCount = 5,
   showAvatars = true,
   layout: layoutProp,
-  collageImages = DEFAULT_COLLAGE,
+  collageImages = [],
   logos = [],
   avatars = [],
   backgroundStyle = "grid",
@@ -84,9 +66,10 @@ export function HomeHero({
         }
       : { before: headline, accent: "", after: "" };
 
-  const images = collageImages.length ? collageImages : DEFAULT_COLLAGE;
-  const avatarSrcs =
-    avatars.length > 0 ? avatars.map((item) => item.src) : DEFAULT_AVATARS;
+  const images = collageImages;
+  const avatarSrcs = avatars.map((item) => item.src);
+  const showAvatarRow = showAvatars && avatarSrcs.length > 0;
+  const showCollage = images.length > 0;
 
   const textBlock = (
     <div className={`site-animate-fade-up ${isCentered ? "mx-auto max-w-2xl" : ""}`}>
@@ -98,8 +81,10 @@ export function HomeHero({
       ) : null}
 
       <h1 className="mt-5 font-display text-4xl leading-[1.1] font-extrabold tracking-tight text-site-fg sm:text-5xl lg:text-[3.4rem]">
-        <span className="block text-site-primary/90">{siteName}</span>
-        <span className="mt-2 block">
+        {kicker ? (
+          <span className="block text-site-primary/90">{kicker}</span>
+        ) : null}
+        <span className={kicker ? "mt-2 block" : "block"}>
           {titleParts.before}
           {titleParts.accent ? (
             <span className="text-site-primary">{titleParts.accent}</span>
@@ -123,22 +108,26 @@ export function HomeHero({
           isCentered ? "justify-center" : ""
         }`}
       >
-        <SiteLink
-          href={ctaUrl || "/iletisim"}
-          className="inline-flex items-center gap-2 rounded-full bg-site-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition hover:-translate-y-0.5 hover:brightness-110"
-        >
-          {ctaLabel}
-          <ArrowUpRight className="h-4 w-4" />
-        </SiteLink>
-        <SiteLink
-          href="/projeler"
-          className="inline-flex items-center gap-2 rounded-full border border-site-border bg-site-card px-6 py-3.5 text-sm font-semibold text-site-fg transition hover:border-site-primary hover:text-site-primary"
-        >
-          Projeleri İncele
-        </SiteLink>
+        {ctaLabel ? (
+          <SiteLink
+            href={ctaUrl || "/iletisim"}
+            className="inline-flex items-center gap-2 rounded-full bg-site-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition hover:-translate-y-0.5 hover:brightness-110"
+          >
+            {ctaLabel}
+            <ArrowUpRight className="h-4 w-4" />
+          </SiteLink>
+        ) : null}
+        {ctaSecondaryLabel ? (
+          <SiteLink
+            href={ctaSecondaryUrl || "/projeler"}
+            className="inline-flex items-center gap-2 rounded-full border border-site-border bg-site-card px-6 py-3.5 text-sm font-semibold text-site-fg transition hover:border-site-primary hover:text-site-primary"
+          >
+            {ctaSecondaryLabel}
+          </SiteLink>
+        ) : null}
       </div>
 
-      {(showStars || showAvatars) && (isCentered || isFullBleed) ? (
+      {(showStars || showAvatarRow) && (isCentered || isFullBleed) ? (
         <div
           className={`mt-8 flex flex-wrap items-center gap-4 ${
             isCentered ? "justify-center" : ""
@@ -151,7 +140,7 @@ export function HomeHero({
               ))}
             </div>
           ) : null}
-          {showAvatars ? (
+          {showAvatarRow ? (
             <div className="flex -space-x-2">
               {avatarSrcs.slice(0, 6).map((src) => (
                 <span
@@ -166,17 +155,20 @@ export function HomeHero({
         </div>
       ) : null}
 
+      {trustLabel || logos.length > 0 ? (
       <div className="mt-10">
+        {trustLabel ? (
         <p className="text-xs font-medium tracking-wide text-site-muted uppercase">
           {trustLabel}
         </p>
+        ) : null}
         {logos.length > 0 ? (
           <div
             className={`mt-4 flex flex-wrap items-center gap-6 opacity-70 grayscale ${
               isCentered ? "justify-center" : ""
             }`}
           >
-            {logos.slice(0, 4).map((logo, index) => (
+            {logos.slice(0, 8).map((logo, index) => (
               <span
                 key={`${logo.src}-${index}`}
                 className="text-sm font-semibold text-site-fg"
@@ -185,54 +177,54 @@ export function HomeHero({
               </span>
             ))}
           </div>
-        ) : (
-          <div
-            className={`mt-4 flex flex-wrap items-center gap-5 text-sm font-semibold text-site-fg/50 ${
-              isCentered ? "justify-center" : ""
-            }`}
-          >
-            <span>Acme</span>
-            <span>GlobalBank</span>
-            <span>Boltshift</span>
-            <span>Nietzsche</span>
-          </div>
-        )}
+        ) : null}
       </div>
+      ) : null}
     </div>
   );
 
-  const collageBlock = (
+  const collageBlock = showCollage ? (
     <div className="relative site-animate-fade-up" style={{ animationDelay: "120ms" }}>
       <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-violet-500/20 via-fuchsia-400/10 to-emerald-300/20 blur-2xl" />
       <div className="relative grid grid-cols-2 gap-4">
-        <div className="site-animate-float relative col-span-2 aspect-[16/10] overflow-hidden rounded-[1.6rem] shadow-xl">
-          <SiteImage
-            src={images[0]?.src ?? DEFAULT_COLLAGE[0].src}
-            alt={images[0]?.alt ?? "Hero"}
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 520px"
-          />
-        </div>
-        <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] shadow-lg">
-          <SiteImage
-            src={images[1]?.src ?? DEFAULT_COLLAGE[1].src}
-            alt={images[1]?.alt ?? "Hero"}
-            fill
-            className="object-cover"
-            sizes="260px"
-          />
-        </div>
-        <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] shadow-lg">
-          <SiteImage
-            src={images[2]?.src ?? DEFAULT_COLLAGE[2].src}
-            alt={images[2]?.alt ?? "Hero"}
-            fill
-            className="object-cover"
-            sizes="260px"
-          />
-        </div>
+        {images[0] ? (
+          <div
+            className={`site-animate-float relative overflow-hidden rounded-[1.6rem] shadow-xl ${
+              images.length === 1 ? "col-span-2 aspect-[16/10]" : "col-span-2 aspect-[16/10]"
+            }`}
+          >
+            <SiteImage
+              src={images[0].src}
+              alt={images[0].alt || "Hero"}
+              fill
+              priority
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 520px"
+            />
+          </div>
+        ) : null}
+        {images[1] ? (
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] shadow-lg">
+            <SiteImage
+              src={images[1].src}
+              alt={images[1].alt || "Hero"}
+              fill
+              className="object-cover"
+              sizes="260px"
+            />
+          </div>
+        ) : null}
+        {images[2] ? (
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] shadow-lg">
+            <SiteImage
+              src={images[2].src}
+              alt={images[2].alt || "Hero"}
+              fill
+              className="object-cover"
+              sizes="260px"
+            />
+          </div>
+        ) : null}
       </div>
 
       {showStars ? (
@@ -243,7 +235,7 @@ export function HomeHero({
         </div>
       ) : null}
 
-      {showAvatars ? (
+      {showAvatarRow ? (
         <div className="absolute -bottom-3 left-6 flex -space-x-2 rounded-full border border-white/70 bg-white/90 p-1.5 shadow-lg backdrop-blur site-dark:border-slate-700 site-dark:bg-slate-900/90">
           {avatarSrcs.slice(0, 6).map((src) => (
             <span
@@ -256,7 +248,7 @@ export function HomeHero({
         </div>
       ) : null}
     </div>
-  );
+  ) : null;
 
   return (
     <section
@@ -264,10 +256,10 @@ export function HomeHero({
         backgroundStyle === "soft-gradient" ? "site-soft-glow" : ""
       } ${backgroundStyle === "grid" ? "site-grid-bg" : ""}`}
     >
-      {isFullBleed ? (
+      {isFullBleed && images[0] ? (
         <div className="absolute inset-0">
           <SiteImage
-            src={images[0]?.src ?? DEFAULT_COLLAGE[0].src}
+            src={images[0].src}
             alt=""
             fill
             priority
@@ -281,7 +273,7 @@ export function HomeHero({
       <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-80" />
       <div
         className={`relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24 ${
-          isSplit
+          isSplit && showCollage
             ? "grid items-center gap-12 lg:grid-cols-2 lg:gap-10"
             : isCentered
               ? "flex flex-col items-center text-center"
@@ -296,7 +288,9 @@ export function HomeHero({
           textBlock
         )}
         {isSplit ? collageBlock : null}
-        {isCentered ? <div className="mt-12 w-full max-w-3xl">{collageBlock}</div> : null}
+        {isCentered && collageBlock ? (
+          <div className="mt-12 w-full max-w-3xl">{collageBlock}</div>
+        ) : null}
       </div>
     </section>
   );

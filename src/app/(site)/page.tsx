@@ -184,14 +184,16 @@ export default async function HomePage() {
   return (
     <>
       <HomeHero
-        siteName={siteName}
-        badgeText={slide?.badgeText ?? DEFAULT_HERO_SLIDE.badgeText}
+        kicker={slide?.kicker}
+        badgeText={slide?.badgeText}
         headline={slide?.headline ?? DEFAULT_HERO_SLIDE.headline}
-        headlineAccent={slide?.headlineAccent ?? DEFAULT_HERO_SLIDE.headlineAccent}
-        subheadline={slide?.subheadline ?? DEFAULT_HERO_SLIDE.subheadline}
-        ctaLabel={slide?.ctaLabel ?? DEFAULT_HERO_SLIDE.ctaLabel}
-        ctaUrl={slide?.ctaUrl ?? "/iletisim"}
-        trustLabel={slide?.trustLabel ?? DEFAULT_HERO_SLIDE.trustLabel}
+        headlineAccent={slide?.headlineAccent}
+        subheadline={slide?.subheadline}
+        ctaLabel={slide?.ctaLabel}
+        ctaUrl={slide?.ctaUrl}
+        ctaSecondaryLabel={slide?.ctaSecondaryLabel}
+        ctaSecondaryUrl={slide?.ctaSecondaryUrl}
+        trustLabel={slide?.trustLabel}
         showStars={slide?.showStars ?? true}
         starCount={slide?.starCount ?? 5}
         showAvatars={slide?.showAvatars ?? true}

@@ -25,15 +25,18 @@ export const HERO_MEDIA_LIMITS = {
 export type HeroMediaKindValue = keyof typeof HERO_MEDIA_LIMITS;
 
 export const DEFAULT_HERO_SLIDE = {
-  badgeText: "Free Lifetime Update",
+  badgeText: "Ömür Boyu Güncelleme",
   badgeIcon: "rocket",
-  headline: "Elevate your brand with Infinia.",
-  headlineAccent: "Infinia.",
+  kicker: "İhsan Akyıldız",
+  headline: "Markanızı birlikte yükseltelim.",
+  headlineAccent: "yükseltelim.",
   subheadline:
-    "Access top-tier group mentoring plans and exclusive professional benefits for your team.",
-  ctaLabel: "Get Started",
-  ctaUrl: "#",
-  trustLabel: "Trusted by the best",
+    "Web tasarım, yazılım ve dijital çözümlerle işinizi büyütün.",
+  ctaLabel: "Başlayın",
+  ctaUrl: "/iletisim",
+  ctaSecondaryLabel: "Projeleri İncele",
+  ctaSecondaryUrl: "/projeler",
+  trustLabel: "Güvenen markalar",
   overlayPercent: 0,
   titleColor: "#0f172a",
   accentColor: "#7c3aed",

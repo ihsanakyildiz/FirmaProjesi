@@ -5,8 +5,10 @@ type SlidePreviewProps = {
   badgeIcon: string;
   headline: string;
   headlineAccent: string;
+  kicker: string;
   subheadline: string;
   ctaLabel: string;
+  ctaSecondaryLabel: string;
   trustLabel: string;
   titleColor: string;
   accentColor: string;
@@ -117,6 +119,15 @@ export function HeroSlidePreview(props: SlidePreviewProps) {
             </span>
           ) : null}
 
+          {props.kicker ? (
+            <p
+              className="mt-4 text-lg font-semibold"
+              style={{ color: props.accentColor }}
+            >
+              {props.kicker}
+            </p>
+          ) : null}
+
           <h3
             className="mt-4 font-bold tracking-tight"
             style={{
@@ -146,6 +157,14 @@ export function HeroSlidePreview(props: SlidePreviewProps) {
             >
               {props.ctaLabel}
               <span aria-hidden>↗</span>
+            </button>
+          ) : null}
+          {props.ctaSecondaryLabel ? (
+            <button
+              type="button"
+              className="mt-5 ml-2 inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
+            >
+              {props.ctaSecondaryLabel}
             </button>
           ) : null}
 

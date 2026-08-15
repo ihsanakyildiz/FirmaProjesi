@@ -51,11 +51,14 @@ type SlideFormValues = {
   sortOrder?: number;
   badgeText?: string | null;
   badgeIcon?: string | null;
+  kicker?: string | null;
   headline?: string;
   headlineAccent?: string | null;
   subheadline?: string | null;
   ctaLabel?: string | null;
   ctaUrl?: string | null;
+  ctaSecondaryLabel?: string | null;
+  ctaSecondaryUrl?: string | null;
   trustLabel?: string | null;
   overlayPercent?: number;
   titleColor?: string;
@@ -311,6 +314,9 @@ export function HeroSlideForm({
   const [label, setLabel] = useState(initial?.label ?? "");
   const [badgeText, setBadgeText] = useState(initial?.badgeText ?? defaults.badgeText);
   const [badgeIcon, setBadgeIcon] = useState(initial?.badgeIcon ?? defaults.badgeIcon);
+  const [kicker, setKicker] = useState(
+    initial?.kicker ?? (mode === "create" ? defaults.kicker : ""),
+  );
   const [headline, setHeadline] = useState(initial?.headline ?? defaults.headline);
   const [headlineAccent, setHeadlineAccent] = useState(
     initial?.headlineAccent ?? defaults.headlineAccent,
@@ -320,6 +326,12 @@ export function HeroSlideForm({
   );
   const [ctaLabel, setCtaLabel] = useState(initial?.ctaLabel ?? defaults.ctaLabel);
   const [ctaUrl, setCtaUrl] = useState(initial?.ctaUrl ?? defaults.ctaUrl);
+  const [ctaSecondaryLabel, setCtaSecondaryLabel] = useState(
+    initial?.ctaSecondaryLabel ?? (mode === "create" ? defaults.ctaSecondaryLabel : ""),
+  );
+  const [ctaSecondaryUrl, setCtaSecondaryUrl] = useState(
+    initial?.ctaSecondaryUrl ?? (mode === "create" ? defaults.ctaSecondaryUrl : ""),
+  );
   const [trustLabel, setTrustLabel] = useState(initial?.trustLabel ?? defaults.trustLabel);
   const [overlayPercent, setOverlayPercent] = useState(initial?.overlayPercent ?? 0);
   const [titleColor, setTitleColor] = useState(initial?.titleColor ?? defaults.titleColor);
@@ -759,6 +771,22 @@ export function HeroSlideForm({
               />
             </div>
             <div className="md:col-span-2">
+              <label htmlFor="kicker" className="mb-1.5 block text-sm font-medium text-slate-700">
+                Üst başlık
+              </label>
+              <input
+                id="kicker"
+                name="kicker"
+                value={kicker}
+                onChange={(e) => setKicker(e.target.value)}
+                placeholder="İhsan Akyıldız"
+                className={inputClass}
+              />
+              <p className="mt-1.5 text-xs text-slate-400">
+                Badge’in altındaki renkli satır. Boş bırakılırsa gösterilmez. Site adından bağımsızdır.
+              </p>
+            </div>
+            <div className="md:col-span-2">
               <label htmlFor="headline" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Başlık *
               </label>
@@ -822,6 +850,32 @@ export function HeroSlideForm({
                 value={ctaUrl}
                 onChange={(e) => setCtaUrl(e.target.value)}
                 placeholder="/iletisim"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="ctaSecondaryLabel" className="mb-1.5 block text-sm font-medium text-slate-700">
+                İkinci buton metni
+              </label>
+              <input
+                id="ctaSecondaryLabel"
+                name="ctaSecondaryLabel"
+                value={ctaSecondaryLabel}
+                onChange={(e) => setCtaSecondaryLabel(e.target.value)}
+                placeholder="Projeleri İncele"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="ctaSecondaryUrl" className="mb-1.5 block text-sm font-medium text-slate-700">
+                İkinci buton bağlantısı
+              </label>
+              <input
+                id="ctaSecondaryUrl"
+                name="ctaSecondaryUrl"
+                value={ctaSecondaryUrl}
+                onChange={(e) => setCtaSecondaryUrl(e.target.value)}
+                placeholder="/projeler"
                 className={inputClass}
               />
             </div>
@@ -945,8 +999,10 @@ export function HeroSlideForm({
               badgeIcon={badgeIcon}
               headline={headline}
               headlineAccent={headlineAccent}
+              kicker={kicker}
               subheadline={subheadline}
               ctaLabel={ctaLabel}
+              ctaSecondaryLabel={ctaSecondaryLabel}
               trustLabel={trustLabel}
               titleColor={titleColor}
               accentColor={accentColor}
@@ -995,11 +1051,14 @@ export function HeroSlideForm({
           <input type="hidden" name="label" value={label} />
           <input type="hidden" name="badgeText" value={badgeText} />
           <input type="hidden" name="badgeIcon" value={badgeIcon} />
+          <input type="hidden" name="kicker" value={kicker} />
           <input type="hidden" name="headline" value={headline} />
           <input type="hidden" name="headlineAccent" value={headlineAccent} />
           <input type="hidden" name="subheadline" value={subheadline} />
           <input type="hidden" name="ctaLabel" value={ctaLabel} />
           <input type="hidden" name="ctaUrl" value={ctaUrl} />
+          <input type="hidden" name="ctaSecondaryLabel" value={ctaSecondaryLabel} />
+          <input type="hidden" name="ctaSecondaryUrl" value={ctaSecondaryUrl} />
           <input type="hidden" name="trustLabel" value={trustLabel} />
           <input type="hidden" name="sortOrder" value={sortOrder} />
         </>

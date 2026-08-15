@@ -161,8 +161,8 @@ export function PageSectionsRenderer({
             return (
               <SectionShell key={section.id} anchorId={anchor}>
                 <HomeHero
-                  siteName={siteName}
-                  badgeText={slide?.badgeText ?? DEFAULT_HERO_SLIDE.badgeText}
+                  kicker={slide?.kicker}
+                  badgeText={slide?.badgeText}
                   headline={slide?.headline ?? DEFAULT_HERO_SLIDE.headline}
                   headlineAccent={
                     slide?.headlineAccent ?? DEFAULT_HERO_SLIDE.headlineAccent
@@ -172,6 +172,8 @@ export function PageSectionsRenderer({
                   }
                   ctaLabel={slide?.ctaLabel ?? DEFAULT_HERO_SLIDE.ctaLabel}
                   ctaUrl={slide?.ctaUrl ?? "/iletisim"}
+                  ctaSecondaryLabel={slide?.ctaSecondaryLabel}
+                  ctaSecondaryUrl={slide?.ctaSecondaryUrl}
                   trustLabel={slide?.trustLabel ?? DEFAULT_HERO_SLIDE.trustLabel}
                   showStars={slide?.showStars ?? true}
                   starCount={slide?.starCount ?? 5}

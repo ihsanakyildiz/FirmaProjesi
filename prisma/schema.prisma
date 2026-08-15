@@ -500,11 +500,15 @@ model HeroSlide {
 
   badgeText      String?     @db.VarChar(120)
   badgeIcon      String?     @db.VarChar(50)
+  /// Badge altındaki renkli üst satır (örn. İhsan Akyıldız)
+  kicker         String?     @db.VarChar(191)
   headline       String      @db.VarChar(255)
   headlineAccent String?     @db.VarChar(191)
   subheadline    String?     @db.Text
   ctaLabel       String?     @db.VarChar(100)
   ctaUrl         String?     @db.VarChar(500)
+  ctaSecondaryLabel String?  @db.VarChar(100)
+  ctaSecondaryUrl   String?  @db.VarChar(500)
   trustLabel     String?     @db.VarChar(120)
 
   overlayPercent Int         @default(0)

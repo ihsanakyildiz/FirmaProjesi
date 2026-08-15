@@ -32,6 +32,18 @@ export type DeleteHeroResult = {
   message?: string;
 };
 
+function heroWriteErrorMessage(error: unknown, fallback: string) {
+  const text = error instanceof Error ? error.message : String(error);
+  if (
+    /kicker|ctaSecondaryLabel|ctaSecondaryUrl|Unknown argument|P2022|does not exist|Unknown column/i.test(
+      text,
+    )
+  ) {
+    return "Veritabanı şeması güncel değil. Sunucuda `npx prisma db push` çalıştırıp ardından `npx prisma generate` ve `pm2 restart` yapın.";
+  }
+  return fallback;
+}
+
 type MediaOrderItem =
   | { type: "existing"; id: string; kind: HeroMediaKindValue; label?: string; alt?: string; href?: string }
   | { type: "new"; index: number; kind: HeroMediaKindValue; label?: string; alt?: string; href?: string };
@@ -220,11 +232,14 @@ function parseSlidePayload(formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
   const badgeText = String(formData.get("badgeText") ?? "").trim();
   const badgeIcon = String(formData.get("badgeIcon") ?? "").trim();
+  const kicker = String(formData.get("kicker") ?? "").trim();
   const headline = String(formData.get("headline") ?? "").trim();
   const headlineAccent = String(formData.get("headlineAccent") ?? "").trim();
   const subheadline = String(formData.get("subheadline") ?? "").trim();
   const ctaLabel = String(formData.get("ctaLabel") ?? "").trim();
   const ctaUrl = String(formData.get("ctaUrl") ?? "").trim();
+  const ctaSecondaryLabel = String(formData.get("ctaSecondaryLabel") ?? "").trim();
+  const ctaSecondaryUrl = String(formData.get("ctaSecondaryUrl") ?? "").trim();
   const trustLabel = String(formData.get("trustLabel") ?? "").trim();
   const overlayPercent = Number.parseInt(String(formData.get("overlayPercent") ?? "0"), 10);
   const titleColor = String(formData.get("titleColor") ?? "#0f172a").trim() || "#0f172a";
@@ -252,11 +267,14 @@ function parseSlidePayload(formData: FormData) {
     label,
     badgeText,
     badgeIcon,
+    kicker,
     headline,
     headlineAccent,
     subheadline,
     ctaLabel,
     ctaUrl,
+    ctaSecondaryLabel,
+    ctaSecondaryUrl,
     trustLabel,
     overlayPercent: Number.isFinite(overlayPercent) ? clamp(overlayPercent, 0, 80) : 0,
     titleColor,
@@ -507,11 +525,14 @@ export async function createHeroSlideAction(
       sortOrder,
       badgeText: data.badgeText || null,
       badgeIcon: data.badgeIcon || null,
+      kicker: data.kicker || null,
       headline: data.headline,
       headlineAccent: data.headlineAccent || null,
       subheadline: data.subheadline || null,
       ctaLabel: data.ctaLabel || null,
       ctaUrl: data.ctaUrl || null,
+      ctaSecondaryLabel: data.ctaSecondaryLabel || null,
+      ctaSecondaryUrl: data.ctaSecondaryUrl || null,
       trustLabel: data.trustLabel || null,
       overlayPercent: data.overlayPercent,
       titleColor: data.titleColor,
@@ -546,7 +567,7 @@ export async function createHeroSlideAction(
     };
   } catch (error) {
     console.error(error);
-    return { error: "Slayt eklenirken bir hata oluştu." };
+    return { error: heroWriteErrorMessage(error, "Slayt eklenirken bir hata oluştu.") };
   }
 }
 
@@ -585,11 +606,14 @@ export async function updateHeroSlideAction(
         sortOrder: data.sortOrder,
         badgeText: data.badgeText || null,
         badgeIcon: data.badgeIcon || null,
+        kicker: data.kicker || null,
         headline: data.headline,
         headlineAccent: data.headlineAccent || null,
         subheadline: data.subheadline || null,
         ctaLabel: data.ctaLabel || null,
         ctaUrl: data.ctaUrl || null,
+        ctaSecondaryLabel: data.ctaSecondaryLabel || null,
+        ctaSecondaryUrl: data.ctaSecondaryUrl || null,
         trustLabel: data.trustLabel || null,
         overlayPercent: data.overlayPercent,
         titleColor: data.titleColor,
@@ -625,7 +649,9 @@ export async function updateHeroSlideAction(
     };
   } catch (error) {
     console.error(error);
-    return { error: "Slayt güncellenirken bir hata oluştu." };
+    return {
+      error: heroWriteErrorMessage(error, "Slayt güncellenirken bir hata oluştu."),
+    };
   }
 }
 
