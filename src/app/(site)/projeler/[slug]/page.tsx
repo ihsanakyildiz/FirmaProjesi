@@ -16,7 +16,6 @@ import { LucideIconByName } from "@/lib/lucide-icons";
 import { parseProjectHighlights } from "@/lib/project-portfolio";
 import {
   getCachedProjectBySlug,
-  getCachedProjectSlugs,
   getCachedSiblingProjects,
   projectCategoryHref,
 } from "@/lib/projects";
@@ -39,15 +38,11 @@ const ProjectQuoteForm = dynamic(() =>
 );
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 type ProjectDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-export async function generateStaticParams() {
-  const rows = await getCachedProjectSlugs().catch(() => []);
-  return rows.map((row) => ({ slug: row.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -81,7 +76,7 @@ export default async function ProjectDetailPage({
   const { slug } = await params;
 
   const [project, settings] = await Promise.all([
-    getCachedProjectBySlug(slug).catch(() => null),
+    getCachedProjectBySlug(slug),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
 
@@ -109,8 +104,12 @@ export default async function ProjectDetailPage({
     disableThirdParty: perf.disableThirdParty,
   });
 
-  if (cover) {
-    preload(cover, { as: "image", fetchPriority: "high" });
+  if (cover && (cover.startsWith("/") || cover.startsWith("http"))) {
+    try {
+      preload(cover, { as: "image", fetchPriority: "high" });
+    } catch {
+      // Ön yükleme başarısız olsa da sayfa açılsın
+    }
   }
 
   return (

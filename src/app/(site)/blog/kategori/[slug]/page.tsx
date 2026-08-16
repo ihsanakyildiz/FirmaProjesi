@@ -18,6 +18,7 @@ import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { getSettingsMap } from "@/lib/settings";
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),

@@ -20,6 +20,7 @@ import {
 } from "@/lib/projects";
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),

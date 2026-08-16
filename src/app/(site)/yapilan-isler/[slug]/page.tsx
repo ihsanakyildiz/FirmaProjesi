@@ -9,7 +9,6 @@ import { getSettingsMap } from "@/lib/settings";
 import {
   getCachedFallbackWorkSkills,
   getCachedWorkBySlug,
-  getCachedWorkSlugs,
 } from "@/lib/works";
 
 const HomeCta = dynamic(() =>
@@ -17,15 +16,11 @@ const HomeCta = dynamic(() =>
 );
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 type WorkDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-export async function generateStaticParams() {
-  const rows = await getCachedWorkSlugs().catch(() => []);
-  return rows.map((row) => ({ slug: row.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -57,7 +52,7 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
   const { slug } = await params;
 
   const [work, settings] = await Promise.all([
-    getCachedWorkBySlug(slug).catch(() => null),
+    getCachedWorkBySlug(slug),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
 

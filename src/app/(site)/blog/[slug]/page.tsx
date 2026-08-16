@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { preload } from "react-dom";
 import { BlogPostDetailView } from "@/components/site/blog/blog-post-detail";
-import { getCachedBlogDetailPayload, getCachedBlogSlugs } from "@/lib/blog";
+import { getCachedBlogDetailPayload } from "@/lib/blog";
 import { prepareRichHtml, stripHtml } from "@/lib/html";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { getSettingsMap } from "@/lib/settings";
@@ -13,15 +13,11 @@ const HomeCta = dynamic(() =>
 );
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 type BlogPostPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-export async function generateStaticParams() {
-  const rows = await getCachedBlogSlugs().catch(() => []);
-  return rows.map((row) => ({ slug: row.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -52,7 +48,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
 
   const [payload, settings] = await Promise.all([
-    getCachedBlogDetailPayload(slug).catch(() => null),
+    getCachedBlogDetailPayload(slug),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
 
