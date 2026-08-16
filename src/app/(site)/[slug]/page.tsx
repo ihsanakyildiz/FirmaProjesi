@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/site/json-ld";
 import { PageSectionsRenderer } from "@/components/site/page-sections-renderer";
 import {
   getAdvancedPageBySlug,
@@ -9,7 +10,9 @@ import {
   resolvePageSections,
 } from "@/lib/pages";
 import { getSettingsMap } from "@/lib/settings";
-import { stripHtml } from "@/lib/html";
+import { buildCollectionJsonLd, buildWebPageJsonLd } from "@/lib/json-ld";
+import { publicPageHref } from "@/lib/public-urls";
+import { buildPublicMetadata, resolvePageSeo } from "@/lib/seo";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -28,20 +31,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   if (RESERVED_SLUGS.has(slug)) return {};
 
-  const [advanced, classic] = await Promise.all([
+  const [advanced, classic, settings] = await Promise.all([
     getAdvancedPageBySlug(slug).catch(() => null),
     getClassicPageBySlug(slug).catch(() => null),
+    getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
   const page = advanced ?? classic;
   if (!page) return { title: "Sayfa bulunamadı" };
 
-  return {
-    title: page.seoTitle || page.title,
-    description:
-      page.seoDescription ||
-      stripHtml(page.summary || page.content || "").slice(0, 160) ||
-      undefined,
-  };
+  const seo = resolvePageSeo({
+    title: page.title,
+    summary: page.summary,
+    content: page.content,
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
+  });
+
+  return buildPublicMetadata({
+    settings,
+    title: seo.seoTitle,
+    description: seo.seoDescription,
+    path: publicPageHref(slug),
+    image: page.image,
+  });
 }
 
 export default async function CmsPage({ params }: PageProps) {
@@ -54,16 +66,83 @@ export default async function CmsPage({ params }: PageProps) {
   const advanced = await getAdvancedPageBySlug(slug).catch(() => null);
   if (advanced) {
     const sections = await resolvePageSections(advanced.sections);
+    const seo = resolvePageSeo({
+      title: advanced.title,
+      summary: advanced.summary,
+      content: advanced.content,
+      seoTitle: advanced.seoTitle,
+      seoDescription: advanced.seoDescription,
+    });
+    const path = publicPageHref(slug);
+    const jsonLd =
+      slug === "hizmetler"
+        ? buildCollectionJsonLd({
+            settings,
+            title: seo.seoTitle,
+            description: seo.seoDescription,
+            path,
+            crumbs: [
+              { name: "Ana Sayfa", path: "/" },
+              { name: advanced.title, path },
+            ],
+          })
+        : buildWebPageJsonLd({
+            settings,
+            title: seo.seoTitle,
+            description: seo.seoDescription,
+            path,
+            image: advanced.image,
+            crumbs: [
+              { name: "Ana Sayfa", path: "/" },
+              { name: advanced.title, path },
+            ],
+          });
     return (
-      <PageSectionsRenderer sections={sections} siteName={siteName} />
+      <>
+        <JsonLd data={jsonLd} />
+        <PageSectionsRenderer sections={sections} siteName={siteName} />
+      </>
     );
   }
 
   const classic = await getClassicPageBySlug(slug).catch(() => null);
   if (!classic) notFound();
 
+  const seo = resolvePageSeo({
+    title: classic.title,
+    summary: classic.summary,
+    content: classic.content,
+    seoTitle: classic.seoTitle,
+    seoDescription: classic.seoDescription,
+  });
+  const path = publicPageHref(slug);
+  const jsonLd =
+    slug === "hizmetler"
+      ? buildCollectionJsonLd({
+          settings,
+          title: seo.seoTitle,
+          description: seo.seoDescription,
+          path,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: classic.title, path },
+          ],
+        })
+      : buildWebPageJsonLd({
+          settings,
+          title: seo.seoTitle,
+          description: seo.seoDescription,
+          path,
+          image: classic.image,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: classic.title, path },
+          ],
+        });
+
   return (
     <article className="px-4 py-16 sm:px-6 lg:px-8">
+      <JsonLd data={jsonLd} />
       <div className="mx-auto max-w-4xl">
         <h1 className="font-display text-4xl font-bold tracking-tight text-site-fg sm:text-5xl">
           {classic.title}

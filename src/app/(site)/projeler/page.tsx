@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { JsonLd } from "@/components/site/json-ld";
 import { ProjectCard } from "@/components/site/project/project-card";
 import { ProjectCategorySidebar } from "@/components/site/project/project-category-sidebar";
 import { SitePagination } from "@/components/site/site-pagination";
+import { buildCollectionJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { buildPublicMetadata, PUBLIC_HUB_SEO } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
 import {
   PROJECT_GRID_PAGE_SIZE,
@@ -13,10 +16,15 @@ import {
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Projeler",
-  description: "Portföy projelerimizi inceleyin",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettingsMap().catch(
+    () => ({}) as Record<string, string>,
+  );
+  return buildPublicMetadata({
+    settings,
+    ...PUBLIC_HUB_SEO.projects,
+  });
+}
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -55,8 +63,22 @@ export default async function ProjectsIndexPage({
     page * PROJECT_GRID_PAGE_SIZE,
   );
 
+  const hub = PUBLIC_HUB_SEO.projects;
+
   return (
     <>
+      <JsonLd
+        data={buildCollectionJsonLd({
+          settings,
+          title: hub.title,
+          description: hub.description,
+          path: hub.path,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: hub.title, path: hub.path },
+          ],
+        })}
+      />
       <section className="relative overflow-hidden border-b border-site-border bg-site-surface py-14">
         <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-60" />
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">

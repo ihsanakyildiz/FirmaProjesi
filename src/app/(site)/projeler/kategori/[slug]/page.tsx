@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { preload } from "react-dom";
+import { JsonLd } from "@/components/site/json-ld";
 import { ProjectCard } from "@/components/site/project/project-card";
 import { ProjectCategorySidebar } from "@/components/site/project/project-category-sidebar";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
 import { SitePagination } from "@/components/site/site-pagination";
 import { prepareRichHtml, stripHtml } from "@/lib/html";
+import { buildCollectionJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { buildPublicMetadata, resolveProjectSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
 import {
   PROJECT_CATEGORY_PATH,
@@ -48,20 +51,22 @@ export async function generateMetadata({
   );
   const perf = parsePerformance(settings);
   const cover = withCdnUrl(payload.category.image, perf.cdnUrl);
-  const description =
-    payload.category.seoDescription ||
-    stripHtml(payload.category.description) ||
-    undefined;
+  const seo = resolveProjectSeo({
+    title: payload.category.name,
+    summary: payload.category.description,
+    content: payload.category.content,
+    seoTitle: payload.category.seoTitle,
+    seoDescription: payload.category.seoDescription,
+  });
+  const path = projectCategoryHref(payload.category.slug);
 
-  return {
-    title: payload.category.seoTitle || payload.category.name,
-    description,
-    openGraph: {
-      title: payload.category.seoTitle || payload.category.name,
-      description,
-      images: cover ? [{ url: cover }] : undefined,
-    },
-  };
+  return buildPublicMetadata({
+    settings,
+    title: seo.seoTitle,
+    description: seo.seoDescription,
+    path,
+    image: cover,
+  });
 }
 
 export default async function ProjectCategoryPage({
@@ -112,8 +117,35 @@ export default async function ProjectCategoryPage({
       ? projectCategoryHref(category.slug)
       : `${projectCategoryHref(category.slug)}?sayfa=${target}`;
 
+  const seo = resolveProjectSeo({
+    title: category.name,
+    summary: category.description,
+    content: category.content,
+    seoTitle: category.seoTitle,
+    seoDescription: category.seoDescription,
+  });
+  const path = projectCategoryHref(category.slug);
+  const crumbs = [
+    { name: "Ana Sayfa", path: "/" },
+    { name: "Projeler", path: "/projeler" },
+    { name: "Kategoriler", path: PROJECT_CATEGORY_PATH },
+    ...(category.parent?.isActive
+      ? [{ name: category.parent.name, path: projectCategoryHref(category.parent.slug) }]
+      : []),
+    { name: category.name, path },
+  ];
+
   return (
     <>
+      <JsonLd
+        data={buildCollectionJsonLd({
+          settings,
+          title: seo.seoTitle,
+          description: seo.seoDescription,
+          path,
+          crumbs,
+        })}
+      />
       <section className="relative overflow-hidden border-b border-site-border bg-site-surface py-14">
         <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-60" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

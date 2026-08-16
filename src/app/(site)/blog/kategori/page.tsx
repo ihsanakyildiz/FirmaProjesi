@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { JsonLd } from "@/components/site/json-ld";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
 import {
@@ -7,15 +8,22 @@ import {
   getCachedBlogCategoryIndex,
 } from "@/lib/blog";
 import { stripHtml } from "@/lib/html";
+import { buildCollectionJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { buildPublicMetadata, PUBLIC_HUB_SEO } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Blog Kategorileri",
-  description: "Konularına göre blog yazıları",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettingsMap().catch(
+    () => ({}) as Record<string, string>,
+  );
+  return buildPublicMetadata({
+    settings,
+    ...PUBLIC_HUB_SEO.blogCategories,
+  });
+}
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -30,8 +38,23 @@ export default async function BlogCategoriesIndexPage() {
   const roots = categories.filter((category) => !category.parentId);
   const items = roots.length > 0 ? roots : categories;
 
+  const hub = PUBLIC_HUB_SEO.blogCategories;
+
   return (
     <>
+      <JsonLd
+        data={buildCollectionJsonLd({
+          settings,
+          title: hub.title,
+          description: hub.description,
+          path: hub.path,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: "Blog", path: "/blog" },
+            { name: hub.title, path: hub.path },
+          ],
+        })}
+      />
       <section className="relative overflow-hidden border-b border-site-border bg-site-surface py-14">
         <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-70" />
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">

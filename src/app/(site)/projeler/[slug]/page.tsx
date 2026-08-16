@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
+import { JsonLd } from "@/components/site/json-ld";
 import { LucideIconByName } from "@/lib/lucide-icons";
 import { parseProjectHighlights } from "@/lib/project-portfolio";
 import {
@@ -20,8 +21,11 @@ import {
   projectCategoryHref,
 } from "@/lib/projects";
 import { prepareRichHtml, stripHtml } from "@/lib/html";
+import { buildCreativeWorkJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { buildPublicMetadata, resolveProjectSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
+import { getSiteOrigin } from "@/lib/site-origin";
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -56,18 +60,24 @@ export async function generateMetadata({
   );
   const perf = parsePerformance(settings);
   const cover = withCdnUrl(project.image, perf.cdnUrl);
-  const description =
-    project.seoDescription || stripHtml(project.summary) || undefined;
+  const seo = resolveProjectSeo({
+    title: project.title,
+    summary: project.summary,
+    content: project.content,
+    seoTitle: project.seoTitle,
+    seoDescription: project.seoDescription,
+  });
+  const path = `/projeler/${project.slug}`;
 
-  return {
-    title: project.seoTitle || project.title,
-    description,
-    openGraph: {
-      title: project.seoTitle || project.title,
-      description,
-      images: cover ? [{ url: cover }] : undefined,
-    },
-  };
+  return buildPublicMetadata({
+    settings,
+    title: seo.seoTitle,
+    description: seo.seoDescription,
+    path,
+    image: cover,
+    ogType: "article",
+    modifiedTime: project.updatedAt,
+  });
 }
 
 export default async function ProjectDetailPage({
@@ -112,8 +122,42 @@ export default async function ProjectDetailPage({
     }
   }
 
+  const seo = resolveProjectSeo({
+    title: project.title,
+    summary: project.summary,
+    content: project.content,
+    seoTitle: project.seoTitle,
+    seoDescription: project.seoDescription,
+  });
+  const path = `/projeler/${project.slug}`;
+  const origin = getSiteOrigin(settings);
+  const shareUrl = `${origin}${path}`;
+
   return (
     <>
+      <JsonLd
+        data={buildCreativeWorkJsonLd({
+          settings,
+          title: seo.seoTitle,
+          description: seo.seoDescription,
+          path,
+          image: cover,
+          dateModified: project.updatedAt,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: "Projeler", path: "/projeler" },
+            ...(project.category
+              ? [
+                  {
+                    name: project.category.name,
+                    path: projectCategoryHref(project.category.slug),
+                  },
+                ]
+              : []),
+            { name: project.title, path },
+          ],
+        })}
+      />
       <section className="relative overflow-hidden border-b border-site-border bg-site-surface py-14">
         <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-60" />
         <div className="relative mx-auto grid max-w-7xl px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
@@ -454,7 +498,7 @@ export default async function ProjectDetailPage({
                   X
                 </a>
                 <a
-                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`/projeler/${project.slug}`)}`}
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"
@@ -462,7 +506,7 @@ export default async function ProjectDetailPage({
                   LinkedIn
                 </a>
                 <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`/projeler/${project.slug}`)}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-full border border-site-border px-3 py-1.5 text-xs font-semibold text-site-fg hover:border-site-primary/40"

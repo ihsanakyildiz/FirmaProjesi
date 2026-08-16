@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { ArrowRight } from "lucide-react";
 import { BlogCategorySidebar } from "@/components/site/blog/blog-category-sidebar";
 import { BlogPostCard } from "@/components/site/blog/blog-post-card";
+import { JsonLd } from "@/components/site/json-ld";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
 import { SitePagination } from "@/components/site/site-pagination";
@@ -12,13 +13,21 @@ import {
   getCachedBlogListing,
 } from "@/lib/blog";
 import { stripHtml } from "@/lib/html";
+import { buildCollectionJsonLd } from "@/lib/json-ld";
+import { buildPublicMetadata, PUBLIC_HUB_SEO } from "@/lib/seo";
+import { getSettingsMap } from "@/lib/settings";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description: "Sektörü şekillendiren içgörüler ve güncel yazılar",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettingsMap().catch(
+    () => ({}) as Record<string, string>,
+  );
+  return buildPublicMetadata({
+    settings,
+    ...PUBLIC_HUB_SEO.blog,
+  });
+}
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -45,9 +54,10 @@ export default async function BlogIndexPage({ searchParams }: BlogIndexPageProps
   const currentPage =
     Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
-  const [posts, categories] = await Promise.all([
+  const [posts, categories, settings] = await Promise.all([
     getCachedBlogListing().catch(() => []),
     getCachedBlogCategoryIndex().catch(() => []),
+    getSettingsMap().catch(() => ({}) as Record<string, string>),
   ]);
 
   const featured = posts.slice(0, FEATURED_COUNT);
@@ -59,8 +69,22 @@ export default async function BlogIndexPage({ searchParams }: BlogIndexPageProps
   const lead = featured[0];
   const sidePosts = featured.slice(1, 4);
 
+  const hub = PUBLIC_HUB_SEO.blog;
+
   return (
     <>
+      <JsonLd
+        data={buildCollectionJsonLd({
+          settings,
+          title: hub.title,
+          description: hub.description,
+          path: hub.path,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: hub.title, path: hub.path },
+          ],
+        })}
+      />
       <section className="relative overflow-hidden border-b border-site-border bg-site-surface py-14">
         <div className="pointer-events-none absolute inset-0 site-soft-glow opacity-70" />
         <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">

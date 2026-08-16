@@ -3,9 +3,12 @@ import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { preload } from "react-dom";
 import { BlogPostDetailView } from "@/components/site/blog/blog-post-detail";
-import { getCachedBlogDetailPayload } from "@/lib/blog";
-import { prepareRichHtml, stripHtml } from "@/lib/html";
+import { JsonLd } from "@/components/site/json-ld";
+import { getCachedBlogDetailPayload, blogCategoryHref } from "@/lib/blog";
+import { prepareRichHtml } from "@/lib/html";
+import { buildBlogPostingJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { buildPublicMetadata, resolveBlogSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
 
 const HomeCta = dynamic(() =>
@@ -29,19 +32,25 @@ export async function generateMetadata({
   const settings = await getSettingsMap().catch(() => ({}) as Record<string, string>);
   const perf = parsePerformance(settings);
   const cover = withCdnUrl(payload.post.image, perf.cdnUrl);
-  const description =
-    payload.post.seoDescription || stripHtml(payload.post.summary) || undefined;
+  const seo = resolveBlogSeo({
+    title: payload.post.title,
+    summary: payload.post.summary,
+    content: payload.post.content,
+    seoTitle: payload.post.seoTitle,
+    seoDescription: payload.post.seoDescription,
+  });
+  const path = `/blog/${payload.post.slug}`;
 
-  return {
-    title: payload.post.seoTitle || payload.post.title,
-    description,
-    openGraph: {
-      title: payload.post.seoTitle || payload.post.title,
-      description,
-      type: "article",
-      images: cover ? [{ url: cover }] : undefined,
-    },
-  };
+  return buildPublicMetadata({
+    settings,
+    title: seo.seoTitle,
+    description: seo.seoDescription,
+    path,
+    image: cover,
+    ogType: "article",
+    publishedTime: payload.post.updatedAt,
+    modifiedTime: payload.post.updatedAt,
+  });
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
@@ -68,8 +77,42 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     disableThirdParty: perf.disableThirdParty,
   });
 
+  const seo = resolveBlogSeo({
+    title: post.title,
+    summary: post.summary,
+    content: post.content,
+    seoTitle: post.seoTitle,
+    seoDescription: post.seoDescription,
+  });
+  const path = `/blog/${post.slug}`;
+
   return (
     <>
+      <JsonLd
+        data={buildBlogPostingJsonLd({
+          settings,
+          title: seo.seoTitle,
+          description: seo.seoDescription,
+          path,
+          image: cover,
+          datePublished: post.updatedAt,
+          dateModified: post.updatedAt,
+          categoryName: post.category?.name,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: "Blog", path: "/blog" },
+            ...(post.category
+              ? [
+                  {
+                    name: post.category.name,
+                    path: blogCategoryHref(post.category.slug),
+                  },
+                ]
+              : []),
+            { name: post.title, path },
+          ],
+        })}
+      />
       <BlogPostDetailView
         title={post.title}
         summary={post.summary}

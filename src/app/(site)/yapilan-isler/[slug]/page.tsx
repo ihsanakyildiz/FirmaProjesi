@@ -3,12 +3,16 @@ import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { preload } from "react-dom";
 import { WorkDetailView } from "@/components/site/work/work-detail-view";
-import { prepareRichHtml, stripHtml } from "@/lib/html";
+import { JsonLd } from "@/components/site/json-ld";
+import { prepareRichHtml } from "@/lib/html";
+import { buildServiceJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
+import { buildPublicMetadata, resolveWorkSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
 import {
   getCachedFallbackWorkSkills,
   getCachedWorkBySlug,
+  workCategoryHref,
 } from "@/lib/works";
 
 const HomeCta = dynamic(() =>
@@ -34,18 +38,24 @@ export async function generateMetadata({
   );
   const perf = parsePerformance(settings);
   const cover = withCdnUrl(work.image, perf.cdnUrl);
-  const description =
-    work.seoDescription || stripHtml(work.summary) || undefined;
+  const seo = resolveWorkSeo({
+    title: work.title,
+    summary: work.summary,
+    content: work.content,
+    seoTitle: work.seoTitle,
+    seoDescription: work.seoDescription,
+  });
+  const path = `/yapilan-isler/${work.slug}`;
 
-  return {
-    title: work.seoTitle || work.title,
-    description,
-    openGraph: {
-      title: work.seoTitle || work.title,
-      description,
-      images: cover ? [{ url: cover }] : undefined,
-    },
-  };
+  return buildPublicMetadata({
+    settings,
+    title: seo.seoTitle,
+    description: seo.seoDescription,
+    path,
+    image: cover,
+    ogType: "article",
+    modifiedTime: work.updatedAt,
+  });
 }
 
 export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
@@ -95,8 +105,39 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
     disableThirdParty: perf.disableThirdParty,
   });
 
+  const seo = resolveWorkSeo({
+    title: work.title,
+    summary: work.summary,
+    content: work.content,
+    seoTitle: work.seoTitle,
+    seoDescription: work.seoDescription,
+  });
+  const path = `/yapilan-isler/${work.slug}`;
+
   return (
     <>
+      <JsonLd
+        data={buildServiceJsonLd({
+          settings,
+          title: seo.seoTitle,
+          description: seo.seoDescription,
+          path,
+          image: cover,
+          crumbs: [
+            { name: "Ana Sayfa", path: "/" },
+            { name: "Yapılan İşler", path: "/yapilan-isler" },
+            ...(work.category
+              ? [
+                  {
+                    name: work.category.name,
+                    path: workCategoryHref(work.category.slug),
+                  },
+                ]
+              : []),
+            { name: work.title, path },
+          ],
+        })}
+      />
       <WorkDetailView
         title={work.title}
         summary={work.summary}
