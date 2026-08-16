@@ -80,17 +80,18 @@ export function HomeHero({
         </span>
       ) : null}
 
-      <h1 className="mt-5 font-display text-4xl leading-[1.1] font-extrabold tracking-tight text-site-fg sm:text-5xl lg:text-[3.4rem]">
-        {kicker ? (
-          <span className="block text-site-primary/90">{kicker}</span>
+      {kicker ? (
+        <p className="mt-5 text-lg font-semibold text-site-primary/90 sm:text-xl">
+          {kicker}
+        </p>
+      ) : null}
+
+      <h1 className={`${kicker ? "mt-2" : "mt-5"} font-display text-4xl leading-[1.1] font-extrabold tracking-tight text-site-fg sm:text-5xl lg:text-[3.4rem]`}>
+        {titleParts.before}
+        {titleParts.accent ? (
+          <span className="text-site-primary">{titleParts.accent}</span>
         ) : null}
-        <span className={kicker ? "mt-2 block" : "block"}>
-          {titleParts.before}
-          {titleParts.accent ? (
-            <span className="text-site-primary">{titleParts.accent}</span>
-          ) : null}
-          {titleParts.after}
-        </span>
+        {titleParts.after}
       </h1>
 
       {subheadline ? (

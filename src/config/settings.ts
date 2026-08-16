@@ -273,6 +273,14 @@ export const settingGroups: SettingGroupDef[] = [
         defaultValue: "index, follow",
       },
       {
+        key: "google_site_verification",
+        label: "Google Search Console doğrulama",
+        type: "text",
+        placeholder: "content değerindeki kod",
+        hint: "Search Console HTML etiketindeki content kodu. Sitemap: /sitemap.xml",
+        defaultValue: "",
+      },
+      {
         key: "google_analytics_id",
         label: "Google Analytics ID",
         type: "text",

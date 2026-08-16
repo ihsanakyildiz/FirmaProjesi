@@ -1,15 +1,40 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { HomeHero } from "@/components/site/home/home-hero";
+import { JsonLd } from "@/components/site/json-ld";
 import { PageSectionsRenderer } from "@/components/site/page-sections-renderer";
 import { DEFAULT_HERO_SLIDE, getHeroBySlug } from "@/lib/heroes";
 import { getFaqGroupBySlug } from "@/lib/faqs";
+import { buildHomeJsonLd } from "@/lib/json-ld";
 import { getCachedHomepageAdvanced } from "@/lib/pages";
 import { getActivePricingPlans } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { resolveHomeMetadata } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
 
 export const revalidate = 60;
+
+function homeSeoCopy(
+  settings: Record<string, string>,
+  advanced?: {
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    title?: string | null;
+  },
+) {
+  const metadata = resolveHomeMetadata(settings, advanced);
+  const title =
+    typeof metadata.title === "object" &&
+    metadata.title &&
+    "absolute" in metadata.title
+      ? String(metadata.title.absolute ?? "")
+      : settings.seo_title || settings.site_name || "İhsan Akyıldız";
+  return {
+    metadata,
+    title,
+    description: String(metadata.description ?? ""),
+  };
+}
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -40,19 +65,12 @@ const HomeWorks = dynamic(() =>
 );
 
 export async function generateMetadata(): Promise<Metadata> {
-  const advanced = await getCachedHomepageAdvanced().catch(() => null);
-  if (advanced) {
-    return {
-      title: advanced.seoTitle || advanced.title || "Ana Sayfa",
-      description:
-        advanced.seoDescription ||
-        "Web tasarım, yazılım ve dijital çözümler stüdyosu",
-    };
-  }
-  return {
-    title: "Ana Sayfa",
-    description: "Web tasarım, yazılım ve dijital çözümler stüdyosu",
-  };
+  const [settings, advanced] = await Promise.all([
+    getSettingsMap().catch(() => ({}) as Record<string, string>),
+    getCachedHomepageAdvanced().catch(() => null),
+  ]);
+
+  return homeSeoCopy(settings, advanced ?? undefined).metadata;
 }
 
 export default async function HomePage() {
@@ -61,11 +79,29 @@ export default async function HomePage() {
 
   const advancedHome = await getCachedHomepageAdvanced().catch(() => null);
   if (advancedHome) {
+    const homeSeo = homeSeoCopy(settings, advancedHome);
+    const faqs = advancedHome.sections.flatMap(
+      (section) =>
+        section.faqGroup?.items?.map((item) => ({
+          question: item.question,
+          answer: item.answer,
+        })) ?? [],
+    );
     return (
-      <PageSectionsRenderer
-        sections={advancedHome.sections}
-        siteName={siteName}
-      />
+      <>
+        <JsonLd
+          data={buildHomeJsonLd({
+            settings,
+            title: homeSeo.title,
+            description: homeSeo.description,
+            faqs,
+          })}
+        />
+        <PageSectionsRenderer
+          sections={advancedHome.sections}
+          siteName={siteName}
+        />
+      </>
     );
   }
 
@@ -182,8 +218,21 @@ export default async function HomePage() {
   const advancedCard =
     cards.find((card) => card.type === "ADVANCED") ?? null;
 
+  const homeSeo = homeSeoCopy(settings);
+
   return (
     <>
+      <JsonLd
+        data={buildHomeJsonLd({
+          settings,
+          title: homeSeo.title,
+          description: homeSeo.description,
+          faqs: faqGroup?.items.map((item) => ({
+            question: item.question,
+            answer: item.answer,
+          })),
+        })}
+      />
       <HomeHero
         kicker={slide?.kicker}
         badgeText={slide?.badgeText}

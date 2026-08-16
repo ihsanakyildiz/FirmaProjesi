@@ -7,6 +7,7 @@ import { RouteLoadingIndicator } from "@/components/route-loading-indicator";
 import { isAdminRequest } from "@/lib/admin-request";
 import { parsePerformance } from "@/lib/performance";
 import { getSettingsMap, isSettingEnabled } from "@/lib/settings";
+import { getSiteOrigin } from "@/lib/site-origin";
 import { getWebpCompanion } from "@/lib/uploads";
 import "./globals.css";
 
@@ -62,7 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const cdn = settings.perf_cdn_url?.replace(/\/$/, "");
 
     return {
-      metadataBase: settings.site_url ? new URL(settings.site_url) : undefined,
+        metadataBase: new URL(getSiteOrigin(settings)),
       title: {
         default: settings.seo_title || siteName,
         template: `%s | ${siteName}`,
@@ -106,6 +107,9 @@ export async function generateMetadata(): Promise<Metadata> {
           : undefined,
       },
       robots: settings.seo_robots || "index, follow",
+      verification: settings.google_site_verification
+        ? { google: settings.google_site_verification }
+        : undefined,
       other: {
         "format-detection": "telephone=no",
       },

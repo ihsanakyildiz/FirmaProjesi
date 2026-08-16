@@ -102,6 +102,12 @@ export default async function SiteLayout({
   return (
     <SiteThemeProvider>
       <div className="site-shell min-h-screen">
+        <a
+          href="#icerik"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-site-primary focus:px-3 focus:py-2 focus:text-sm focus:text-white"
+        >
+          İçeriğe geç
+        </a>
         <SiteHeader
           siteName={siteName}
           phone={settings.contact_phone}
@@ -112,7 +118,7 @@ export default async function SiteLayout({
           ctaHref="/iletisim"
           items={headerItems}
         />
-        <main>{children}</main>
+        <main id="icerik">{children}</main>
         <SiteFooter
           siteName={siteName}
           description={

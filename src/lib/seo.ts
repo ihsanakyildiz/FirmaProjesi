@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { stripHtml } from "@/lib/html";
+import { absoluteUrl, getSiteOrigin } from "@/lib/site-origin";
 
 /** Google SERP için önerilen üst sınırlar */
 export const SEO_TITLE_MAX = 60;
@@ -77,3 +79,179 @@ export type ResolveBlogSeoInput = ResolveWorkSeoInput;
 /** Klasik sayfalar için aynı SEO üretim kuralları */
 export const resolvePageSeo = resolveWorkSeo;
 export type ResolvePageSeoInput = ResolveWorkSeoInput;
+
+export function resolveHomeMetadata(settings: Record<string, string>, advanced?: {
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  title?: string | null;
+}): Metadata {
+  const origin = getSiteOrigin(settings);
+  const siteName = settings.site_name || "İhsan Akyıldız";
+  const title =
+    clampSeoText(
+      collapseWhitespace(
+        advanced?.seoTitle ||
+          settings.seo_title ||
+          `${siteName} | Web Tasarım & Yazılım`,
+      ),
+      SEO_TITLE_MAX,
+    );
+  const description = truncateSeoText(
+    collapseWhitespace(
+      advanced?.seoDescription ||
+        settings.seo_description ||
+        settings.site_description ||
+        "Web tasarım, yazılım geliştirme ve dijital çözümler.",
+    ),
+    SEO_DESCRIPTION_MAX,
+  );
+  const ogImage = settings.seo_og_image
+    ? absoluteUrl(settings.seo_og_image, origin)
+    : undefined;
+  const canonical = `${origin}/`;
+
+  return {
+    title: { absolute: title },
+    description,
+    keywords: settings.seo_keywords
+      ? settings.seo_keywords.split(",").map((item) => item.trim()).filter(Boolean)
+      : undefined,
+    applicationName: siteName,
+    authors: [{ name: siteName, url: canonical }],
+    creator: siteName,
+    publisher: siteName,
+    category: "technology",
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      type: "website",
+      locale: "tr_TR",
+      url: canonical,
+      siteName,
+      title,
+      description,
+      images: ogImage
+        ? [{ url: ogImage, width: 1200, height: 630, alt: siteName }]
+        : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+    verification: settings.google_site_verification
+      ? { google: settings.google_site_verification }
+      : undefined,
+  };
+}
+
+export const PUBLIC_HUB_SEO = {
+  projects: {
+    title: "Projeler",
+    description: "Tasarım ve yazılım portföyümüzden seçilmiş web ve dijital projeler.",
+    path: "/projeler",
+  },
+  projectCategories: {
+    title: "Proje Kategorileri",
+    description: "Çalışma alanlarımıza göre tamamladığımız projeleri keşfedin.",
+    path: "/projeler/kategori",
+  },
+  works: {
+    title: "Hizmetler ve Yapılan İşler",
+    description: "Web tasarım, yazılım ve dijital hizmet çalışmalarımız.",
+    path: "/yapilan-isler",
+  },
+  workCategories: {
+    title: "Hizmet Kategorileri",
+    description: "Hizmet ve çalışma kategorilerimizi inceleyin.",
+    path: "/yapilan-isler/kategori",
+  },
+  blog: {
+    title: "Blog",
+    description: "Web tasarım, yazılım ve dijital pazarlama üzerine yazılar.",
+    path: "/blog",
+  },
+  blogCategories: {
+    title: "Blog Kategorileri",
+    description: "Konularına göre blog yazılarımızı keşfedin.",
+    path: "/blog/kategori",
+  },
+} as const;
+
+export function buildPublicMetadata(input: {
+  settings: Record<string, string>;
+  title: string;
+  description: string;
+  path: string;
+  image?: string | null;
+  ogType?: "website" | "article";
+  publishedTime?: Date | string | null;
+  modifiedTime?: Date | string | null;
+}): Metadata {
+  const origin = getSiteOrigin(input.settings);
+  const siteName = input.settings.site_name || "İhsan Akyıldız";
+  const title = clampSeoText(collapseWhitespace(input.title), SEO_TITLE_MAX);
+  const description = truncateSeoText(
+    collapseWhitespace(input.description),
+    SEO_DESCRIPTION_MAX,
+  );
+  const canonical = absoluteUrl(input.path, origin);
+  const image = input.image
+    ? absoluteUrl(input.image, origin)
+    : input.settings.seo_og_image
+      ? absoluteUrl(input.settings.seo_og_image, origin)
+      : undefined;
+  const ogType = input.ogType ?? "website";
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: ogType,
+      locale: "tr_TR",
+      url: canonical,
+      siteName,
+      title,
+      description,
+      images: image ? [{ url: image, alt: title }] : undefined,
+      publishedTime: input.publishedTime
+        ? new Date(input.publishedTime).toISOString()
+        : undefined,
+      modifiedTime: input.modifiedTime
+        ? new Date(input.modifiedTime).toISOString()
+        : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+  };
+}
+
