@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { HomeHero } from "@/components/site/home/home-hero";
 import { SiteLink } from "@/components/site/site-link";
 import { DEFAULT_HERO_SLIDE } from "@/lib/heroes";
+import { highlightRichCodeBlocks } from "@/lib/highlight-rich-html";
 import type { ResolvedPageSection } from "@/lib/pages";
 
 const HomeCta = dynamic(() =>
@@ -68,7 +69,7 @@ function RichTextSection({
         {content ? (
           <div
             className="site-rich-content mt-8"
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: highlightRichCodeBlocks(content) }}
           />
         ) : null}
       </div>

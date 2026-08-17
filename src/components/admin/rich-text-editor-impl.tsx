@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import {
   Bold,
+  Code2,
+  FileCode2,
   Heading2,
   Heading3,
   ImageIcon,
@@ -23,9 +25,14 @@ import {
   Undo2,
   Unlink,
 } from "lucide-react";
+import { EditorCodeBlock } from "@/components/admin/rich-text/editor-code-block";
 import { EditorImage } from "@/components/admin/rich-text/editor-image";
 import { ImageControls } from "@/components/admin/rich-text/image-controls";
 import { ImageCropModal } from "@/components/admin/rich-text/image-crop-modal";
+import {
+  CODE_LANGUAGE_OPTIONS,
+  normalizeCodeLanguage,
+} from "@/lib/code-languages";
 
 type RichTextEditorProps = {
   id?: string;
@@ -171,6 +178,30 @@ function EditorToolbar({
   uploading: boolean;
   onPickImage: () => void;
 }) {
+  const state = useEditorState({
+    editor,
+    selector: ({ editor: current }) => ({
+      canUndo: current.can().undo(),
+      canRedo: current.can().redo(),
+      bold: current.isActive("bold"),
+      italic: current.isActive("italic"),
+      underline: current.isActive("underline"),
+      strike: current.isActive("strike"),
+      heading2: current.isActive("heading", { level: 2 }),
+      heading3: current.isActive("heading", { level: 3 }),
+      bulletList: current.isActive("bulletList"),
+      orderedList: current.isActive("orderedList"),
+      blockquote: current.isActive("blockquote"),
+      code: current.isActive("code"),
+      codeBlock: current.isActive("codeBlock"),
+      codeLanguage: normalizeCodeLanguage(
+        String(current.getAttributes("codeBlock").language || "plaintext"),
+      ),
+      link: current.isActive("link"),
+      image: current.isActive("image"),
+    }),
+  });
+
   const setLink = () => {
     const previous = editor.getAttributes("link").href as string | undefined;
     const url = window.prompt("Bağlantı URL’si", previous ?? "https://");
@@ -187,14 +218,14 @@ function EditorToolbar({
     <div className="flex flex-wrap items-center gap-0.5 border-b border-[#e9ebec] bg-[#f3f6f9] px-2 py-1.5">
       <ToolbarButton
         title="Geri al"
-        disabled={!editor.can().undo()}
+        disabled={!state.canUndo}
         onClick={() => editor.chain().focus().undo().run()}
       >
         <Undo2 className="h-4 w-4" />
       </ToolbarButton>
       <ToolbarButton
         title="İleri al"
-        disabled={!editor.can().redo()}
+        disabled={!state.canRedo}
         onClick={() => editor.chain().focus().redo().run()}
       >
         <Redo2 className="h-4 w-4" />
@@ -204,28 +235,28 @@ function EditorToolbar({
 
       <ToolbarButton
         title="Kalın"
-        active={editor.isActive("bold")}
+        active={state.bold}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
         <Bold className="h-4 w-4" />
       </ToolbarButton>
       <ToolbarButton
         title="İtalik"
-        active={editor.isActive("italic")}
+        active={state.italic}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
         <Italic className="h-4 w-4" />
       </ToolbarButton>
       <ToolbarButton
         title="Altı çizili"
-        active={editor.isActive("underline")}
+        active={state.underline}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
       >
         <UnderlineIcon className="h-4 w-4" />
       </ToolbarButton>
       <ToolbarButton
         title="Üstü çizili"
-        active={editor.isActive("strike")}
+        active={state.strike}
         onClick={() => editor.chain().focus().toggleStrike().run()}
       >
         <Strikethrough className="h-4 w-4" />
@@ -236,14 +267,14 @@ function EditorToolbar({
           <span className="mx-1 h-5 w-px bg-[#e9ebec]" />
           <ToolbarButton
             title="Başlık 2"
-            active={editor.isActive("heading", { level: 2 })}
+            active={state.heading2}
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           >
             <Heading2 className="h-4 w-4" />
           </ToolbarButton>
           <ToolbarButton
             title="Başlık 3"
-            active={editor.isActive("heading", { level: 3 })}
+            active={state.heading3}
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           >
             <Heading3 className="h-4 w-4" />
@@ -255,14 +286,14 @@ function EditorToolbar({
 
       <ToolbarButton
         title="Madde listesi"
-        active={editor.isActive("bulletList")}
+        active={state.bulletList}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
         <List className="h-4 w-4" />
       </ToolbarButton>
       <ToolbarButton
         title="Numaralı liste"
-        active={editor.isActive("orderedList")}
+        active={state.orderedList}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
         <ListOrdered className="h-4 w-4" />
@@ -271,7 +302,7 @@ function EditorToolbar({
       {variant === "full" ? (
         <ToolbarButton
           title="Alıntı"
-          active={editor.isActive("blockquote")}
+          active={state.blockquote}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         >
           <Quote className="h-4 w-4" />
@@ -280,12 +311,65 @@ function EditorToolbar({
 
       <span className="mx-1 h-5 w-px bg-[#e9ebec]" />
 
-      <ToolbarButton title="Bağlantı ekle" active={editor.isActive("link")} onClick={setLink}>
+      <ToolbarButton
+        title="Satır içi kod"
+        active={state.code}
+        onClick={() => editor.chain().focus().toggleCode().run()}
+      >
+        <Code2 className="h-4 w-4" />
+      </ToolbarButton>
+
+      {variant === "full" ? (
+        <>
+          <ToolbarButton
+            title="Kod bloğu"
+            active={state.codeBlock}
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .toggleCodeBlock({ language: "javascript" })
+                .run()
+            }
+          >
+            <FileCode2 className="h-4 w-4" />
+          </ToolbarButton>
+          {state.codeBlock ? (
+            <label className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+              <span className="sr-only">Kod dili</span>
+              <select
+                className="h-8 max-w-[9.5rem] rounded-md border border-[#e9ebec] bg-white px-1.5 text-xs text-slate-700 outline-none focus:border-[#0ab39c]"
+                value={state.codeLanguage}
+                onMouseDown={(event) => event.preventDefault()}
+                onChange={(event) => {
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("codeBlock", {
+                      language: event.target.value,
+                    })
+                    .run();
+                }}
+              >
+                {CODE_LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </>
+      ) : null}
+
+      <span className="mx-1 h-5 w-px bg-[#e9ebec]" />
+
+      <ToolbarButton title="Bağlantı ekle" active={state.link} onClick={setLink}>
         <Link2 className="h-4 w-4" />
       </ToolbarButton>
       <ToolbarButton
         title="Bağlantıyı kaldır"
-        disabled={!editor.isActive("link")}
+        disabled={!state.link}
         onClick={() => editor.chain().focus().unsetLink().run()}
       >
         <Unlink className="h-4 w-4" />
@@ -295,7 +379,7 @@ function EditorToolbar({
 
       <ToolbarButton
         title="Görsel yükle"
-        active={editor.isActive("image")}
+        active={state.image}
         disabled={uploading}
         onClick={onPickImage}
       >
@@ -377,6 +461,7 @@ export function RichTextEditor({
         codeBlock: false,
         horizontalRule: false,
       }),
+      ...(variant === "full" ? [EditorCodeBlock] : []),
       Underline,
       EditorImage,
       Link.configure({
@@ -522,8 +607,9 @@ export function RichTextEditor({
         </p>
       ) : (
         <p className="text-xs text-slate-400">
-          Görsele tıklayınca hizalama (sol/sağ), boyut ve kırpma araçları açılır. Sürükle-bırak ve
-          yapıştırma da desteklenir.
+          {variant === "full"
+            ? "Kod bloğu ile HTML, CSS ve programlama örnekleri ekleyin; dil seçerek sitede renkli editör görünümü alın. Görsele tıklayınca hizalama, boyut ve kırpma açılır."
+            : "Görsele tıklayınca hizalama (sol/sağ), boyut ve kırpma araçları açılır. Sürükle-bırak ve yapıştırma da desteklenir."}
         </p>
       )}
 

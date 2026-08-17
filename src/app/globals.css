@@ -261,6 +261,155 @@ body {
   clear: both;
 }
 
+.site-rich-content :not(pre) > code {
+  display: inline;
+  padding: 0.15em 0.4em;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--site-fg) 8%, transparent);
+  color: var(--site-fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.875em;
+}
+
+.site-rich-content .site-code-block {
+  margin: 1.35em 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--site-fg) 12%, transparent);
+  border-radius: 1rem;
+  background: #0b1220;
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.65);
+}
+
+.site-rich-content .site-code-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: #111827;
+  padding: 0.65rem 0.9rem;
+}
+
+.site-rich-content .site-code-block__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.site-rich-content .site-code-block__dots i {
+  display: block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #475569;
+}
+
+.site-rich-content .site-code-block__dots i:nth-child(1) {
+  background: #f87171;
+}
+
+.site-rich-content .site-code-block__dots i:nth-child(2) {
+  background: #fbbf24;
+}
+
+.site-rich-content .site-code-block__dots i:nth-child(3) {
+  background: #34d399;
+}
+
+.site-rich-content .site-code-block__lang {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.site-rich-content .site-code-block__pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.site-rich-content .site-code-block__code,
+.site-rich-content .site-code-block__code.hljs {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.site-rich-content .hljs-comment,
+.site-rich-content .hljs-quote {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.site-rich-content .hljs-keyword,
+.site-rich-content .hljs-selector-tag,
+.site-rich-content .hljs-literal,
+.site-rich-content .hljs-section,
+.site-rich-content .hljs-link {
+  color: #c4b5fd;
+}
+
+.site-rich-content .hljs-string,
+.site-rich-content .hljs-title,
+.site-rich-content .hljs-name,
+.site-rich-content .hljs-type,
+.site-rich-content .hljs-attribute,
+.site-rich-content .hljs-symbol,
+.site-rich-content .hljs-bullet,
+.site-rich-content .hljs-addition,
+.site-rich-content .hljs-variable,
+.site-rich-content .hljs-template-tag,
+.site-rich-content .hljs-template-variable {
+  color: #86efac;
+}
+
+.site-rich-content .hljs-number,
+.site-rich-content .hljs-built_in,
+.site-rich-content .hljs-builtin-name,
+.site-rich-content .hljs-meta .hljs-meta-string {
+  color: #fcd34d;
+}
+
+.site-rich-content .hljs-attr,
+.site-rich-content .hljs-selector-attr,
+.site-rich-content .hljs-selector-pseudo,
+.site-rich-content .hljs-regexp,
+.site-rich-content .hljs-deletion {
+  color: #fda4af;
+}
+
+.site-rich-content .hljs-function .hljs-title,
+.site-rich-content .hljs-title.function_,
+.site-rich-content .hljs-class .hljs-title {
+  color: #7dd3fc;
+}
+
+.site-rich-content .hljs-meta,
+.site-rich-content .hljs-doctag,
+.site-rich-content .hljs-params {
+  color: #cbd5e1;
+}
+
+.site-rich-content .hljs-emphasis {
+  font-style: italic;
+}
+
+.site-rich-content .hljs-strong {
+  font-weight: 700;
+}
+
 @keyframes site-marquee-left {
   from {
     transform: translateX(0);
@@ -440,6 +589,35 @@ html.perf-font-swap {
   color: #405189;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.rich-text-editor .ProseMirror code {
+  border-radius: 0.3rem;
+  background: #f1f5f9;
+  padding: 0.12em 0.35em;
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.85em;
+}
+
+.rich-text-editor .ProseMirror pre {
+  margin: 0.85em 0;
+  overflow-x: auto;
+  border: 1px solid #1e293b;
+  border-radius: 0.85rem;
+  background: #0f172a;
+  padding: 0.85rem 1rem;
+}
+
+.rich-text-editor .ProseMirror pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  white-space: pre;
 }
 
 .rich-text-editor .ProseMirror img.rich-text-editor__image,
@@ -627,6 +805,11 @@ html.admin-dark .rich-text-editor .ProseMirror blockquote {
 
 html.admin-dark .rich-text-editor .ProseMirror a {
   color: #8da2fb;
+}
+
+html.admin-dark .rich-text-editor .ProseMirror code {
+  background: #1e293b;
+  color: #e2e8f0;
 }
 
 html.admin-dark .rich-text-editor .ProseMirror img.rich-text-editor__image,

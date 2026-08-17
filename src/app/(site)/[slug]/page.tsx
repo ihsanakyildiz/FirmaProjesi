@@ -10,7 +10,9 @@ import {
   resolvePageSections,
 } from "@/lib/pages";
 import { getSettingsMap } from "@/lib/settings";
+import { prepareRichHtml } from "@/lib/html";
 import { buildCollectionJsonLd, buildWebPageJsonLd } from "@/lib/json-ld";
+import { parsePerformance } from "@/lib/performance";
 import { publicPageHref } from "@/lib/public-urls";
 import { buildPublicMetadata, resolvePageSeo } from "@/lib/seo";
 
@@ -108,6 +110,18 @@ export default async function CmsPage({ params }: PageProps) {
   const classic = await getClassicPageBySlug(slug).catch(() => null);
   if (!classic) notFound();
 
+  const perf = parsePerformance(settings);
+  const classicContent = prepareRichHtml(classic.content, {
+    lazyImages: perf.lazyImages,
+    lazyIframes: perf.lazyIframes,
+    disableThirdParty: perf.disableThirdParty,
+  });
+  const classicSummary = prepareRichHtml(classic.summary, {
+    lazyImages: perf.lazyImages,
+    lazyIframes: perf.lazyIframes,
+    disableThirdParty: perf.disableThirdParty,
+  });
+
   const seo = resolvePageSeo({
     title: classic.title,
     summary: classic.summary,
@@ -147,10 +161,10 @@ export default async function CmsPage({ params }: PageProps) {
         <h1 className="font-display text-4xl font-bold tracking-tight text-site-fg sm:text-5xl">
           {classic.title}
         </h1>
-        {classic.summary ? (
+        {classicSummary.trim() ? (
           <div
             className="site-rich-content mt-4 text-lg text-site-muted"
-            dangerouslySetInnerHTML={{ __html: classic.summary }}
+            dangerouslySetInnerHTML={{ __html: classicSummary }}
           />
         ) : null}
         {classic.image ? (
@@ -165,10 +179,10 @@ export default async function CmsPage({ params }: PageProps) {
             />
           </div>
         ) : null}
-        {classic.content ? (
+        {classicContent.trim() ? (
           <div
             className="site-rich-content mt-10"
-            dangerouslySetInnerHTML={{ __html: classic.content }}
+            dangerouslySetInnerHTML={{ __html: classicContent }}
           />
         ) : null}
 

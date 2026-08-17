@@ -1,3 +1,5 @@
+import { highlightRichCodeBlocks } from "@/lib/highlight-rich-html";
+
 /** HTML içeriğinden düz metin çıkarır (liste/özet satırları için). */
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return "";
@@ -55,5 +57,5 @@ export function prepareRichHtml(
     });
   }
 
-  return out;
+  return highlightRichCodeBlocks(out);
 }
