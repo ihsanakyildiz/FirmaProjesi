@@ -193,28 +193,42 @@ export default async function ProjectDetailPage({
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
           <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
             <div className="rounded-3xl border border-site-border bg-site-card p-4 shadow-sm">
-              <p className="px-2 text-xs font-semibold tracking-wide text-site-muted uppercase">
-                Projeler
-              </p>
+              <div className="flex items-center justify-between gap-2 px-2">
+                <p className="text-xs font-semibold tracking-wide text-site-muted uppercase">
+                  Projeler
+                </p>
+                <SiteLink
+                  href="/projeler"
+                  className="text-[11px] font-semibold text-site-primary hover:underline"
+                >
+                  Tümü
+                </SiteLink>
+              </div>
               <ul className="mt-2 space-y-1">
-                {siblingProjects.map((item) => {
-                  const active = item.id === project.id;
-                  return (
-                    <li key={item.id}>
-                      <SiteLink
-                        href={`/projeler/${item.slug}`}
-                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
-                          active
-                            ? "bg-site-primary-soft font-semibold text-site-primary"
-                            : "text-site-fg hover:bg-site-surface"
-                        }`}
-                      >
-                        <span className="truncate">{item.title}</span>
-                        {active ? <ArrowUpRight className="h-4 w-4" /> : null}
-                      </SiteLink>
-                    </li>
-                  );
-                })}
+                {siblingProjects.length === 0 ? (
+                  <li className="px-3 py-2 text-sm text-site-muted">
+                    Henüz başka proje yok.
+                  </li>
+                ) : (
+                  siblingProjects.map((item) => {
+                    const active = item.id === project.id;
+                    return (
+                      <li key={item.id}>
+                        <SiteLink
+                          href={`/projeler/${item.slug}`}
+                          className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
+                            active
+                              ? "bg-site-primary-soft font-semibold text-site-primary"
+                              : "text-site-fg hover:bg-site-surface"
+                          }`}
+                        >
+                          <span className="truncate">{item.title}</span>
+                          {active ? <ArrowUpRight className="h-4 w-4" /> : null}
+                        </SiteLink>
+                      </li>
+                    );
+                  })
+                )}
               </ul>
             </div>
 

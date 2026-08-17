@@ -92,18 +92,40 @@ export function getCachedProjectBySlug(slug: string) {
 
 export function getCachedSiblingProjects(categoryId: string | null) {
   return unstable_cache(
-    async () =>
-      prisma.project.findMany({
+    async () => {
+      const limit = 12;
+      const select = { id: true, title: true, slug: true } as const;
+      const orderBy = [{ sortOrder: "asc" as const }, { title: "asc" as const }];
+
+      const primary = await prisma.project.findMany({
         where: {
           isActive: true,
           ...(categoryId ? { categoryId } : {}),
         },
-        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-        take: 10,
-        select: { id: true, title: true, slug: true },
-      }),
-    ["project-siblings", categoryId ?? "all"],
-    { tags: [PROJECT_CACHE_TAG], revalidate: CACHE_REVALIDATE },
+        orderBy,
+        take: limit,
+        select,
+      });
+
+      if (!categoryId || primary.length >= limit) {
+        return primary;
+      }
+
+      const extra = await prisma.project.findMany({
+        where: {
+          isActive: true,
+          id: { notIn: primary.map((item) => item.id) },
+          ...(categoryId ? { NOT: { categoryId } } : {}),
+        },
+        orderBy,
+        take: limit - primary.length,
+        select,
+      });
+
+      return [...primary, ...extra];
+    },
+    ["project-siblings-v2", categoryId ?? "all"],
+    { tags: [PROJECT_CACHE_TAG, "site"], revalidate: CACHE_REVALIDATE },
   )();
 }
 
