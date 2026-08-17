@@ -44,8 +44,9 @@ async function requireAdmin() {
 }
 
 async function uniqueProjectSlug(base: string, excludeId?: string) {
+  const reserved = new Set(["kategori", "etiket"]);
   const slug = slugify(base) || "proje";
-  let candidate = slug;
+  let candidate = reserved.has(slug) ? `${slug}-proje` : slug;
   let i = 2;
 
   while (true) {
@@ -56,7 +57,7 @@ async function uniqueProjectSlug(base: string, excludeId?: string) {
       },
       select: { id: true },
     });
-    if (!existing) return candidate;
+    if (!existing && !reserved.has(candidate)) return candidate;
     candidate = `${slug}-${i}`;
     i += 1;
   }
@@ -288,6 +289,7 @@ function revalidateProjectPaths(id?: string, slug?: string) {
   revalidatePath("/admin/projects/features");
   revalidatePath("/projeler");
   revalidatePath("/projeler/kategori");
+  revalidatePath("/projeler/etiket");
   revalidatePath("/yapilan-isler");
   revalidatePath("/");
   if (id) revalidatePath(`/admin/projects/${id}/edit`);

@@ -28,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry(origin, "/", now, "weekly", 1),
     entry(origin, "/projeler", now, "weekly", 0.8),
     entry(origin, "/projeler/kategori", now, "weekly", 0.7),
+    entry(origin, "/projeler/etiket", now, "weekly", 0.65),
     entry(origin, "/yapilan-isler", now, "weekly", 0.8),
     entry(origin, "/yapilan-isler/kategori", now, "weekly", 0.7),
     entry(origin, "/blog", now, "weekly", 0.8),
@@ -36,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const [pages, projects, works, posts, projectCats, workCats, blogCats] =
+    const [pages, projects, works, posts, projectCats, workCats, blogCats, projectTags] =
       await Promise.all([
         prisma.page.findMany({
           where: { isActive: true, slug: { not: "anasayfa" } },
@@ -66,6 +67,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           where: { isActive: true },
           select: { slug: true, updatedAt: true },
         }),
+        prisma.projectFeature.findMany({
+          where: { isActive: true, projects: { some: { isActive: true } } },
+          select: { slug: true, updatedAt: true },
+        }),
       ]);
 
     for (const page of pages) {
@@ -75,6 +80,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       items.push(
         entry(origin, `/projeler/kategori/${row.slug}`, row.updatedAt, "weekly", 0.65),
       );
+    }
+    for (const row of projectTags) {
+      items.push(entry(origin, `/projeler/etiket/${row.slug}`, row.updatedAt, "weekly", 0.6));
     }
     for (const row of projects) {
       items.push(entry(origin, `/projeler/${row.slug}`, row.updatedAt, "monthly", 0.7));

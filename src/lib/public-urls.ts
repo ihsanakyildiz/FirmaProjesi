@@ -25,3 +25,7 @@ export function publicProjectHref(slug: string) {
 export function publicProjectCategoryHref(slug: string) {
   return `/projeler/kategori/${slug}`;
 }
+
+export function publicProjectTagHref(slug: string) {
+  return `/projeler/etiket/${slug}`;
+}

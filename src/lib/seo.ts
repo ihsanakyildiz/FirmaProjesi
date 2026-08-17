@@ -169,6 +169,11 @@ export const PUBLIC_HUB_SEO = {
     description: "Çalışma alanlarımıza göre tamamladığımız projeleri keşfedin.",
     path: "/projeler/kategori",
   },
+  projectTags: {
+    title: "Proje Etiketleri",
+    description: "Teknoloji ve yetkinlik etiketlerine göre portföy projelerimizi inceleyin.",
+    path: "/projeler/etiket",
+  },
   works: {
     title: "Hizmetler ve Yapılan İşler",
     description: "Web tasarım, yazılım ve dijital hizmet çalışmalarımız.",

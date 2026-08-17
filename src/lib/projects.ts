@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const PROJECT_CACHE_TAG = "projects";
 export const PROJECT_GRID_PAGE_SIZE = 9;
 export const PROJECT_CATEGORY_PATH = "/projeler/kategori";
+export const PROJECT_TAG_PATH = "/projeler/etiket";
 const CACHE_REVALIDATE = 60;
 
 const projectListSelect = {
@@ -20,6 +21,10 @@ export function projectCategoryHref(slug: string) {
   return `${PROJECT_CATEGORY_PATH}/${slug}`;
 }
 
+export function projectTagHref(slug: string) {
+  return `${PROJECT_TAG_PATH}/${slug}`;
+}
+
 const projectDetailInclude = {
   category: { select: { id: true, name: true, slug: true } },
   client: { select: { name: true, logo: true } },
@@ -30,6 +35,7 @@ const projectDetailInclude = {
       id: true,
       name: true,
       description: true,
+      slug: true,
       icon: true,
       iconColor: true,
     },
@@ -243,6 +249,72 @@ export function getCachedProjectCategoryPage(slug: string) {
       return { category, projects };
     },
     ["project-category-page", slug],
+    { tags: [PROJECT_CACHE_TAG, "site"], revalidate: CACHE_REVALIDATE },
+  )();
+}
+
+const tagListWhere = {
+  isActive: true,
+  projects: { some: { isActive: true } },
+} as const;
+
+export const getCachedProjectTagIndex = unstable_cache(
+  async () =>
+    prisma.projectFeature.findMany({
+      where: tagListWhere,
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        icon: true,
+        iconColor: true,
+        _count: { select: { projects: { where: { isActive: true } } } },
+      },
+    }),
+  ["project-tag-index"],
+  { tags: [PROJECT_CACHE_TAG, "site"], revalidate: CACHE_REVALIDATE },
+);
+
+export const getCachedProjectTagSlugs = unstable_cache(
+  async () =>
+    prisma.projectFeature.findMany({
+      where: tagListWhere,
+      select: { slug: true },
+    }),
+  ["project-tag-slugs"],
+  { tags: [PROJECT_CACHE_TAG], revalidate: CACHE_REVALIDATE },
+);
+
+export function getCachedProjectTagPage(slug: string) {
+  return unstable_cache(
+    async () => {
+      const feature = await prisma.projectFeature.findFirst({
+        where: { slug, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          icon: true,
+          iconColor: true,
+        },
+      });
+      if (!feature) return null;
+
+      const projects = await prisma.project.findMany({
+        where: {
+          isActive: true,
+          features: { some: { id: feature.id } },
+        },
+        orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
+        select: projectListSelect,
+      });
+
+      return { feature, projects };
+    },
+    ["project-tag-page", slug],
     { tags: [PROJECT_CACHE_TAG, "site"], revalidate: CACHE_REVALIDATE },
   )();
 }

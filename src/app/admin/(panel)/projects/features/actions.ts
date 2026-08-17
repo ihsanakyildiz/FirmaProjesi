@@ -27,6 +27,16 @@ async function requireAdmin() {
   return session;
 }
 
+function revalidateFeaturePublicPaths(slug?: string) {
+  bustProjectCache();
+  revalidatePath("/admin/projects/features");
+  revalidatePath("/admin/projects");
+  revalidatePath("/");
+  revalidatePath("/projeler");
+  revalidatePath("/projeler/etiket");
+  if (slug) revalidatePath(`/projeler/etiket/${slug}`);
+}
+
 async function uniqueProjectFeatureSlug(base: string, excludeId?: string) {
   const slug = slugify(base) || "ozellik";
   let candidate = slug;
@@ -124,11 +134,7 @@ export async function createProjectFeatureAction(
       },
     });
 
-    bustProjectCache();
-    revalidatePath("/admin/projects/features");
-    revalidatePath("/admin/projects");
-    revalidatePath("/");
-    revalidatePath("/projeler");
+    revalidateFeaturePublicPaths(slug);
     return { success: true, message: "Özellik oluşturuldu." };
   } catch (error) {
     console.error(error);
@@ -181,12 +187,8 @@ export async function updateProjectFeatureAction(
       },
     });
 
-    bustProjectCache();
-    revalidatePath("/admin/projects/features");
+    revalidateFeaturePublicPaths(slug);
     revalidatePath(`/admin/projects/features/${id}/edit`);
-    revalidatePath("/admin/projects");
-    revalidatePath("/");
-    revalidatePath("/projeler");
     return { success: true, message: "Özellik güncellendi." };
   } catch (error) {
     console.error(error);
@@ -214,9 +216,7 @@ export async function deleteProjectFeatureAction(input: {
 
   try {
     await prisma.projectFeature.delete({ where: { id } });
-    bustProjectCache();
-    revalidatePath("/admin/projects/features");
-    revalidatePath("/admin/projects");
+    revalidateFeaturePublicPaths(existing.slug);
     return {
       success: true,
       message:
@@ -251,9 +251,7 @@ export async function toggleProjectFeatureActiveAction(input: {
     data: { isActive: input.isActive },
   });
 
-  bustProjectCache();
-  revalidatePath("/admin/projects/features");
-  revalidatePath("/admin/projects");
+  revalidateFeaturePublicPaths(existing.slug);
   return {
     success: true,
     message: input.isActive ? "Özellik aktif edildi." : "Özellik pasife alındı.",

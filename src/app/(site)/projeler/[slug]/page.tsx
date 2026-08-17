@@ -19,6 +19,7 @@ import {
   getCachedProjectBySlug,
   getCachedSiblingProjects,
   projectCategoryHref,
+  projectTagHref,
 } from "@/lib/projects";
 import { prepareRichHtml, stripHtml } from "@/lib/html";
 import { buildCreativeWorkJsonLd } from "@/lib/json-ld";
@@ -392,9 +393,10 @@ export default async function ProjectDetailPage({
             {project.features.length > 0 ? (
               <div className="mt-10 grid gap-4 sm:grid-cols-2">
                 {project.features.map((feature) => (
-                  <div
+                  <SiteLink
                     key={feature.id}
-                    className="rounded-2xl border border-site-border bg-site-card p-4"
+                    href={projectTagHref(feature.slug)}
+                    className="rounded-2xl border border-site-border bg-site-card p-4 transition hover:-translate-y-0.5 hover:border-site-primary/40 hover:shadow-md"
                   >
                     <div className="flex items-start gap-3">
                       <span
@@ -417,7 +419,7 @@ export default async function ProjectDetailPage({
                         ) : null}
                       </div>
                     </div>
-                  </div>
+                  </SiteLink>
                 ))}
               </div>
             ) : null}

@@ -33,6 +33,7 @@ function fallbackNav(): SiteNavItem[] {
         { label: "İş Kategorileri", href: "/yapilan-isler/kategori" },
         { label: "Projeler", href: "/projeler" },
         { label: "Proje Kategorileri", href: "/projeler/kategori" },
+        { label: "Proje Etiketleri", href: "/projeler/etiket" },
         { label: "SSS", href: "/#sss" },
         { label: "Fiyatlandırma", href: "/#fiyatlandirma" },
       ],
