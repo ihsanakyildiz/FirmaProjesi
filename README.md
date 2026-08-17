@@ -341,12 +341,30 @@ pm2 logs ihsanakyildiz --lines 80 --err
 Kod güncellemesi:
 
 ```bash
-git pull
+# Önerilen (uploads'a dokunmaz):
+bash scripts/deploy-live.sh
+
+# veya elle:
+git pull origin main
 npm ci
 npx prisma generate
-npx prisma db push
+npx prisma db push   # yalnızca şema değiştiyse
 npm run build
 pm2 restart ihsanakyildiz
+```
+
+**`public/uploads` kuralı (önemli):**
+
+- Yüklenen görseller / medya **Git’te yoktur** (`.gitignore`).
+- `git pull` bu klasörü **güncellemez, silmez, ezmez**.
+- Canlıda **asla** şunları çalıştırmayın: `git clean -fd`, `git restore public/uploads`, `rm -rf public/uploads`.
+- Favicon gibi `public/` altındaki diğer yerel dosyalar pull’u engellerse:
+
+```bash
+git stash push -m "server-public-local" -- public/
+# uploads untracked olduğu için stash'e girmez; yerinde kalır
+git pull origin main
+git stash pop
 ```
 
 `next.config.ts`, `middleware` veya Auth ayarı değiştiyse **mutlaka** `npm run build`. Yalnızca `pm2 restart` eski derlemeyi çalıştırır. `AUTH_TRUST_HOST` `.env` değişikliği için restart yeterlidir.

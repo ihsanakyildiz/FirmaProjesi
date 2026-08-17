@@ -42,7 +42,10 @@ next-env.d.ts
 
 /src/generated/prisma
 
-# uploaded assets
+# uploaded assets — asla Git'e girmez; canlı sunucudaki dosyalar deploy ile değişmez
 /public/uploads/**
 !/public/uploads/.gitkeep
+# yanlışlıkla kök /uploads bağından gelen izlemeyi de engelle
+/uploads/**
+!/uploads/.gitkeep
 

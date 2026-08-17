@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { SearchableSelect } from "@/components/admin/searchable-select";
+import { uploadAdminMedia } from "@/components/admin/upload-admin-media";
 import {
   PROJECT_GALLERY_MAX,
   PROJECT_HIGHLIGHT_MAX,
@@ -150,6 +151,8 @@ export function ProjectForm({
   );
   const [image, setImage] = useState(initial?.image ?? "");
   const [preview, setPreview] = useState(initial?.image ?? "");
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [brochurePdf, setBrochurePdf] = useState(initial?.brochurePdf ?? "");
   const [brochureZip, setBrochureZip] = useState(initial?.brochureZip ?? "");
   const [highlights, setHighlights] = useState<string[]>(() => {
@@ -750,10 +753,15 @@ export function ProjectForm({
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    disabled={coverUploading || isPending}
+                    className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   >
-                    <Upload className="h-4 w-4" />
-                    Kapak Seç
+                    {coverUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    {coverUploading ? "Yükleniyor…" : "Kapak Seç"}
                   </button>
                   {preview ? (
                     <button
@@ -761,25 +769,61 @@ export function ProjectForm({
                       onClick={() => {
                         setImage("");
                         setPreview("");
+                        setCoverUploadError(null);
                         if (fileRef.current) fileRef.current.value = "";
                       }}
-                      className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600"
+                      disabled={coverUploading || isPending}
+                      className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
                       Kaldır
                     </button>
                   ) : null}
                 </div>
+                {coverUploadError ? (
+                  <p className="text-xs text-rose-600" role="alert">
+                    {coverUploadError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    Görsel seçilince hemen yüklenir (en fazla 5 MB). Kaydet yalnızca kayıt
+                    bilgilerini gönderir.
+                  </p>
+                )}
                 <input
                   ref={fileRef}
                   type="file"
-                  name="image_file"
-                  accept="image/png,image/jpeg,image/webp"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
+                    e.target.value = "";
                     if (!file) return;
-                    setPreview(URL.createObjectURL(file));
+
+                    const localPreview = URL.createObjectURL(file);
+                    setPreview(localPreview);
+                    setCoverUploadError(null);
+                    setCoverUploading(true);
+
+                    void uploadAdminMedia(file, "uploads/projects")
+                      .then((result) => {
+                        setImage(result.url);
+                        setPreview(result.url);
+                        URL.revokeObjectURL(localPreview);
+                      })
+                      .catch((error) => {
+                        setImage("");
+                        setPreview("");
+                        URL.revokeObjectURL(localPreview);
+                        setCoverUploadError(
+                          error instanceof Error
+                            ? error.message
+                            : "Kapak görseli yüklenemedi.",
+                        );
+                      })
+                      .finally(() => {
+                        setCoverUploading(false);
+                      });
                   }}
                 />
               </div>
@@ -1062,7 +1106,7 @@ export function ProjectForm({
         </Link>
         <button
           type="submit"
-          disabled={isPending || seoInvalid}
+          disabled={isPending || seoInvalid || coverUploading}
           className="inline-flex items-center gap-2 rounded-md bg-[#0ab39c] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#099885] disabled:opacity-70"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

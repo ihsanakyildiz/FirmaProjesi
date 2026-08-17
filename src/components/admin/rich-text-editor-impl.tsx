@@ -460,6 +460,9 @@ export function RichTextEditor({
         blockquote: variant === "compact" ? false : undefined,
         codeBlock: false,
         horizontalRule: false,
+        // TipTap 3 StarterKit bunları içerir; ayrı extension ile çift kayıt olmasın
+        link: false,
+        underline: false,
       }),
       ...(variant === "full" ? [EditorCodeBlock] : []),
       Underline,
