@@ -786,6 +786,7 @@ model MailMessage {
   parentId        String?
   parent          MailMessage?  @relation("MailThread", fields: [parentId], references: [id], onDelete: SetNull)
   replies         MailMessage[] @relation("MailThread")
+  attachments     MailAttachment[]
   /// Etiket: updates | important | personal | private | contact
   label           String?    @db.VarChar(50)
   externalId      String?    @unique @db.VarChar(191)
@@ -798,4 +799,20 @@ model MailMessage {
   @@index([isRead, folder])
   @@index([label])
   @@map("mail_messages")
+}
+
+model MailAttachment {
+  id          String      @id @default(cuid())
+  messageId   String
+  message     MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename    String      @db.VarChar(255)
+  mimeType    String      @db.VarChar(127)
+  size        Int         @default(0)
+  contentId   String?     @db.VarChar(191)
+  isInline    Boolean     @default(false)
+  storagePath String      @db.VarChar(500)
+  createdAt   DateTime    @default(now())
+
+  @@index([messageId])
+  @@map("mail_attachments")
 }

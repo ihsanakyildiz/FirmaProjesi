@@ -2,6 +2,7 @@
 
 import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
 import { logoutAction } from "@/app/admin/(panel)/actions";
+import { AdminNotifications } from "./admin-notifications";
 import { useSidebar } from "./sidebar-context";
 import { useAdminTheme } from "./theme-provider";
 
@@ -9,12 +10,14 @@ type AdminHeaderProps = {
   userName: string;
   userEmail: string;
   userRole: string;
+  unreadNotificationCount: number;
 };
 
 export function AdminHeader({
   userName,
   userEmail,
   userRole,
+  unreadNotificationCount,
 }: AdminHeaderProps) {
   const { toggle } = useSidebar();
   const { isDark, toggleTheme } = useAdminTheme();
@@ -57,16 +60,7 @@ export function AdminHeader({
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        <button
-          type="button"
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#e9ebec] text-slate-500 transition hover:bg-slate-50"
-          aria-label="Bildirimler"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-            3
-          </span>
-        </button>
+        <AdminNotifications initialUnreadCount={unreadNotificationCount} />
 
         <div className="hidden h-8 w-px bg-[#e9ebec] sm:block" />
 

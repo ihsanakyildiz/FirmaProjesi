@@ -10,6 +10,7 @@ const assetCacheControl = `public, max-age=${assetMaxAge}, immutable${
 }`;
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["imapflow", "mailparser"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
     serverActions: {

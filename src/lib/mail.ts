@@ -52,6 +52,7 @@ export type MailListItem = {
   fromName: string;
   fromEmail: string;
   toEmail: string;
+  replyToEmail: string | null;
   subject: string;
   preview: string;
   bodyText: string;
@@ -64,6 +65,45 @@ export type MailListItem = {
   parentId: string | null;
 };
 
+type MailListSummaryRow = {
+  id: string;
+  folder: MailFolder;
+  source: MailSource;
+  fromName: string;
+  fromEmail: string;
+  toEmail: string;
+  subject: string;
+  preview: string;
+  isRead: boolean;
+  isStarred: boolean;
+  hasAttachment: boolean;
+  label: string | null;
+  receivedAt: Date;
+  parentId: string | null;
+};
+
+export function toMailListSummaryItem(row: MailListSummaryRow): MailListItem {
+  return {
+    id: row.id,
+    folder: row.folder,
+    source: row.source,
+    fromName: row.fromName,
+    fromEmail: row.fromEmail,
+    toEmail: row.toEmail,
+    replyToEmail: null,
+    subject: row.subject,
+    preview: row.preview,
+    bodyText: "",
+    bodyHtml: null,
+    isRead: row.isRead,
+    isStarred: row.isStarred,
+    hasAttachment: row.hasAttachment,
+    label: row.label,
+    receivedAt: row.receivedAt.toISOString(),
+    parentId: row.parentId,
+  };
+}
+
 export function toMailListItem(row: MailMessage): MailListItem {
   return {
     id: row.id,
@@ -72,6 +112,7 @@ export function toMailListItem(row: MailMessage): MailListItem {
     fromName: row.fromName,
     fromEmail: row.fromEmail,
     toEmail: row.toEmail,
+    replyToEmail: row.replyToEmail,
     subject: row.subject,
     preview: row.preview,
     bodyText: row.bodyText,
@@ -104,6 +145,24 @@ export function formatMailDate(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+export function formatMailRelativeTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "Az önce";
+  if (minutes < 60) return `${minutes} dk önce`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} saat önce`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} gün önce`;
+
+  return formatMailDate(iso);
 }
 
 export function avatarTone(seed: string) {

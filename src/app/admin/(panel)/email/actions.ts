@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { bumpThreadRootActivity } from "@/lib/mail-thread";
 import { getSettingsMapUncached } from "@/lib/settings";
 import {
   getSmtpConfigFromSettings,
@@ -82,7 +83,10 @@ export async function replyMailAction(
 
     const settings = await getSettingsMapUncached();
     const smtp = getSmtpConfigFromSettings(settings);
-    const to = parent.replyToEmail || parent.fromEmail;
+    const to =
+      parent.folder === "SENT"
+        ? parent.toEmail
+        : parent.replyToEmail || parent.fromEmail;
 
     if (!isSmtpReady(smtp)) {
       return {
@@ -95,14 +99,19 @@ export async function replyMailAction(
       ? parent.subject
       : `Re: ${parent.subject}`;
 
-    await sendMailWithConfig(smtp, {
+    const info = await sendMailWithConfig(smtp, {
       to,
       subject,
       text: body,
       replyTo: smtp.replyTo || smtp.fromEmail,
+      inReplyTo: parent.externalId,
+      references: parent.externalId,
     });
 
     const preview = body.replace(/\s+/g, " ").slice(0, 180);
+    const externalId = info.messageId
+      ? String(info.messageId).replace(/^<|>$/g, "")
+      : null;
 
     await prisma.$transaction([
       prisma.mailMessage.create({
@@ -118,6 +127,7 @@ export async function replyMailAction(
           isRead: true,
           parentId: parent.id,
           label: parent.label,
+          externalId,
           receivedAt: new Date(),
         },
       }),
@@ -126,6 +136,11 @@ export async function replyMailAction(
         data: { isRead: true },
       }),
     ]);
+
+    await bumpThreadRootActivity(parent.id, {
+      preview: `Siz: ${preview}`,
+      receivedAt: new Date(),
+    });
 
     revalidateMail();
     return { success: true, message: "Yanıt gönderildi." };
@@ -210,6 +225,59 @@ export async function composeMailAction(
     console.error("[mail-compose]", error);
     return {
       error: error instanceof Error ? error.message : "Mesaj gönderilemedi.",
+    };
+  }
+}
+
+export async function loadMoreMailMessagesAction(input: {
+  folder: string;
+  label?: string | null;
+  q?: string | null;
+  cursor: string;
+}) {
+  await requireAdmin();
+  const { listMailMessagesPage } = await import("@/lib/mail-queries");
+  return listMailMessagesPage({
+    folder: input.folder,
+    label: input.label,
+    q: input.q,
+    cursor: input.cursor,
+  });
+}
+
+export async function syncImapInboxAction(): Promise<MailActionState> {
+  try {
+    await requireAdmin();
+    const { syncImapInboxNow } = await import("@/lib/mail-imap-sync");
+    const result = await syncImapInboxNow();
+
+    if (result.skipped) {
+      return { message: "Gelen kutusu yakın zamanda senkronize edildi." };
+    }
+
+    revalidateMail();
+
+    if (result.timedOut) {
+      return {
+        error:
+          "IMAP bağlantısı zaman aşımına uğradı. Ayarlarınızı kontrol edip tekrar deneyin.",
+      };
+    }
+
+    return {
+      success: true,
+      message:
+        result.imported > 0
+          ? `${result.imported} yeni mesaj alındı.`
+          : "Yeni mesaj bulunamadı.",
+    };
+  } catch (error) {
+    console.error("[imap-sync-action]", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Gelen kutusu senkronize edilemedi.",
     };
   }
 }

@@ -11,6 +11,7 @@ type AdminShellProps = {
   userName: string;
   userEmail: string;
   userRole: string;
+  unreadNotificationCount: number;
 };
 
 export function AdminShell({
@@ -18,6 +19,7 @@ export function AdminShell({
   userName,
   userEmail,
   userRole,
+  unreadNotificationCount,
 }: AdminShellProps) {
   return (
     <AdminThemeProvider>
@@ -32,6 +34,7 @@ export function AdminShell({
               userName={userName}
               userEmail={userEmail}
               userRole={userRole}
+              unreadNotificationCount={unreadNotificationCount}
             />
             <main className="p-4 lg:p-6">{children}</main>
           </div>

@@ -5,6 +5,7 @@ import {
   resolveMailFolderKey,
   resolveMailLabelKey,
   toMailListItem,
+  toMailListSummaryItem,
   type MailFolderKey,
   type MailListItem,
 } from "@/lib/mail";
@@ -13,6 +14,144 @@ export type MailFolderCounts = Record<MailFolderKey, number> & {
   labels: Record<string, number>;
   unreadInbox: number;
 };
+
+const MAIL_LIST_SELECT = {
+  id: true,
+  folder: true,
+  source: true,
+  fromName: true,
+  fromEmail: true,
+  toEmail: true,
+  subject: true,
+  preview: true,
+  isRead: true,
+  isStarred: true,
+  hasAttachment: true,
+  label: true,
+  receivedAt: true,
+  parentId: true,
+} satisfies Prisma.MailMessageSelect;
+
+const MAIL_LIST_PAGE_SIZE = 30;
+
+export type MailListCursor = {
+  receivedAt: string;
+  id: string;
+};
+
+export type MailListPage = {
+  items: MailListItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
+export function encodeMailListCursor(row: {
+  receivedAt: Date;
+  id: string;
+}): string {
+  const payload: MailListCursor = {
+    receivedAt: row.receivedAt.toISOString(),
+    id: row.id,
+  };
+  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+}
+
+export function decodeMailListCursor(
+  raw: string | null | undefined,
+): MailListCursor | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(raw, "base64url").toString("utf8"),
+    ) as MailListCursor;
+    if (typeof parsed.receivedAt === "string" && typeof parsed.id === "string") {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function buildMailListWhere(options: {
+  folder?: string | null;
+  label?: string | null;
+  q?: string | null;
+  cursor?: string | null;
+}): Prisma.MailMessageWhereInput {
+  const folderKey = resolveMailFolderKey(options.folder);
+  const label = resolveMailLabelKey(options.label);
+  const q = (options.q ?? "").trim();
+  const cursor = decodeMailListCursor(options.cursor);
+
+  const and: Prisma.MailMessageWhereInput[] = [folderWhere(folderKey)];
+
+  if (label) and.push({ label });
+  if (!q) {
+    and.push({ parentId: null });
+  }
+  if (q) {
+    and.push({
+      OR: [
+        { subject: { contains: q } },
+        { fromName: { contains: q } },
+        { fromEmail: { contains: q } },
+        { preview: { contains: q } },
+      ],
+    });
+  }
+  if (cursor) {
+    const receivedAt = new Date(cursor.receivedAt);
+    if (!Number.isNaN(receivedAt.getTime())) {
+      and.push({
+        OR: [
+          { receivedAt: { lt: receivedAt } },
+          {
+            AND: [{ receivedAt }, { id: { lt: cursor.id } }],
+          },
+        ],
+      });
+    }
+  }
+
+  return { AND: and };
+}
+
+export async function listMailMessagesPage(options: {
+  folder?: string | null;
+  label?: string | null;
+  q?: string | null;
+  cursor?: string | null;
+  limit?: number;
+}): Promise<MailListPage> {
+  const limit = options.limit ?? MAIL_LIST_PAGE_SIZE;
+
+  const rows = await prisma.mailMessage.findMany({
+    where: buildMailListWhere(options),
+    orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    select: MAIL_LIST_SELECT,
+  });
+
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const last = pageRows[pageRows.length - 1];
+
+  return {
+    items: pageRows.map(toMailListSummaryItem),
+    nextCursor: hasMore && last ? encodeMailListCursor(last) : null,
+    hasMore,
+  };
+}
+
+export async function listMailMessages(options: {
+  folder?: string | null;
+  label?: string | null;
+  q?: string | null;
+}): Promise<MailListItem[]> {
+  const page = await listMailMessagesPage(options);
+  return page.items;
+}
 
 function folderWhere(folderKey: MailFolderKey): Prisma.MailMessageWhereInput {
   const meta = MAIL_FOLDER_MAP[folderKey];
@@ -61,42 +200,47 @@ export async function getMailFolderCounts(): Promise<MailFolderCounts> {
   };
 }
 
-export async function listMailMessages(options: {
-  folder?: string | null;
-  label?: string | null;
-  q?: string | null;
-}): Promise<MailListItem[]> {
-  const folderKey = resolveMailFolderKey(options.folder);
-  const label = resolveMailLabelKey(options.label);
-  const q = (options.q ?? "").trim();
-
-  const and: Prisma.MailMessageWhereInput[] = [folderWhere(folderKey)];
-
-  if (label) and.push({ label });
-  if (q) {
-    and.push({
-      OR: [
-        { subject: { contains: q } },
-        { fromName: { contains: q } },
-        { fromEmail: { contains: q } },
-        { preview: { contains: q } },
-        { bodyText: { contains: q } },
-      ],
-    });
-  }
-
-  const rows = await prisma.mailMessage.findMany({
-    where: { AND: and },
-    orderBy: { receivedAt: "desc" },
-    take: 100,
-  });
-
-  return rows.map(toMailListItem);
-}
-
 export async function getMailMessageById(id: string) {
   const row = await prisma.mailMessage.findUnique({ where: { id } });
   return row ? toMailListItem(row) : null;
+}
+
+export type MailMessageDetail = {
+  message: MailListItem;
+  thread: MailListItem[];
+  attachments: import("@/lib/mail-attachments").MailAttachmentView[];
+};
+
+export async function getMailMessageDetail(id: string): Promise<MailMessageDetail | null> {
+  const { hydrateMailMessageBody } = await import("@/lib/mail-body-hydrate");
+  const { collectThreadMessageIds, findThreadRootId } = await import("@/lib/mail-thread");
+  const { toMailAttachmentView } = await import("@/lib/mail-attachments");
+
+  const row = await prisma.mailMessage.findUnique({ where: { id } });
+  if (!row) return null;
+
+  const rootId = await findThreadRootId(id);
+  const threadIds = await collectThreadMessageIds(rootId);
+
+  await Promise.all(threadIds.map((threadId) => hydrateMailMessageBody(threadId)));
+
+  const threadRows = await prisma.mailMessage.findMany({
+    where: { id: { in: threadIds } },
+    orderBy: [{ receivedAt: "asc" }, { id: "asc" }],
+  });
+
+  const attachmentRows = await prisma.mailAttachment.findMany({
+    where: { messageId: { in: threadIds } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const selectedRow = threadRows.find((item) => item.id === id) ?? row;
+
+  return {
+    message: toMailListItem(selectedRow),
+    thread: threadRows.map(toMailListItem),
+    attachments: attachmentRows.map(toMailAttachmentView),
+  };
 }
 
 /** İlk açılışta boş kalmasın diye örnek iletişim mailleri */

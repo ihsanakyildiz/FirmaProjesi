@@ -26,6 +26,11 @@ import {
 import { resolvePageSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/seo";
 import { slugify } from "@/lib/slug";
 import {
+  collectEditorUploadPathsFromHtmlList,
+  diffRemovedEditorUploadPaths,
+  purgeUnreferencedEditorUploads,
+} from "@/lib/rich-text-uploads";
+import {
   deletePublicAsset,
   saveOptimizedImage,
   uploadLimits,
@@ -342,6 +347,14 @@ export async function updateClassicPageAction(
       },
     });
 
+    const removedEditorPaths = [
+      ...diffRemovedEditorUploadPaths(existing.summary, data.summary || null),
+      ...diffRemovedEditorUploadPaths(existing.content, data.content || null),
+    ];
+    if (removedEditorPaths.length > 0) {
+      await purgeUnreferencedEditorUploads(removedEditorPaths);
+    }
+
     revalidatePath("/admin/pages");
     revalidatePath(`/admin/pages/${id}/edit`);
     return { success: true, message: "Sayfa güncellendi." };
@@ -367,10 +380,22 @@ export async function deletePageAction(formData: FormData): Promise<DeletePageRe
   if (!existing) return { error: "Sayfa bulunamadı." };
 
   const imagePath = existing.image;
+
+  const pageSections = await prisma.pageSection.findMany({
+    where: { pageId: id },
+    select: { content: true },
+  });
+  const editorPaths = collectEditorUploadPathsFromHtmlList([
+    ...pageSections.map((row) => row.content),
+    existing.content,
+    existing.summary,
+  ]);
+
   await prisma.page.delete({ where: { id } });
   if (imagePath) {
     await deletePublicAsset(imagePath);
   }
+  await purgeUnreferencedEditorUploads(editorPaths);
 
   revalidatePath("/admin/pages");
   return { success: true, message: "Sayfa silindi." };
@@ -657,6 +682,14 @@ export async function deletePageSectionAction(
     const descendantIds = await collectDescendantSectionIds(sectionId);
     const allIds = [sectionId, ...descendantIds];
 
+    const sectionsWithContent = await prisma.pageSection.findMany({
+      where: { id: { in: allIds } },
+      select: { content: true },
+    });
+    const editorPaths = collectEditorUploadPathsFromHtmlList(
+      sectionsWithContent.map((row) => row.content),
+    );
+
     await prisma.$transaction(async (tx) => {
       await tx.pageSectionCard.deleteMany({ where: { sectionId: { in: allIds } } });
       await tx.pageSectionProject.deleteMany({
@@ -677,6 +710,8 @@ export async function deletePageSectionAction(
 
     // Sayfa genelinde yetim çocuk kalırsa temizle (eski cascade boşluğu)
     await cleanupOrphanPageSections(section.pageId);
+
+    await purgeUnreferencedEditorUploads(editorPaths);
 
     revalidatePath(`/admin/pages/${section.page.id}/edit`);
     revalidatePublicPage(section.page.slug);
@@ -726,6 +761,15 @@ async function cleanupOrphanPageSections(pageId: string) {
   if (!orphans.length) return;
 
   const ids = orphans.map((row) => row.id);
+
+  const orphanContents = await prisma.pageSection.findMany({
+    where: { id: { in: ids } },
+    select: { content: true },
+  });
+  const editorPaths = collectEditorUploadPathsFromHtmlList(
+    orphanContents.map((row) => row.content),
+  );
+
   await prisma.$transaction([
     prisma.pageSectionCard.deleteMany({ where: { sectionId: { in: ids } } }),
     prisma.pageSectionProject.deleteMany({ where: { sectionId: { in: ids } } }),
@@ -733,6 +777,8 @@ async function cleanupOrphanPageSections(pageId: string) {
     prisma.pageSectionWork.deleteMany({ where: { sectionId: { in: ids } } }),
     prisma.pageSection.deleteMany({ where: { id: { in: ids }, pageId } }),
   ]);
+
+  await purgeUnreferencedEditorUploads(editorPaths);
 }
 
 export async function updatePageSectionHeaderAction(
@@ -1200,6 +1246,11 @@ export async function updatePageSectionAction(
 
     const existingSettings = parseSectionSettings(section.settings);
 
+    const removedEditorPaths =
+      type === "RICH_TEXT" || type === "CTA"
+        ? diffRemovedEditorUploadPaths(section.content, content)
+        : [];
+
     const cardIds = formData
       .getAll("cardIds")
       .map((value) => String(value).trim())
@@ -1359,6 +1410,10 @@ export async function updatePageSectionAction(
         }
       }
     });
+
+    if (removedEditorPaths.length > 0) {
+      await purgeUnreferencedEditorUploads(removedEditorPaths);
+    }
 
     revalidatePath(`/admin/pages/${section.page.id}/edit`);
     revalidatePublicPage(section.page.slug);

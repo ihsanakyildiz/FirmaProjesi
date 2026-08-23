@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   useActionState,
   useEffect,
-  useMemo,
-  useOptimistic,
   useState,
   useTransition,
   type FormEvent,
@@ -14,17 +12,15 @@ import {
 } from "react";
 import {
   AlertTriangle,
-  Calendar,
   FileText,
   Inbox,
   Loader2,
   Mail,
-  MailOpen,
   Menu,
   MoreVertical,
-  Paperclip,
   Pencil,
   Plus,
+  RefreshCw,
   Reply,
   Search,
   Send,
@@ -37,17 +33,21 @@ import {
   markMailReadAction,
   moveMailToFolderAction,
   replyMailAction,
+  syncImapInboxAction,
   toggleMailStarAction,
   type MailActionState,
 } from "@/app/admin/(panel)/email/actions";
+import { EmailInfiniteList } from "@/components/admin/email/email-infinite-list";
+import {
+  getReplyParentId,
+  MailThreadPanel,
+} from "@/components/admin/email/mail-thread-panel";
 import {
   MAIL_LABELS,
-  avatarTone,
-  formatMailDate,
-  initialsFromName,
   type MailFolderKey,
   type MailListItem,
 } from "@/lib/mail";
+import type { MailAttachmentView } from "@/lib/mail-attachments";
 import type { MailFolderCounts } from "@/lib/mail-queries";
 
 type EmailWorkspaceProps = {
@@ -56,7 +56,11 @@ type EmailWorkspaceProps = {
   selectedId: string | null;
   query: string;
   messages: MailListItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
   selected: MailListItem | null;
+  thread: MailListItem[];
+  attachments: MailAttachmentView[];
   counts: MailFolderCounts;
   folderTitle: string;
 };
@@ -118,7 +122,11 @@ export function EmailWorkspace({
   selectedId,
   query,
   messages,
+  nextCursor,
+  hasMore,
   selected,
+  thread,
+  attachments,
   counts,
   folderTitle,
 }: EmailWorkspaceProps) {
@@ -126,25 +134,25 @@ export function EmailWorkspace({
   const [navOpen, setNavOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [search, setSearch] = useState(query);
-  const [optimisticMessages, applyOptimistic] = useOptimistic(
-    messages,
-    (
-      current: MailListItem[],
-      action: { type: "star"; id: string } | { type: "remove"; id: string },
-    ) => {
-      if (action.type === "star") {
-        return current.map((item) =>
-          item.id === action.id ? { ...item, isStarred: !item.isStarred } : item,
-        );
-      }
-      return current.filter((item) => item.id !== action.id);
-    },
-  );
   const [pending, startTransition] = useTransition();
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setSearch(query);
   }, [query]);
+
+  const runSync = () => {
+    setSyncMessage(null);
+    setSyncing(true);
+    startTransition(async () => {
+      const result = await syncImapInboxAction();
+      if (result.message) setSyncMessage(result.message);
+      if (result.error) setSyncMessage(result.error);
+      if (result.success) router.refresh();
+      setSyncing(false);
+    });
+  };
 
   useEffect(() => {
     if (selected?.id && !selected.isRead) {
@@ -154,19 +162,14 @@ export function EmailWorkspace({
     }
   }, [selected?.id, selected?.isRead]);
 
-  const list = useMemo(() => optimisticMessages, [optimisticMessages]);
-
   const runToggleStar = (id: string) => {
     startTransition(async () => {
-      applyOptimistic({ type: "star", id });
       await toggleMailStarAction(id);
-      router.refresh();
     });
   };
 
   const runMove = (id: string, next: "TRASH" | "SPAM" | "INBOX") => {
     startTransition(async () => {
-      applyOptimistic({ type: "remove", id });
       await moveMailToFolderAction(id, next);
       router.push(buildHref({ folder, label, q: query }));
       router.refresh();
@@ -297,6 +300,20 @@ export function EmailWorkspace({
           <h2 className="flex-1 text-base font-semibold text-slate-800">{folderTitle}</h2>
           <button
             type="button"
+            onClick={runSync}
+            disabled={syncing || pending}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#e9ebec] px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+            title="IMAP gelen kutusunu senkronize et"
+          >
+            {syncing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            Senkronize
+          </button>
+          <button
+            type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-slate-50"
             aria-label="Diğer"
           >
@@ -316,101 +333,25 @@ export function EmailWorkspace({
           </label>
         </form>
 
+        {syncMessage ? (
+          <p className="border-b border-[#e9ebec] px-3 py-2 text-[11px] text-slate-500">
+            {syncMessage}
+          </p>
+        ) : null}
+
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {list.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center px-6 py-16 text-center">
-              <MailOpen className="h-10 w-10 text-slate-300" />
-              <p className="mt-3 text-sm font-medium text-slate-600">Bu klasör boş</p>
-              <p className="mt-1 text-xs text-slate-400">
-                İletişim formu mesajları burada görünecek.
-              </p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-[#eef0f2]">
-              {list.map((item) => {
-                const active = selectedId === item.id;
-                return (
-                  <li key={item.id}>
-                    <Link
-                      href={buildHref({
-                        folder,
-                        label,
-                        q: query,
-                        id: item.id,
-                      })}
-                      className={`block px-3 py-3.5 transition ${
-                        active ? "bg-[#3577f1]/08" : "hover:bg-slate-50"
-                      } ${!item.isRead ? "bg-[#f7f9fc]" : ""}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarTone(
-                            item.fromEmail,
-                          )}`}
-                        >
-                          {initialsFromName(item.fromName, item.fromEmail)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start gap-2">
-                            <p
-                              className={`min-w-0 flex-1 truncate text-sm ${
-                                item.isRead
-                                  ? "font-medium text-slate-700"
-                                  : "font-semibold text-slate-900"
-                              }`}
-                            >
-                              {item.fromName}
-                            </p>
-                            <div className="flex shrink-0 items-center gap-1 text-slate-400">
-                              {item.hasAttachment ? (
-                                <Paperclip className="h-3.5 w-3.5" />
-                              ) : null}
-                              <button
-                                type="button"
-                                className={`rounded p-0.5 ${
-                                  item.isStarred
-                                    ? "text-[#f7b84b]"
-                                    : "hover:text-[#f7b84b]"
-                                }`}
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  runToggleStar(item.id);
-                                }}
-                                aria-label="Yıldızla"
-                              >
-                                <Star
-                                  className={`h-3.5 w-3.5 ${
-                                    item.isStarred ? "fill-current" : ""
-                                  }`}
-                                />
-                              </button>
-                            </div>
-                          </div>
-                          <p
-                            className={`mt-0.5 truncate text-sm ${
-                              item.isRead
-                                ? "text-slate-600"
-                                : "font-medium text-slate-800"
-                            }`}
-                          >
-                            {item.subject}
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">
-                            {item.preview}
-                          </p>
-                          <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
-                            <Calendar className="h-3 w-3" />
-                            {formatMailDate(item.receivedAt)}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <EmailInfiniteList
+            key={`${folder}:${label ?? ""}:${query}`}
+            folder={folder}
+            label={label}
+            query={query}
+            selectedId={selectedId}
+            initialItems={messages}
+            initialNextCursor={nextCursor}
+            initialHasMore={hasMore}
+            buildHref={buildHref}
+            onToggleStar={runToggleStar}
+          />
         </div>
       </section>
 
@@ -419,11 +360,14 @@ export function EmailWorkspace({
         {selected ? (
           <MailDetail
             message={selected}
+            thread={thread}
+            attachments={attachments}
             pending={pending}
             onTrash={() => runMove(selected.id, "TRASH")}
             onSpam={() => runMove(selected.id, "SPAM")}
             onStar={() => runToggleStar(selected.id)}
             onCompose={() => setComposeOpen(true)}
+            onReplySent={() => router.refresh()}
           />
         ) : (
           <EmptyReadingPane onCompose={() => setComposeOpen(true)} />
@@ -444,11 +388,14 @@ export function EmailWorkspace({
           </div>
           <MailDetail
             message={selected}
+            thread={thread}
+            attachments={attachments}
             pending={pending}
             onTrash={() => runMove(selected.id, "TRASH")}
             onSpam={() => runMove(selected.id, "SPAM")}
             onStar={() => runToggleStar(selected.id)}
             onCompose={() => setComposeOpen(true)}
+            onReplySent={() => router.refresh()}
           />
         </div>
       ) : null}
@@ -493,32 +440,49 @@ function EmptyReadingPane({ onCompose }: { onCompose: () => void }) {
 
 function MailDetail({
   message,
+  thread,
+  attachments,
   pending,
   onTrash,
   onSpam,
   onStar,
   onCompose,
+  onReplySent,
 }: {
   message: MailListItem;
+  thread: MailListItem[];
+  attachments: MailAttachmentView[];
   pending: boolean;
   onTrash: () => void;
   onSpam: () => void;
   onStar: () => void;
   onCompose: () => void;
+  onReplySent: () => void;
 }) {
   const [replyState, replyAction, replyPending] = useActionState(
     replyMailAction,
     {} as MailActionState,
   );
   const [replyBody, setReplyBody] = useState("");
+  const conversation = thread.length > 0 ? thread : [message];
+  const replyParentId = getReplyParentId(conversation);
+  const replyTarget =
+    conversation.find((item) => item.id === replyParentId) ?? message;
+  const replyToEmail =
+    replyTarget.folder === "SENT"
+      ? replyTarget.toEmail
+      : replyTarget.replyToEmail || replyTarget.fromEmail;
 
   useEffect(() => {
     setReplyBody("");
   }, [message.id]);
 
   useEffect(() => {
-    if (replyState.success) setReplyBody("");
-  }, [replyState.success]);
+    if (replyState.success) {
+      setReplyBody("");
+      onReplySent();
+    }
+  }, [replyState.success, onReplySent]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -563,52 +527,19 @@ function MailDetail({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-        <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span
-              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarTone(
-                message.fromEmail,
-              )}`}
-            >
-              {initialsFromName(message.fromName, message.fromEmail)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-base font-semibold text-slate-800">{message.fromName}</p>
-                  <p className="text-sm text-slate-500">{message.fromEmail}</p>
-                </div>
-                <p className="text-xs text-slate-400">{formatMailDate(message.receivedAt)}</p>
-              </div>
-              <h3 className="mt-3 text-lg font-semibold text-slate-900">{message.subject}</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Kime: {message.toEmail}
-                {message.label ? ` · Etiket: ${message.label}` : ""}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 border-t border-[#eef0f2] pt-5">
-            {message.bodyHtml ? (
-              <div
-                className="prose prose-sm max-w-none text-slate-700"
-                dangerouslySetInnerHTML={{ __html: message.bodyHtml }}
-              />
-            ) : (
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700">
-                {message.bodyText}
-              </pre>
-            )}
-          </div>
-        </div>
+        <MailThreadPanel
+          thread={conversation}
+          attachments={attachments}
+          selectedId={message.id}
+        />
 
         <div className="mt-4 rounded-lg border border-[#e9ebec] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
             <Reply className="h-4 w-4 text-[#3577f1]" />
-            Yanıtla — {message.fromEmail}
+            Yanıtla — {replyToEmail}
           </div>
           <form action={replyAction} className="space-y-3">
-            <input type="hidden" name="parentId" value={message.id} />
+            <input type="hidden" name="parentId" value={replyParentId} />
             <textarea
               name="body"
               rows={5}

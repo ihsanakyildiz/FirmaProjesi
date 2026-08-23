@@ -85,6 +85,8 @@ export type SendMailInput = {
   text: string;
   html?: string;
   replyTo?: string;
+  inReplyTo?: string | null;
+  references?: string | null;
 };
 
 /** Kayıtlı SMTP ayarlarıyla e-posta gönderir. */
@@ -106,6 +108,22 @@ export async function sendMailWithConfig(config: SmtpConfig, input: SendMailInpu
     text: input.text,
     html: input.html,
     replyTo: input.replyTo || config.replyTo || undefined,
+    headers: {
+      ...(input.inReplyTo
+        ? {
+            "In-Reply-To": input.inReplyTo.startsWith("<")
+              ? input.inReplyTo
+              : `<${input.inReplyTo}>`,
+          }
+        : {}),
+      ...(input.references
+        ? {
+            References: input.references.startsWith("<")
+              ? input.references
+              : `<${input.references}>`,
+          }
+        : {}),
+    },
   });
 
   return info;

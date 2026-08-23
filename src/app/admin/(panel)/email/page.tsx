@@ -9,8 +9,8 @@ import {
 import {
   ensureDemoMailMessages,
   getMailFolderCounts,
-  getMailMessageById,
-  listMailMessages,
+  getMailMessageDetail,
+  listMailMessagesPage,
 } from "@/lib/mail-queries";
 
 export const metadata: Metadata = {
@@ -29,17 +29,17 @@ type EmailPageProps = {
 
 export default async function AdminEmailPage({ searchParams }: EmailPageProps) {
   const params = await searchParams;
-  await ensureDemoMailMessages();
 
   const folder = resolveMailFolderKey(params.folder);
   const label = resolveMailLabelKey(params.label);
   const query = (params.q ?? "").trim();
   const selectedId = (params.id ?? "").trim() || null;
 
-  const [messages, counts, selected] = await Promise.all([
-    listMailMessages({ folder, label, q: query }),
+  const [messagePage, counts, mailDetail] = await Promise.all([
+    listMailMessagesPage({ folder, label, q: query }),
     getMailFolderCounts(),
-    selectedId ? getMailMessageById(selectedId) : Promise.resolve(null),
+    selectedId ? getMailMessageDetail(selectedId) : Promise.resolve(null),
+    ensureDemoMailMessages(),
   ]);
 
   const labelMeta = label ? MAIL_LABELS.find((item) => item.key === label) : null;
@@ -53,8 +53,12 @@ export default async function AdminEmailPage({ searchParams }: EmailPageProps) {
       label={label}
       selectedId={selectedId}
       query={query}
-      messages={messages}
-      selected={selected}
+      messages={messagePage.items}
+      nextCursor={messagePage.nextCursor}
+      hasMore={messagePage.hasMore}
+      selected={mailDetail?.message ?? null}
+      thread={mailDetail?.thread ?? []}
+      attachments={mailDetail?.attachments ?? []}
       counts={counts}
       folderTitle={folderTitle}
     />
