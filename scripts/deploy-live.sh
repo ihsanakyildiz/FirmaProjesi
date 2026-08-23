@@ -42,6 +42,8 @@ fi
 if [[ -f prisma/schema.prisma ]]; then
   echo "==> prisma generate"
   npx prisma generate
+  echo "==> prisma db push"
+  npx prisma db push --skip-generate
 fi
 
 echo "==> npm run build"

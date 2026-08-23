@@ -40,11 +40,18 @@ export async function fetchUnreadNotificationCountAction(): Promise<number> {
 
 export async function markMailNotificationReadAction(id: string) {
   await requireAdmin();
-  await prisma.mailMessage.update({
-    where: { id },
+  const { findThreadRootId, collectThreadMessageIds } = await import(
+    "@/lib/mail-thread"
+  );
+  const rootId = await findThreadRootId(id);
+  const threadIds = await collectThreadMessageIds(rootId);
+
+  await prisma.mailMessage.updateMany({
+    where: { id: { in: threadIds } },
     data: { isRead: true },
   });
   revalidatePath("/admin/email");
+  revalidatePath("/admin", "layout");
 }
 
 export async function markAllMailNotificationsReadAction() {
@@ -54,4 +61,5 @@ export async function markAllMailNotificationsReadAction() {
     data: { isRead: true },
   });
   revalidatePath("/admin/email");
+  revalidatePath("/admin", "layout");
 }

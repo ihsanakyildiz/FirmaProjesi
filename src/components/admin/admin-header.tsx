@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
+import { Menu, Moon, Search, Sun } from "lucide-react";
 import { logoutAction } from "@/app/admin/(panel)/actions";
 import { AdminNotifications } from "./admin-notifications";
 import { useSidebar } from "./sidebar-context";

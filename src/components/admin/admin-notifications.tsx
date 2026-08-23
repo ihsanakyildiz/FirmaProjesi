@@ -12,6 +12,7 @@ import {
 import { Bell, CheckCheck, Loader2, Mail, Reply } from "lucide-react";
 import {
   fetchMailNotificationsAction,
+  fetchUnreadNotificationCountAction,
   markAllMailNotificationsReadAction,
   markMailNotificationReadAction,
 } from "@/app/admin/(panel)/notifications/actions";
@@ -22,15 +23,22 @@ import {
 } from "@/lib/mail";
 import type { MailNotificationItem } from "@/lib/mail-notifications";
 
+const POLL_INTERVAL_MS = 45_000;
+
 type AdminNotificationsProps = {
   initialUnreadCount: number;
 };
 
 function NotificationBadge({ count }: { count: number }) {
   if (count <= 0) return null;
+  const label = count > 99 ? "99+" : count > 9 ? "9+" : String(count);
+
   return (
-    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-      {count > 9 ? "9+" : count}
+    <span
+      className="pointer-events-none absolute top-0 right-0 z-10 flex h-[18px] min-w-[18px] translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white"
+      aria-hidden="true"
+    >
+      {label}
     </span>
   );
 }
@@ -51,10 +59,13 @@ function NotificationRow({
       onClick={() => onNavigate(item)}
       className="flex w-full gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-[#f3f6f9]"
     >
-      <div
-        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${tone}`}
-      >
-        {initialsFromName(item.fromName, item.fromEmail)}
+      <div className="relative mt-0.5 shrink-0">
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${tone}`}
+        >
+          {initialsFromName(item.fromName, item.fromEmail)}
+        </div>
+        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
@@ -107,7 +118,15 @@ export function AdminNotifications({
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [pending, startTransition] = useTransition();
   const [refreshing, setRefreshing] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+
+  const refreshCount = useCallback(async () => {
+    try {
+      const count = await fetchUnreadNotificationCountAction();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("[notifications-count]", error);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -115,7 +134,6 @@ export function AdminNotifications({
       const result = await fetchMailNotificationsAction();
       setItems(result.items);
       setUnreadCount(result.unreadCount);
-      setLoaded(true);
     } catch (error) {
       console.error("[notifications]", error);
     } finally {
@@ -128,11 +146,17 @@ export function AdminNotifications({
   }, [initialUnreadCount]);
 
   useEffect(() => {
+    void refreshCount();
+    const interval = window.setInterval(() => {
+      void refreshCount();
+    }, POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [refreshCount]);
+
+  useEffect(() => {
     if (!open) return;
 
-    if (!loaded) {
-      void refresh();
-    }
+    void refresh();
 
     const onPointerDown = (event: PointerEvent) => {
       if (!panelRef.current?.contains(event.target as Node)) {
@@ -149,15 +173,16 @@ export function AdminNotifications({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, loaded, refresh]);
+  }, [open, refresh]);
 
   const handleNavigate = (item: MailNotificationItem) => {
     setOpen(false);
     setUnreadCount((count) => Math.max(0, count - 1));
     setItems((current) => current.filter((row) => row.id !== item.id));
 
-    startTransition(() => {
-      void markMailNotificationReadAction(item.id);
+    startTransition(async () => {
+      await markMailNotificationReadAction(item.id);
+      router.refresh();
     });
   };
 
@@ -166,7 +191,6 @@ export function AdminNotifications({
       await markAllMailNotificationsReadAction();
       setItems([]);
       setUnreadCount(0);
-      setLoaded(true);
       router.refresh();
     });
   };
@@ -176,8 +200,14 @@ export function AdminNotifications({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#e9ebec] text-slate-500 transition hover:bg-slate-50"
-        aria-label="Bildirimler"
+        className={`relative inline-flex h-9 w-9 items-center justify-center overflow-visible rounded-md border border-[#e9ebec] text-slate-500 transition hover:bg-slate-50 ${
+          unreadCount > 0 ? "text-[#405189]" : ""
+        }`}
+        aria-label={
+          unreadCount > 0
+            ? `${unreadCount} okunmamış bildirim`
+            : "Bildirimler"
+        }
         aria-expanded={open}
         aria-haspopup="dialog"
       >
@@ -186,13 +216,17 @@ export function AdminNotifications({
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#e9ebec] bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-[#e9ebec] px-4 py-3">
+        <div
+          role="dialog"
+          aria-label="Bildirimler"
+          className="absolute right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#e9ebec] bg-white shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-[#e9ebec] bg-gradient-to-r from-[#f8f9fb] to-white px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-slate-800">Bildirimler</p>
               <p className="text-xs text-slate-500">
                 {unreadCount > 0
-                  ? `${unreadCount} okunmamış e-posta`
+                  ? `${unreadCount} okunmamış yazışma`
                   : "Yeni bildirim yok"}
               </p>
             </div>
@@ -215,7 +249,7 @@ export function AdminNotifications({
             </div>
           </div>
 
-          <div className="max-h-[22rem] overflow-y-auto p-1.5">
+          <div className="max-h-[22rem] overflow-y-auto p-1.5 admin-scroll-light">
             {refreshing && items.length === 0 ? (
               <div className="flex items-center justify-center gap-2 px-4 py-10 text-sm text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" />

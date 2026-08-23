@@ -27,12 +27,19 @@ async function requireAdmin() {
 
 function revalidateMail() {
   revalidatePath("/admin/email");
+  revalidatePath("/admin", "layout");
 }
 
 export async function markMailReadAction(id: string, isRead = true) {
   await requireAdmin();
-  await prisma.mailMessage.update({
-    where: { id },
+  const { findThreadRootId, collectThreadMessageIds } = await import(
+    "@/lib/mail-thread"
+  );
+  const rootId = await findThreadRootId(id);
+  const threadIds = await collectThreadMessageIds(rootId);
+
+  await prisma.mailMessage.updateMany({
+    where: { id: { in: threadIds } },
     data: { isRead },
   });
   revalidateMail();

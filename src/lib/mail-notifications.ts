@@ -38,7 +38,7 @@ export function toMailNotificationItem(row: MailMessage): MailNotificationItem {
 
 export async function getUnreadMailNotificationCount(): Promise<number> {
   return prisma.mailMessage.count({
-    where: { folder: "INBOX", isRead: false },
+    where: { folder: "INBOX", isRead: false, parentId: null },
   });
 }
 
@@ -46,7 +46,7 @@ export async function getMailNotifications(
   limit = 8,
 ): Promise<MailNotificationItem[]> {
   const rows = await prisma.mailMessage.findMany({
-    where: { folder: "INBOX", isRead: false },
+    where: { folder: "INBOX", isRead: false, parentId: null },
     orderBy: { receivedAt: "desc" },
     take: limit,
   });
