@@ -106,7 +106,10 @@ export async function getAdvancedPageBySlug(slug: string) {
     where: { slug, type: "ADVANCED", isActive: true },
     include: {
       sections: {
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          OR: [{ parentId: null }, { parent: { isActive: true } }],
+        },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         include: sectionInclude,
       },
@@ -159,10 +162,12 @@ export async function getClassicPageBySlug(slug: string) {
 export type ResolvedPageSection = {
   id: string;
   type: PageSectionTypeValue;
+  parentId: string | null;
   title: string | null;
   subtitle: string | null;
   content: string | null;
   settings: PageSectionSettings;
+  children: ResolvedPageSection[];
   hero: DbPageSection["hero"];
   faqGroup: {
     id: string;
@@ -386,7 +391,7 @@ async function resolveBlogSection(section: DbPageSection, limit: number) {
 export async function resolvePageSections(
   sections: DbPageSection[],
 ): Promise<ResolvedPageSection[]> {
-  const resolved: ResolvedPageSection[] = [];
+  const resolvedFlat: ResolvedPageSection[] = [];
 
   for (const section of sections) {
     const type = section.type as PageSectionTypeValue;
@@ -396,10 +401,12 @@ export async function resolvePageSections(
     const base: ResolvedPageSection = {
       id: section.id,
       type,
+      parentId: section.parentId ?? null,
       title: section.title,
       subtitle: section.subtitle,
       content: section.content,
       settings,
+      children: [],
       hero: section.hero,
       faqGroup: section.faqGroup
         ? {
@@ -427,6 +434,9 @@ export async function resolvePageSections(
       case "RICH_TEXT":
       case "CTA":
       case "FAQ":
+      case "CONTACT_FORM":
+      case "CONTACT_INFO":
+      case "GRID_ROW":
         break;
       case "PRICING": {
         base.pricingPlans = await getActivePricingPlans();
@@ -508,10 +518,24 @@ export async function resolvePageSections(
       }
     }
 
-    resolved.push(base);
+    resolvedFlat.push(base);
   }
 
-  return resolved;
+  const byId = new Map(resolvedFlat.map((item) => [item.id, item]));
+  const roots: ResolvedPageSection[] = [];
+
+  for (const section of sections) {
+    const item = byId.get(section.id);
+    if (!item) continue;
+    if (section.parentId) {
+      const parent = byId.get(section.parentId);
+      if (parent) parent.children.push(item);
+    } else {
+      roots.push(item);
+    }
+  }
+
+  return roots;
 }
 
 export const getCachedHomepageAdvanced = unstable_cache(

@@ -2,9 +2,26 @@ import type { CardLayout } from "@prisma/client";
 import dynamic from "next/dynamic";
 import { HomeHero } from "@/components/site/home/home-hero";
 import { SiteLink } from "@/components/site/site-link";
+import {
+  groupGridChildren,
+  PageGridRow,
+} from "@/components/site/page-grid-row";
 import { DEFAULT_HERO_SLIDE } from "@/lib/heroes";
 import { highlightRichCodeBlocks } from "@/lib/highlight-rich-html";
 import type { ResolvedPageSection } from "@/lib/pages";
+import {
+  getContactFormSettings,
+  getContactInfoBlockSettings,
+} from "@/lib/page-sections";
+
+export type PageSectionsContactInfo = {
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  workingHours?: string;
+  mapEmbed?: string;
+};
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -32,6 +49,16 @@ const HomeWhyUs = dynamic(() =>
 );
 const HomeWorks = dynamic(() =>
   import("@/components/site/home/home-works").then((mod) => mod.HomeWorks),
+);
+const ContactFormSection = dynamic(() =>
+  import("@/components/site/contact/contact-form-section").then(
+    (mod) => mod.ContactFormSection,
+  ),
+);
+const ContactInfoSection = dynamic(() =>
+  import("@/components/site/contact/contact-info-section").then(
+    (mod) => mod.ContactInfoSection,
+  ),
 );
 
 function SectionShell({
@@ -128,16 +155,31 @@ function CtaSection({
 export function PageSectionsRenderer({
   sections,
   siteName,
+  contactInfo,
 }: {
   sections: ResolvedPageSection[];
   siteName: string;
+  contactInfo?: PageSectionsContactInfo;
 }) {
-  return (
-    <>
-      {sections.map((section) => {
+  const renderSection = (
+    section: ResolvedPageSection,
+    nested = false,
+  ): React.ReactNode => {
         const anchor = section.settings.anchorId;
+        const shell = (node: React.ReactNode) =>
+          nested ? (
+            <div key={section.id} className="pg-nested-item">
+              {node}
+            </div>
+          ) : (
+            <SectionShell key={section.id} anchorId={anchor}>
+              {node}
+            </SectionShell>
+          );
+
         switch (section.type) {
           case "HERO": {
+            if (nested) return null;
             const slide = section.hero?.slides?.[0];
             const collage =
               slide?.media
@@ -160,44 +202,59 @@ export function PageSectionsRenderer({
                 ?.filter((item) => item.kind === "AVATAR")
                 .map((item) => ({ src: item.image, alt: item.alt || "" })) ?? [];
 
-            return (
-              <SectionShell key={section.id} anchorId={anchor}>
-                <HomeHero
-                  kicker={slide?.kicker}
-                  badgeText={slide?.badgeText}
-                  headline={slide?.headline ?? DEFAULT_HERO_SLIDE.headline}
-                  headlineAccent={
-                    slide?.headlineAccent ?? DEFAULT_HERO_SLIDE.headlineAccent
-                  }
-                  subheadline={
-                    slide?.subheadline ?? DEFAULT_HERO_SLIDE.subheadline
-                  }
-                  ctaLabel={slide?.ctaLabel ?? DEFAULT_HERO_SLIDE.ctaLabel}
-                  ctaUrl={slide?.ctaUrl ?? "/iletisim"}
-                  ctaSecondaryLabel={slide?.ctaSecondaryLabel}
-                  ctaSecondaryUrl={slide?.ctaSecondaryUrl}
-                  trustLabel={slide?.trustLabel ?? DEFAULT_HERO_SLIDE.trustLabel}
-                  showStars={slide?.showStars ?? true}
-                  starCount={slide?.starCount ?? 5}
-                  showAvatars={slide?.showAvatars ?? true}
-                  layout={slide?.layout ?? "SPLIT_COLLAGE"}
-                  collageImages={collage}
-                  logos={logos}
-                  avatars={avatars}
-                  backgroundStyle={slide?.backgroundStyle ?? "grid"}
-                />
-              </SectionShell>
+            return shell(
+              <HomeHero
+                kicker={slide?.kicker}
+                badgeText={slide?.badgeText}
+                headline={slide?.headline ?? DEFAULT_HERO_SLIDE.headline}
+                headlineAccent={
+                  slide?.headlineAccent ?? DEFAULT_HERO_SLIDE.headlineAccent
+                }
+                subheadline={
+                  slide?.subheadline ?? DEFAULT_HERO_SLIDE.subheadline
+                }
+                ctaLabel={slide?.ctaLabel ?? DEFAULT_HERO_SLIDE.ctaLabel}
+                ctaUrl={slide?.ctaUrl ?? "/iletisim"}
+                ctaSecondaryLabel={slide?.ctaSecondaryLabel}
+                ctaSecondaryUrl={slide?.ctaSecondaryUrl}
+                trustLabel={slide?.trustLabel ?? DEFAULT_HERO_SLIDE.trustLabel}
+                showStars={slide?.showStars ?? true}
+                starCount={slide?.starCount ?? 5}
+                showAvatars={slide?.showAvatars ?? true}
+                layout={slide?.layout ?? "SPLIT_COLLAGE"}
+                collageImages={collage}
+                logos={logos}
+                avatars={avatars}
+                backgroundStyle={slide?.backgroundStyle ?? "grid"}
+              />,
+            );
+          }
+          case "GRID_ROW": {
+            const grouped = groupGridChildren(section.children, section.settings);
+            const childrenByColumn = new Map<string, React.ReactNode[]>();
+            for (const [columnId, kids] of grouped) {
+              childrenByColumn.set(
+                columnId,
+                kids.map((child) => renderSection(child, true)),
+              );
+            }
+            return shell(
+              <PageGridRow
+                settings={section.settings}
+                title={section.title}
+                subtitle={section.subtitle}
+                eyebrow={section.settings.eyebrow}
+                childrenByColumn={childrenByColumn}
+              />,
             );
           }
           case "TRUSTED_CLIENTS":
-            return (
-              <SectionShell key={section.id} anchorId={anchor}>
-                <HomeTrusted
-                  clients={section.clients}
-                  title={section.title}
-                  subtitle={section.subtitle}
-                />
-              </SectionShell>
+            return shell(
+              <HomeTrusted
+                clients={section.clients}
+                title={section.title}
+                subtitle={section.subtitle}
+              />,
             );
           case "CARDS":
             return (
@@ -378,13 +435,33 @@ export function PageSectionsRenderer({
                 />
               </SectionShell>
             );
+          case "CONTACT_FORM":
+            return shell(
+              <ContactFormSection
+                sectionId={section.id}
+                title={section.title}
+                subtitle={section.subtitle}
+                eyebrow={section.settings.eyebrow}
+                config={getContactFormSettings(section.settings)}
+              />,
+            );
+          case "CONTACT_INFO":
+            return shell(
+              <ContactInfoSection
+                title={section.title}
+                subtitle={section.subtitle}
+                eyebrow={section.settings.eyebrow}
+                config={getContactInfoBlockSettings(section.settings)}
+                contact={contactInfo ?? {}}
+              />,
+            );
           default: {
             const _exhaustive: never = section.type;
             void _exhaustive;
             return null;
           }
         }
-      })}
-    </>
-  );
+  };
+
+  return <>{sections.map((section) => renderSection(section))}</>;
 }

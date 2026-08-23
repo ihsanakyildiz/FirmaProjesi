@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@import "../styles/page-grid.css";
 
 :root {
   --background: #f3f6f9;

@@ -244,6 +244,7 @@ export default async function EditPagePage({ params }: EditPageProps) {
     const builderSections: BuilderSection[] = page.sections.map((section) => ({
       id: section.id,
       type: section.type as PageSectionTypeValue,
+      parentId: section.parentId ?? null,
       label: section.label,
       title: section.title,
       subtitle: section.subtitle,

@@ -102,7 +102,18 @@ export default async function CmsPage({ params }: PageProps) {
     return (
       <>
         <JsonLd data={jsonLd} />
-        <PageSectionsRenderer sections={sections} siteName={siteName} />
+        <PageSectionsRenderer
+          sections={sections}
+          siteName={siteName}
+          contactInfo={{
+            email: settings.contact_email,
+            phone: settings.contact_phone,
+            whatsapp: settings.contact_whatsapp,
+            address: settings.contact_address,
+            workingHours: settings.contact_working_hours,
+            mapEmbed: settings.contact_map_embed,
+          }}
+        />
       </>
     );
   }

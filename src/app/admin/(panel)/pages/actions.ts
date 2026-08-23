@@ -4,9 +4,21 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  getDefaultContactFormConfig,
+  parseContactFormFieldsJson,
+} from "@/config/contact-form";
+import { getDefaultContactInfoBlockConfig } from "@/config/contact-info-block";
+import {
+  applyGridPreset,
+  getDefaultGridRowConfig,
+  parseGridRowConfig,
+} from "@/config/page-grid";
+import {
   defaultLimitForType,
   getPageSectionTypeMeta,
+  isNestablePageSectionType,
   isPageSectionType,
+  parseSectionSettings,
   sectionSupportsEyebrow,
   stringifySectionSettings,
   type PageSectionTypeValue,
@@ -557,6 +569,7 @@ async function requireAdvancedPage(pageId: string) {
 export async function addPageSectionAction(
   pageId: string,
   typeRaw: string,
+  options?: { parentId?: string; columnId?: string },
 ): Promise<SectionFormState> {
   try {
     await requireAdmin();
@@ -565,9 +578,24 @@ export async function addPageSectionAction(
       return { error: "Geçersiz bölüm tipi." };
     }
     const type = typeRaw as PageSectionTypeValue;
+    const parentId = options?.parentId?.trim() || null;
+    const columnId = options?.columnId?.trim() || null;
+
+    if (parentId) {
+      if (!isNestablePageSectionType(type)) {
+        return { error: "Bu bölüm tipi grid içine eklenemez." };
+      }
+      const parent = await prisma.pageSection.findFirst({
+        where: { id: parentId, pageId, type: "GRID_ROW" },
+        select: { id: true },
+      });
+      if (!parent) return { error: "Grid satırı bulunamadı." };
+      if (!columnId) return { error: "Kolon seçilmedi." };
+    }
+
     const meta = getPageSectionTypeMeta(type);
     const last = await prisma.pageSection.findFirst({
-      where: { pageId },
+      where: { pageId, parentId },
       orderBy: { sortOrder: "desc" },
       select: { sortOrder: true },
     });
@@ -575,12 +603,21 @@ export async function addPageSectionAction(
     await prisma.pageSection.create({
       data: {
         pageId,
+        parentId,
         type,
         label: meta.defaultLabel,
         sortOrder: (last?.sortOrder ?? -1) + 1,
         settings: stringifySectionSettings({
           limit: defaultLimitForType(type),
           showFeatures: type === "PROJECTS",
+          ...(type === "CONTACT_FORM"
+            ? { contactForm: getDefaultContactFormConfig() }
+            : {}),
+          ...(type === "CONTACT_INFO"
+            ? { contactInfoBlock: getDefaultContactInfoBlockConfig() }
+            : {}),
+          ...(type === "GRID_ROW" ? { gridRow: getDefaultGridRowConfig() } : {}),
+          ...(parentId && columnId ? { gridCol: { columnId } } : {}),
         }),
       },
     });
@@ -606,19 +643,158 @@ export async function deletePageSectionAction(
     await requireAdmin();
     const section = await prisma.pageSection.findUnique({
       where: { id: sectionId },
+      include: {
+        page: { select: { id: true, slug: true, type: true } },
+        _count: { select: { children: true } },
+      },
+    });
+    if (!section || section.page.type !== "ADVANCED") {
+      return { error: "Bölüm bulunamadı." };
+    }
+
+    // Grid (ve varsa diğer konteynerler): çocukları + junction kayıtlarını
+    // açıkça sil — DB cascade’e ek güvenlik (kalıntı / şişme önlemi).
+    const descendantIds = await collectDescendantSectionIds(sectionId);
+    const allIds = [sectionId, ...descendantIds];
+
+    await prisma.$transaction(async (tx) => {
+      await tx.pageSectionCard.deleteMany({ where: { sectionId: { in: allIds } } });
+      await tx.pageSectionProject.deleteMany({
+        where: { sectionId: { in: allIds } },
+      });
+      await tx.pageSectionPost.deleteMany({ where: { sectionId: { in: allIds } } });
+      await tx.pageSectionWork.deleteMany({ where: { sectionId: { in: allIds } } });
+
+      // Önce en derin çocuklar, sonra üst — orphan kalmasın
+      if (descendantIds.length > 0) {
+        await tx.pageSection.deleteMany({
+          where: { id: { in: descendantIds }, pageId: section.pageId },
+        });
+      }
+
+      await tx.pageSection.delete({ where: { id: sectionId } });
+    });
+
+    // Sayfa genelinde yetim çocuk kalırsa temizle (eski cascade boşluğu)
+    await cleanupOrphanPageSections(section.pageId);
+
+    revalidatePath(`/admin/pages/${section.page.id}/edit`);
+    revalidatePublicPage(section.page.slug);
+
+    const nested = section._count.children;
+    return {
+      success: true,
+      message:
+        nested > 0
+          ? `Bölüm ve içindeki ${nested} alt bölüm silindi.`
+          : "Bölüm silindi.",
+    };
+  } catch (error) {
+    console.error(error);
+    return { error: "Bölüm silinirken hata oluştu." };
+  }
+}
+
+/** parentId zincirindeki tüm alt bölüm id’leri (BFS) */
+async function collectDescendantSectionIds(rootId: string): Promise<string[]> {
+  const collected: string[] = [];
+  let frontier = [rootId];
+
+  while (frontier.length > 0) {
+    const children = await prisma.pageSection.findMany({
+      where: { parentId: { in: frontier } },
+      select: { id: true },
+    });
+    const ids = children.map((row) => row.id);
+    if (ids.length === 0) break;
+    collected.push(...ids);
+    frontier = ids;
+  }
+
+  return collected;
+}
+
+/** parentId dolu ama üst kayıt yoksa yetimleri sil */
+async function cleanupOrphanPageSections(pageId: string) {
+  const orphans = await prisma.$queryRawUnsafe<{ id: string }[]>(
+    `SELECT c.id AS id
+     FROM page_sections c
+     LEFT JOIN page_sections p ON p.id = c.parentId
+     WHERE c.pageId = ? AND c.parentId IS NOT NULL AND p.id IS NULL`,
+    pageId,
+  );
+  if (!orphans.length) return;
+
+  const ids = orphans.map((row) => row.id);
+  await prisma.$transaction([
+    prisma.pageSectionCard.deleteMany({ where: { sectionId: { in: ids } } }),
+    prisma.pageSectionProject.deleteMany({ where: { sectionId: { in: ids } } }),
+    prisma.pageSectionPost.deleteMany({ where: { sectionId: { in: ids } } }),
+    prisma.pageSectionWork.deleteMany({ where: { sectionId: { in: ids } } }),
+    prisma.pageSection.deleteMany({ where: { id: { in: ids }, pageId } }),
+  ]);
+}
+
+export async function updatePageSectionHeaderAction(
+  _prev: SectionFormState,
+  formData: FormData,
+): Promise<SectionFormState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Oturum bulunamadı." };
+  }
+
+  const sectionId = String(formData.get("sectionId") ?? "").trim();
+  if (!sectionId) return { error: "Bölüm bulunamadı." };
+
+  try {
+    const section = await prisma.pageSection.findUnique({
+      where: { id: sectionId },
       include: { page: { select: { id: true, slug: true, type: true } } },
     });
     if (!section || section.page.type !== "ADVANCED") {
       return { error: "Bölüm bulunamadı." };
     }
 
-    await prisma.pageSection.delete({ where: { id: sectionId } });
+    const type = section.type as PageSectionTypeValue;
+    const labelRaw = String(formData.get("label") ?? "").trim();
+    const titleRaw = String(formData.get("title") ?? "").trim();
+    const subtitleRaw = String(formData.get("subtitle") ?? "").trim();
+    const eyebrowRaw = String(formData.get("eyebrow") ?? "").trim();
+    const anchorIdRaw = String(formData.get("anchorId") ?? "").trim();
+
+    const existingSettings = parseSectionSettings(section.settings);
+    const settings = stringifySectionSettings({
+      ...existingSettings,
+      ...(formData.has("anchorId")
+        ? { anchorId: anchorIdRaw || undefined }
+        : {}),
+      ...(sectionSupportsEyebrow(type) && formData.has("eyebrow")
+        ? { eyebrow: eyebrowRaw || undefined }
+        : {}),
+      ...(existingSettings.gridCol ? { gridCol: existingSettings.gridCol } : {}),
+      ...(type === "GRID_ROW" && existingSettings.gridRow
+        ? { gridRow: existingSettings.gridRow }
+        : {}),
+    });
+
+    await prisma.pageSection.update({
+      where: { id: sectionId },
+      data: {
+        ...(formData.has("label") ? { label: labelRaw || null } : {}),
+        title: titleRaw || null,
+        subtitle: subtitleRaw || null,
+        settings,
+      },
+    });
+
     revalidatePath(`/admin/pages/${section.page.id}/edit`);
     revalidatePublicPage(section.page.slug);
-    return { success: true, message: "Bölüm silindi." };
+    return { success: true, message: "Başlık kaydedildi." };
   } catch (error) {
     console.error(error);
-    return { error: "Bölüm silinirken hata oluştu." };
+    return { error: "Başlık kaydedilirken hata oluştu." };
   }
 }
 
@@ -637,7 +813,7 @@ export async function movePageSectionAction(
     }
 
     const siblings = await prisma.pageSection.findMany({
-      where: { pageId: section.pageId },
+      where: { pageId: section.pageId, parentId: section.parentId },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: { id: true, sortOrder: true },
     });
@@ -663,7 +839,7 @@ export async function movePageSectionAction(
 
     // Normalize order to avoid collisions
     const refreshed = await prisma.pageSection.findMany({
-      where: { pageId: section.pageId },
+      where: { pageId: section.pageId, parentId: section.parentId },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: { id: true },
     });
@@ -688,6 +864,7 @@ export async function movePageSectionAction(
 export async function reorderPageSectionsAction(
   pageId: string,
   orderedIds: string[],
+  parentId: string | null = null,
 ): Promise<SectionFormState> {
   try {
     await requireAdmin();
@@ -699,7 +876,7 @@ export async function reorderPageSectionsAction(
     }
 
     const existing = await prisma.pageSection.findMany({
-      where: { pageId },
+      where: { pageId, parentId },
       select: { id: true },
     });
     const existingIds = new Set(existing.map((item) => item.id));
@@ -721,7 +898,7 @@ export async function reorderPageSectionsAction(
 
     revalidatePath(`/admin/pages/${pageId}/edit`);
     revalidatePublicPage(page.slug);
-    return { success: true, message: "Sıra güncellendi." };
+    return { success: true, message: "Sıra kaydedildi." };
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") return { error: "Oturum bulunamadı." };
@@ -729,7 +906,153 @@ export async function reorderPageSectionsAction(
       if (error.message === "NOT_ADVANCED") return { error: "Bu sayfa gelişmiş değil." };
     }
     console.error(error);
-    return { error: "Sıra güncellenirken hata oluştu." };
+    return { error: "Sıra kaydedilirken hata oluştu." };
+  }
+}
+
+/** Grid satırı çocuklarını kolon + sıra olarak kaydet */
+export async function reorderGridChildrenAction(
+  pageId: string,
+  gridSectionId: string,
+  placements: { id: string; columnId: string }[],
+): Promise<SectionFormState> {
+  try {
+    await requireAdmin();
+    const page = await requireAdvancedPage(pageId);
+
+    const grid = await prisma.pageSection.findFirst({
+      where: { id: gridSectionId, pageId, type: "GRID_ROW" },
+      select: { id: true, settings: true },
+    });
+    if (!grid) return { error: "Grid satırı bulunamadı." };
+
+    const gridSettings = parseSectionSettings(grid.settings);
+    const columnIds = new Set(
+      (gridSettings.gridRow?.columns ?? []).map((column) => column.id),
+    );
+    if (columnIds.size === 0) return { error: "Grid kolonları tanımlı değil." };
+
+    const unique = new Map<string, string>();
+    for (const item of placements) {
+      const id = item.id.trim();
+      const columnId = item.columnId.trim();
+      if (!id || !columnId) continue;
+      if (!columnIds.has(columnId)) {
+        return { error: "Geçersiz kolon seçildi." };
+      }
+      unique.set(id, columnId);
+    }
+
+    const children = await prisma.pageSection.findMany({
+      where: { pageId, parentId: gridSectionId },
+      select: { id: true, settings: true },
+    });
+    const childIds = new Set(children.map((item) => item.id));
+    if (
+      unique.size !== children.length ||
+      [...unique.keys()].some((id) => !childIds.has(id))
+    ) {
+      return { error: "Bölüm listesi güncel değil; sayfayı yenileyip tekrar deneyin." };
+    }
+
+    const byId = new Map(children.map((item) => [item.id, item]));
+    await prisma.$transaction(
+      [...unique.entries()].map(([id, columnId], order) => {
+        const child = byId.get(id)!;
+        const settings = parseSectionSettings(child.settings);
+        settings.gridCol = { columnId };
+        return prisma.pageSection.update({
+          where: { id },
+          data: {
+            sortOrder: order,
+            settings:
+              stringifySectionSettings(settings) ??
+              JSON.stringify({ gridCol: { columnId } }),
+          },
+        });
+      }),
+    );
+
+    revalidatePath(`/admin/pages/${pageId}/edit`);
+    revalidatePublicPage(page.slug);
+    return { success: true, message: "Grid sırası kaydedildi." };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") return { error: "Oturum bulunamadı." };
+      if (error.message === "PAGE_NOT_FOUND") return { error: "Sayfa bulunamadı." };
+      if (error.message === "NOT_ADVANCED") return { error: "Bu sayfa gelişmiş değil." };
+    }
+    console.error(error);
+    return { error: "Grid sırası kaydedilirken hata oluştu." };
+  }
+}
+
+export async function updateGridRowLayoutAction(
+  sectionId: string,
+  payload: {
+    presetId?: string;
+    gutter?: number;
+    alignItems?: "start" | "center" | "stretch";
+    useContainer?: boolean;
+    columnsJson?: string;
+  },
+): Promise<SectionFormState> {
+  try {
+    await requireAdmin();
+    const section = await prisma.pageSection.findUnique({
+      where: { id: sectionId },
+      include: { page: { select: { id: true, slug: true, type: true } } },
+    });
+    if (!section || section.page.type !== "ADVANCED" || section.type !== "GRID_ROW") {
+      return { error: "Grid satırı bulunamadı." };
+    }
+
+    const current = parseGridRowConfig(
+      JSON.parse(section.settings || "{}")?.gridRow ?? {},
+    ) ?? getDefaultGridRowConfig();
+
+    let next = { ...current };
+    if (payload.presetId) {
+      next = applyGridPreset(next, payload.presetId);
+    }
+    if (payload.columnsJson) {
+      const parsed = parseGridRowConfig({
+        ...next,
+        columns: JSON.parse(payload.columnsJson),
+      });
+      if (parsed) next = parsed;
+    }
+    if (
+      typeof payload.gutter === "number" &&
+      [0, 1, 2, 3, 4, 5].includes(payload.gutter)
+    ) {
+      next.gutter = payload.gutter as 0 | 1 | 2 | 3 | 4 | 5;
+    }
+    if (
+      payload.alignItems === "start" ||
+      payload.alignItems === "center" ||
+      payload.alignItems === "stretch"
+    ) {
+      next.alignItems = payload.alignItems;
+    }
+    if (typeof payload.useContainer === "boolean") {
+      next.useContainer = payload.useContainer;
+    }
+
+    const settingsObj = section.settings ? JSON.parse(section.settings) : {};
+    settingsObj.gridRow = next;
+
+    await prisma.pageSection.update({
+      where: { id: sectionId },
+      data: { settings: JSON.stringify(settingsObj) },
+    });
+
+    revalidatePath(`/admin/pages/${section.page.id}/edit`);
+    revalidatePublicPage(section.page.slug);
+    return { success: true, message: "Grid düzeni kaydedildi." };
+  } catch (error) {
+    console.error(error);
+    return { error: "Grid düzeni kaydedilemedi." };
   }
 }
 
@@ -843,6 +1166,40 @@ export async function updatePageSectionAction(
     const cardsPerRow =
       cardsPerRowRaw === 4 || cardsPerRowRaw === 5 ? cardsPerRowRaw : 3;
 
+    const contactSubmitLabel = String(
+      formData.get("contactSubmitLabel") ?? "",
+    ).trim();
+    const contactSuccessMessage = String(
+      formData.get("contactSuccessMessage") ?? "",
+    ).trim();
+    const contactFields = parseContactFormFieldsJson(
+      String(formData.get("contactFormFieldsJson") ?? ""),
+    );
+
+    const contactInfoIntroText = String(
+      formData.get("contactInfoIntroText") ?? "",
+    ).trim();
+    const contactInfoShowEmail =
+      formData.get("contactInfoShowEmail") === "on" ||
+      formData.get("contactInfoShowEmail") === "true";
+    const contactInfoShowPhone =
+      formData.get("contactInfoShowPhone") === "on" ||
+      formData.get("contactInfoShowPhone") === "true";
+    const contactInfoShowWhatsapp =
+      formData.get("contactInfoShowWhatsapp") === "on" ||
+      formData.get("contactInfoShowWhatsapp") === "true";
+    const contactInfoShowAddress =
+      formData.get("contactInfoShowAddress") === "on" ||
+      formData.get("contactInfoShowAddress") === "true";
+    const contactInfoShowWorkingHours =
+      formData.get("contactInfoShowWorkingHours") === "on" ||
+      formData.get("contactInfoShowWorkingHours") === "true";
+    const contactInfoShowMap =
+      formData.get("contactInfoShowMap") === "on" ||
+      formData.get("contactInfoShowMap") === "true";
+
+    const existingSettings = parseSectionSettings(section.settings);
+
     const cardIds = formData
       .getAll("cardIds")
       .map((value) => String(value).trim())
@@ -904,6 +1261,32 @@ export async function updatePageSectionAction(
                 : "slide",
             cardsPerRow,
           }
+        : {}),
+      ...(type === "CONTACT_FORM"
+        ? {
+            contactForm: {
+              submitLabel: contactSubmitLabel || undefined,
+              successMessage: contactSuccessMessage || undefined,
+              fields: contactFields,
+            },
+          }
+        : {}),
+      ...(type === "CONTACT_INFO"
+        ? {
+            contactInfoBlock: {
+              showEmail: contactInfoShowEmail,
+              showPhone: contactInfoShowPhone,
+              showWhatsapp: contactInfoShowWhatsapp,
+              showAddress: contactInfoShowAddress,
+              showWorkingHours: contactInfoShowWorkingHours,
+              showMap: contactInfoShowMap,
+              introText: contactInfoIntroText || undefined,
+            },
+          }
+        : {}),
+      ...(existingSettings.gridCol ? { gridCol: existingSettings.gridCol } : {}),
+      ...(type === "GRID_ROW" && existingSettings.gridRow
+        ? { gridRow: existingSettings.gridRow }
         : {}),
     });
 

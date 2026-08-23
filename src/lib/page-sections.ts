@@ -1,4 +1,21 @@
 import type { PageSectionType } from "@prisma/client";
+import {
+  getDefaultContactFormConfig,
+  parseContactFormConfig,
+  type ContactFormConfig,
+} from "@/config/contact-form";
+import {
+  getDefaultContactInfoBlockConfig,
+  parseContactInfoBlockConfig,
+  type ContactInfoBlockConfig,
+} from "@/config/contact-info-block";
+import {
+  getDefaultGridRowConfig,
+  parseGridColPlacement,
+  parseGridRowConfig,
+  type GridColPlacement,
+  type GridRowConfig,
+} from "@/config/page-grid";
 
 export const PAGE_SECTION_TYPES = [
   "HERO",
@@ -12,6 +29,9 @@ export const PAGE_SECTION_TYPES = [
   "RICH_TEXT",
   "PRICING",
   "CTA",
+  "CONTACT_FORM",
+  "CONTACT_INFO",
+  "GRID_ROW",
 ] as const satisfies readonly PageSectionType[];
 
 export type PageSectionTypeValue = (typeof PAGE_SECTION_TYPES)[number];
@@ -90,6 +110,26 @@ export const PAGE_SECTION_TYPE_META: PageSectionTypeMeta[] = [
     description: "Çağrı / iletişim bandı.",
     defaultLabel: "CTA",
   },
+  {
+    type: "CONTACT_FORM",
+    label: "İletişim formu",
+    description: "Özelleştirilebilir alanlarla gelişmiş iletişim formu.",
+    defaultLabel: "İletişim formu",
+  },
+  {
+    type: "CONTACT_INFO",
+    label: "İletişim bilgileri",
+    description:
+      "E-posta, telefon, adres ve harita kartı (Genel Ayarlar’daki iletişim bilgileri).",
+    defaultLabel: "İletişim bilgileri",
+  },
+  {
+    type: "GRID_ROW",
+    label: "Grid satırı",
+    description:
+      "Bootstrap tarzı 12’li responsive grid. Kolonlara istediğiniz bölümleri yerleştirin.",
+    defaultLabel: "Grid satırı",
+  },
 ];
 
 export function getPageSectionTypeMeta(type: PageSectionTypeValue) {
@@ -149,6 +189,14 @@ export type PageSectionSettings = {
   sliderEffect?: CardSliderEffect;
   /** Kartlar bölümü — yan yana kart sayısı */
   cardsPerRow?: CardColumnsPerRow;
+  /** İletişim formu yapılandırması */
+  contactForm?: ContactFormConfig;
+  /** İletişim bilgileri kartı */
+  contactInfoBlock?: ContactInfoBlockConfig;
+  /** Grid satırı (GRID_ROW) */
+  gridRow?: GridRowConfig;
+  /** Grid kolonuna yerleştirme (çocuk bölüm) */
+  gridCol?: GridColPlacement;
 };
 
 export const SECTIONS_WITH_EYEBROW = [
@@ -156,6 +204,9 @@ export const SECTIONS_WITH_EYEBROW = [
   "PROJECTS",
   "WORKS",
   "BLOG",
+  "CONTACT_FORM",
+  "CONTACT_INFO",
+  "GRID_ROW",
 ] as const satisfies readonly PageSectionTypeValue[];
 
 export function sectionSupportsEyebrow(type: PageSectionTypeValue): boolean {
@@ -249,6 +300,14 @@ export function parseSectionSettings(raw: string | null | undefined): PageSectio
     if (typeof obj.cardsPerRow === "number" && isCardColumnsPerRow(obj.cardsPerRow)) {
       settings.cardsPerRow = obj.cardsPerRow;
     }
+    const contactForm = parseContactFormConfig(obj.contactForm);
+    if (contactForm) settings.contactForm = contactForm;
+    const contactInfoBlock = parseContactInfoBlockConfig(obj.contactInfoBlock);
+    if (contactInfoBlock) settings.contactInfoBlock = contactInfoBlock;
+    const gridRow = parseGridRowConfig(obj.gridRow);
+    if (gridRow) settings.gridRow = gridRow;
+    const gridCol = parseGridColPlacement(obj.gridCol);
+    if (gridCol) settings.gridCol = gridCol;
     return settings;
   } catch {
     return {};
@@ -325,6 +384,22 @@ export function stringifySectionSettings(settings: PageSectionSettings): string 
   ) {
     cleaned.cardsPerRow = settings.cardsPerRow;
   }
+  if (settings.contactForm) {
+    const contactForm = parseContactFormConfig(settings.contactForm);
+    if (contactForm) cleaned.contactForm = contactForm;
+  }
+  if (settings.contactInfoBlock) {
+    const contactInfoBlock = parseContactInfoBlockConfig(settings.contactInfoBlock);
+    if (contactInfoBlock) cleaned.contactInfoBlock = contactInfoBlock;
+  }
+  if (settings.gridRow) {
+    const gridRow = parseGridRowConfig(settings.gridRow);
+    if (gridRow) cleaned.gridRow = gridRow;
+  }
+  if (settings.gridCol) {
+    const gridCol = parseGridColPlacement(settings.gridCol);
+    if (gridCol) cleaned.gridCol = gridCol;
+  }
 
   if (Object.keys(cleaned).length === 0) return null;
   return JSON.stringify(cleaned);
@@ -339,6 +414,9 @@ export function defaultLimitForType(type: PageSectionTypeValue): number {
     case "RICH_TEXT":
     case "PRICING":
     case "CTA":
+    case "CONTACT_FORM":
+    case "CONTACT_INFO":
+    case "GRID_ROW":
       return 1;
     case "CARDS":
       return 6;
@@ -353,6 +431,29 @@ export function defaultLimitForType(type: PageSectionTypeValue): number {
       return _exhaustive;
     }
   }
+}
+
+export function getContactFormSettings(
+  settings: PageSectionSettings | null | undefined,
+): ContactFormConfig {
+  return settings?.contactForm ?? getDefaultContactFormConfig();
+}
+
+export function getContactInfoBlockSettings(
+  settings: PageSectionSettings | null | undefined,
+): ContactInfoBlockConfig {
+  return settings?.contactInfoBlock ?? getDefaultContactInfoBlockConfig();
+}
+
+export function getGridRowSettings(
+  settings: PageSectionSettings | null | undefined,
+): GridRowConfig {
+  return settings?.gridRow ?? getDefaultGridRowConfig();
+}
+
+/** Grid içine konulamayan / kendisi konteyner olan tipler */
+export function isNestablePageSectionType(type: PageSectionTypeValue): boolean {
+  return type !== "GRID_ROW" && type !== "HERO";
 }
 
 export function isPageSectionType(value: string): value is PageSectionTypeValue {

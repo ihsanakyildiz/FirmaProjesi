@@ -93,7 +93,32 @@ async function resolveFieldValue(
     return getDetectedSitePath();
   }
 
-  return String(formData.get(def.key) ?? "").trim();
+  const raw = String(formData.get(def.key) ?? "").trim();
+
+  if (
+    (def.type === "password" || def.preserveIfEmpty) &&
+    raw === "" &&
+    (currentValues[def.key] ?? "").trim() !== ""
+  ) {
+    return currentValues[def.key];
+  }
+
+  if (def.type === "number") {
+    if (raw === "") return def.defaultValue ?? "";
+    const num = Number.parseInt(raw, 10);
+    if (!Number.isFinite(num)) {
+      throw new Error(`${def.label}: geçerli bir sayı girin.`);
+    }
+    if (def.min !== undefined && num < def.min) {
+      throw new Error(`${def.label}: en az ${def.min} olabilir.`);
+    }
+    if (def.max !== undefined && num > def.max) {
+      throw new Error(`${def.label}: en fazla ${def.max} olabilir.`);
+    }
+    return String(num);
+  }
+
+  return raw;
 }
 
 export async function saveSettingsAction(

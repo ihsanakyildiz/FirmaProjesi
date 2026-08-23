@@ -4,6 +4,8 @@ export type SettingFieldType =
   | "url"
   | "email"
   | "tel"
+  | "password"
+  | "number"
   | "boolean"
   | "image"
   | "file";
@@ -17,6 +19,8 @@ export type SettingFieldDef = {
   defaultValue?: string;
   /** Formda düzenlenemez; sunucu değeri yazılır */
   readOnly?: boolean;
+  /** password: boş kayıtta mevcut değer korunur */
+  preserveIfEmpty?: boolean;
   accept?: string;
   recommendedSize?: string;
   uploadDir?: string;
@@ -26,6 +30,8 @@ export type SettingFieldDef = {
   width?: number;
   height?: number;
   quality?: number;
+  min?: number;
+  max?: number;
 };
 
 export type SettingGroupDef = {
@@ -347,9 +353,61 @@ export const settingGroups: SettingGroupDef[] = [
   },
   {
     id: "mail",
-    title: "E-posta / Form",
-    description: "İletişim formu ve bildirim ayarları",
+    title: "E-posta / Posta Kutusu",
+    description:
+      "Gönderim (SMTP), admin paneli gelen kutusu ve isteğe bağlı IMAP çekimi. Hazır servis şablonları host/port’u otomatik doldurur.",
     fields: [
+      {
+        key: "smtp_enabled",
+        label: "SMTP ile gönderimi aç",
+        type: "boolean",
+        hint: "Kapalıyken iletişim formu e-posta göndermez.",
+        defaultValue: "false",
+      },
+      {
+        key: "smtp_provider",
+        label: "E-posta servisi",
+        type: "text",
+        placeholder: "custom",
+        defaultValue: "custom",
+      },
+      {
+        key: "smtp_host",
+        label: "SMTP Host",
+        type: "text",
+        placeholder: "mail.ornek.com veya smtp.gmail.com",
+        defaultValue: "",
+      },
+      {
+        key: "smtp_port",
+        label: "SMTP Port",
+        type: "number",
+        placeholder: "587",
+        defaultValue: "587",
+        min: 1,
+        max: 65535,
+      },
+      {
+        key: "smtp_secure",
+        label: "SSL / TLS (port 465)",
+        type: "boolean",
+        defaultValue: "false",
+      },
+      {
+        key: "smtp_user",
+        label: "SMTP Kullanıcı Adı",
+        type: "text",
+        placeholder: "info@alanadiniz.com",
+        defaultValue: "",
+      },
+      {
+        key: "smtp_password",
+        label: "SMTP Şifresi",
+        type: "password",
+        placeholder: "••••••••",
+        defaultValue: "",
+        preserveIfEmpty: true,
+      },
       {
         key: "mail_from_name",
         label: "Gönderen Adı",
@@ -369,8 +427,106 @@ export const settingGroups: SettingGroupDef[] = [
         label: "Bildirim E-postası",
         type: "email",
         placeholder: "admin@ihsanakyildiz.com",
-        hint: "İletişim formu mesajlarının düşeceği adres",
         defaultValue: "admin@ihsanakyildiz.com",
+      },
+      {
+        key: "mail_reply_to",
+        label: "Reply-To (isteğe bağlı)",
+        type: "email",
+        placeholder: "info@ihsanakyildiz.com",
+        defaultValue: "",
+      },
+      {
+        key: "mail_store_contact_messages",
+        label: "İletişim formu mesajlarını panele kaydet",
+        type: "boolean",
+        hint: "Önerilir: form gönderimleri admin gelen kutusuna düşer ve cevaplanabilir.",
+        defaultValue: "true",
+      },
+      {
+        key: "mail_contact_subject_prefix",
+        label: "İletişim formu konu öneki",
+        type: "text",
+        placeholder: "[İletişim Formu]",
+        defaultValue: "[İletişim Formu]",
+      },
+      {
+        key: "imap_enabled",
+        label: "IMAP ile posta kutusundan çek",
+        type: "boolean",
+        hint: "Açıkken filtrelenmiş mailler admin paneline senkronlanır.",
+        defaultValue: "false",
+      },
+      {
+        key: "imap_same_as_smtp",
+        label: "IMAP için SMTP kullanıcı/şifresini kullan",
+        type: "boolean",
+        defaultValue: "true",
+      },
+      {
+        key: "imap_host",
+        label: "IMAP Host",
+        type: "text",
+        placeholder: "imap.gmail.com",
+        defaultValue: "",
+      },
+      {
+        key: "imap_port",
+        label: "IMAP Port",
+        type: "number",
+        placeholder: "993",
+        defaultValue: "993",
+        min: 1,
+        max: 65535,
+      },
+      {
+        key: "imap_secure",
+        label: "IMAP SSL (port 993)",
+        type: "boolean",
+        defaultValue: "true",
+      },
+      {
+        key: "imap_user",
+        label: "IMAP Kullanıcı Adı",
+        type: "text",
+        placeholder: "info@alanadiniz.com",
+        defaultValue: "",
+      },
+      {
+        key: "imap_password",
+        label: "IMAP Şifresi",
+        type: "password",
+        placeholder: "••••••••",
+        defaultValue: "",
+        preserveIfEmpty: true,
+      },
+      {
+        key: "imap_folder",
+        label: "IMAP Klasörü",
+        type: "text",
+        placeholder: "INBOX",
+        defaultValue: "INBOX",
+      },
+      {
+        key: "mail_inbox_filter_mode",
+        label: "Admin paneline gelecek mailler",
+        type: "text",
+        placeholder: "contact_only",
+        defaultValue: "contact_only",
+      },
+      {
+        key: "mail_inbox_subject_filter",
+        label: "Konu filtresi",
+        type: "text",
+        placeholder: "[İletişim]",
+        defaultValue: "[İletişim]",
+      },
+      {
+        key: "mail_inbox_to_filter",
+        label: "Alıcı adresi filtresi",
+        type: "email",
+        placeholder: "info@alanadiniz.com",
+        defaultValue: "",
       },
     ],
   },

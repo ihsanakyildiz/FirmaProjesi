@@ -38,9 +38,19 @@ import {
   Trash2,
 } from "lucide-react";
 import { AdminSwitch } from "@/components/admin/admin-switch";
+import { ContactFormFieldsEditor } from "@/components/admin/contact-form-fields-editor";
+import { GridRowEditor } from "@/components/admin/grid-row-editor";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import {
+  getDefaultContactFormConfig,
+} from "@/config/contact-form";
+import {
+  getDefaultContactInfoBlockConfig,
+} from "@/config/contact-info-block";
+import {
   defaultLimitForType,
+  getContactFormSettings,
+  getContactInfoBlockSettings,
   getPageSectionTypeMeta,
   PAGE_SECTION_TYPE_META,
   CARD_SLIDER_EFFECTS,
@@ -65,6 +75,7 @@ import {
 export type BuilderSection = {
   id: string;
   type: PageSectionTypeValue;
+  parentId: string | null;
   label: string | null;
   title: string | null;
   subtitle: string | null;
@@ -106,6 +117,7 @@ const sectionInitial: SectionFormState = {};
 
 function SectionEditor({
   section,
+  hideHeaderFields = false,
   cardOptions,
   advancedCardOptions,
   projectOptions,
@@ -118,6 +130,7 @@ function SectionEditor({
   blogCategoryOptions,
 }: {
   section: BuilderSection;
+  hideHeaderFields?: boolean;
 } & BuilderOptions) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
@@ -155,71 +168,85 @@ function SectionEditor({
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">
-            Admin etiketi
-          </label>
-          <input
-            name="label"
-            defaultValue={section.label ?? meta.defaultLabel}
-            className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">
-            Anchor / id (opsiyonel)
-          </label>
-          <input
-            name="anchorId"
-            defaultValue={settings.anchorId ?? ""}
-            placeholder="ornek: hizmetler"
-            className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-          />
-        </div>
-        {sectionSupportsEyebrow(section.type) ? (
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              Üst etiket / rozet
-            </label>
-            <input
-              name="eyebrow"
-              defaultValue={settings.eyebrow ?? ""}
-              placeholder={
-                section.type === "CARDS"
-                  ? "••• Hizmetlerimiz"
-                  : section.type === "PROJECTS"
-                    ? "Neden En İyisiyiz"
-                    : section.type === "WORKS"
-                      ? "••• Yapılan İşler"
-                      : "Neden biz?"
-              }
-              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-            />
-            <p className="mt-1 text-[11px] text-slate-500">
-              Başlığın üzerindeki küçük mor etiket metni.
-            </p>
-          </div>
-        ) : null}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">
-            Bölüm başlığı
-          </label>
-          <input
-            name="title"
-            defaultValue={section.title ?? ""}
-            className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">
-            Alt başlık
-          </label>
-          <input
-            name="subtitle"
-            defaultValue={section.subtitle ?? ""}
-            className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-          />
-        </div>
+        {!hideHeaderFields ? (
+          <>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Admin etiketi
+              </label>
+              <input
+                name="label"
+                defaultValue={section.label ?? meta.defaultLabel}
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Anchor / id (opsiyonel)
+              </label>
+              <input
+                name="anchorId"
+                defaultValue={settings.anchorId ?? ""}
+                placeholder="ornek: hizmetler"
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+            {sectionSupportsEyebrow(section.type) ? (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Üst etiket / rozet
+                </label>
+                <input
+                  name="eyebrow"
+                  defaultValue={settings.eyebrow ?? ""}
+                  placeholder={
+                    section.type === "CARDS"
+                      ? "••• Hizmetlerimiz"
+                      : section.type === "PROJECTS"
+                        ? "Neden En İyisiyiz"
+                        : section.type === "WORKS"
+                          ? "••• Yapılan İşler"
+                          : "Neden biz?"
+                  }
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Başlığın üzerindeki küçük mor etiket metni.
+                </p>
+              </div>
+            ) : null}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Bölüm başlığı
+              </label>
+              <input
+                name="title"
+                defaultValue={section.title ?? ""}
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Alt başlık
+              </label>
+              <input
+                name="subtitle"
+                defaultValue={section.subtitle ?? ""}
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <input type="hidden" name="label" value={section.label ?? meta.defaultLabel} />
+            <input type="hidden" name="title" value={section.title ?? ""} />
+            <input type="hidden" name="subtitle" value={section.subtitle ?? ""} />
+            {sectionSupportsEyebrow(section.type) ? (
+              <input type="hidden" name="eyebrow" value={settings.eyebrow ?? ""} />
+            ) : null}
+            <input type="hidden" name="anchorId" value={settings.anchorId ?? ""} />
+          </>
+        )}
       </div>
 
       {section.type === "HERO" ? (
@@ -759,6 +786,105 @@ function SectionEditor({
         </div>
       ) : null}
 
+      {section.type === "CONTACT_FORM" ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Gönder butonu metni
+              </label>
+              <input
+                name="contactSubmitLabel"
+                defaultValue={
+                  getContactFormSettings(settings).submitLabel ??
+                  getDefaultContactFormConfig().submitLabel
+                }
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Başarı mesajı
+              </label>
+              <input
+                name="contactSuccessMessage"
+                defaultValue={
+                  getContactFormSettings(settings).successMessage ??
+                  getDefaultContactFormConfig().successMessage
+                }
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+          </div>
+
+          <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            İletişim bilgileri (e-posta, telefon, adres) ayrı bir bölümdür. Grid
+            kolonuna <strong>İletişim bilgileri</strong> ekleyerek formun yanına
+            yerleştirin.
+          </p>
+
+          <ContactFormFieldsEditor
+            initialFields={getContactFormSettings(settings).fields}
+          />
+        </>
+      ) : null}
+
+      {section.type === "CONTACT_INFO" ? (
+        <>
+          <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Gösterilecek değerler <strong>Genel Ayarlar → İletişim</strong>{" "}
+            alanlarından alınır. Buradan yalnızca hangi alanların görüneceğini
+            seçersiniz.
+          </p>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Kısa açıklama
+            </label>
+            <input
+              name="contactInfoIntroText"
+              defaultValue={
+                getContactInfoBlockSettings(settings).introText ??
+                getDefaultContactInfoBlockConfig().introText
+              }
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+
+          <AdminSwitch
+            name="contactInfoShowEmail"
+            label="E-posta"
+            defaultChecked={getContactInfoBlockSettings(settings).showEmail}
+          />
+          <AdminSwitch
+            name="contactInfoShowPhone"
+            label="Telefon"
+            defaultChecked={getContactInfoBlockSettings(settings).showPhone}
+          />
+          <AdminSwitch
+            name="contactInfoShowWhatsapp"
+            label="WhatsApp"
+            defaultChecked={getContactInfoBlockSettings(settings).showWhatsapp}
+          />
+          <AdminSwitch
+            name="contactInfoShowAddress"
+            label="Adres"
+            defaultChecked={getContactInfoBlockSettings(settings).showAddress}
+          />
+          <AdminSwitch
+            name="contactInfoShowWorkingHours"
+            label="Çalışma saatleri"
+            defaultChecked={getContactInfoBlockSettings(settings).showWorkingHours}
+          />
+          <AdminSwitch
+            name="contactInfoShowMap"
+            label="Harita"
+            description="Genel Ayarlar’daki harita gömme kodunu gösterir."
+            defaultChecked={getContactInfoBlockSettings(settings).showMap}
+          />
+        </>
+      ) : null}
+
       <button
         type="submit"
         disabled={isPending}
@@ -776,19 +902,27 @@ function SectionEditor({
 }
 
 function SortableSectionCard({
+  pageId,
   section,
+  childSections,
   open,
+  openChildId,
   pending,
   options,
   onToggleOpen,
+  onOpenChild,
   onToggleActive,
   onDelete,
 }: {
+  pageId: string;
   section: BuilderSection;
+  childSections: BuilderSection[];
   open: boolean;
+  openChildId: string | null;
   pending: boolean;
   options: BuilderOptions;
   onToggleOpen: () => void;
+  onOpenChild: (id: string) => void;
   onToggleActive: () => void;
   onDelete: () => void;
 }) {
@@ -869,7 +1003,27 @@ function SortableSectionCard({
 
       {open ? (
         <div className="px-4 pb-4">
-          <SectionEditor section={section} {...options} />
+          {section.type === "GRID_ROW" ? (
+            <GridRowEditor
+              pageId={pageId}
+              section={section}
+              childSections={childSections}
+              openChildId={openChildId}
+              onOpenChild={onOpenChild}
+              onChildDeleted={(id) => {
+                if (openChildId === id) onOpenChild(id);
+              }}
+              renderChild={(child) => {
+                const full = childSections.find((item) => item.id === child.id);
+                if (!full || openChildId !== child.id) return null;
+                return (
+                  <SectionEditor section={full} hideHeaderFields {...options} />
+                );
+              }}
+            />
+          ) : (
+            <SectionEditor section={section} {...options} />
+          )}
         </div>
       ) : null}
     </div>
@@ -879,8 +1033,13 @@ function SortableSectionCard({
 export function PageBuilder(props: PageBuilderProps) {
   const { pageId, sections, ...options } = props;
   const router = useRouter();
-  const [items, setItems] = useState(sections);
-  const [openId, setOpenId] = useState<string | null>(sections[0]?.id ?? null);
+  const [items, setItems] = useState(() =>
+    sections.filter((section) => !section.parentId),
+  );
+  const [openId, setOpenId] = useState<string | null>(
+    sections.find((section) => !section.parentId)?.id ?? null,
+  );
+  const [openChildId, setOpenChildId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -888,7 +1047,21 @@ export function PageBuilder(props: PageBuilderProps) {
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    setItems(sections);
+    setItems(sections.filter((section) => !section.parentId));
+  }, [sections]);
+
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, BuilderSection[]>();
+    for (const section of sections) {
+      if (!section.parentId) continue;
+      const list = map.get(section.parentId) ?? [];
+      list.push(section);
+      map.set(section.parentId, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    return map;
   }, [sections]);
 
   const sensors = useSensors(
@@ -934,6 +1107,7 @@ export function PageBuilder(props: PageBuilderProps) {
       const result = await reorderPageSectionsAction(
         pageId,
         next.map((item) => item.id),
+        null,
       );
       if (result.error) {
         setItems(previous);
@@ -1014,6 +1188,7 @@ export function PageBuilder(props: PageBuilderProps) {
         </div>
       ) : (
         <DndContext
+          id={`page-builder-${pageId}`}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={onDragStart}
@@ -1028,12 +1203,19 @@ export function PageBuilder(props: PageBuilderProps) {
               {items.map((section) => (
                 <SortableSectionCard
                   key={section.id}
+                  pageId={pageId}
                   section={section}
+                  childSections={childrenByParent.get(section.id) ?? []}
                   open={openId === section.id}
+                  openChildId={openChildId}
                   pending={pending}
                   options={options}
-                  onToggleOpen={() =>
-                    setOpenId(openId === section.id ? null : section.id)
+                  onToggleOpen={() => {
+                    setOpenId(openId === section.id ? null : section.id);
+                    setOpenChildId(null);
+                  }}
+                  onOpenChild={(id) =>
+                    setOpenChildId((current) => (current === id ? null : id))
                   }
                   onToggleActive={() =>
                     run(() => togglePageSectionActiveAction(section.id))
@@ -1041,7 +1223,9 @@ export function PageBuilder(props: PageBuilderProps) {
                   onDelete={() => {
                     if (
                       !window.confirm(
-                        "Bu bölümü silmek istediğinize emin misiniz?",
+                        section.type === "GRID_ROW"
+                          ? "Bu grid satırını ve içindeki tüm bölümleri silmek istediğinize emin misiniz?"
+                          : "Bu bölümü silmek istediğinize emin misiniz?",
                       )
                     ) {
                       return;

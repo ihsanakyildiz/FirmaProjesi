@@ -2,8 +2,14 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { AdminSwitch } from "@/components/admin/admin-switch";
+import { SmtpSettingsPanel } from "@/components/admin/smtp-settings-panel";
 import { FileUp, ImageIcon, Loader2, Save, Trash2, Upload } from "lucide-react";
-import { settingGroups, type SettingFieldDef, type SettingGroupDef, type SettingsScope } from "@/config/settings";
+import {
+  settingGroups,
+  type SettingFieldDef,
+  type SettingGroupDef,
+  type SettingsScope,
+} from "@/config/settings";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 
 const initialState: SettingsFormState = {};
@@ -215,6 +221,45 @@ function FieldInput({
     );
   }
 
+  if (field.type === "password") {
+    const hasStored = Boolean(value);
+    return (
+      <div className="space-y-1.5">
+        <input
+          id={field.key}
+          name={field.key}
+          type="password"
+          autoComplete="new-password"
+          defaultValue=""
+          placeholder={
+            hasStored
+              ? "Kayıtlı şifre korunuyor — değiştirmek için yazın"
+              : field.placeholder || "SMTP şifresi"
+          }
+          className={baseClass}
+        />
+        {hasStored ? (
+          <p className="text-xs text-emerald-600">Kayıtlı bir SMTP şifresi var.</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (field.type === "number") {
+    return (
+      <input
+        id={field.key}
+        name={field.key}
+        type="number"
+        defaultValue={value}
+        placeholder={field.placeholder}
+        min={field.min}
+        max={field.max}
+        className={baseClass}
+      />
+    );
+  }
+
   return (
     <input
       id={field.key}
@@ -286,33 +331,40 @@ export function SettingsForm({
             <p className="mt-1 text-sm text-slate-500">{group.description}</p>
           </div>
 
-          <div className="grid gap-5 p-5 md:grid-cols-2">
-            {group.fields.map((field) => (
-              <div
-                key={field.key}
-                className={
-                  field.type === "textarea" || field.type === "image" || field.type === "file"
-                    ? "md:col-span-2"
-                    : undefined
-                }
-              >
-                {field.type !== "boolean" ? (
-                  <label htmlFor={field.key} className="mb-1.5 block text-sm font-medium text-slate-700">
-                    {field.label}
-                  </label>
-                ) : null}
-                <FieldInput field={field} value={values[field.key] ?? field.defaultValue ?? ""} />
-                {field.hint && field.type !== "boolean" ? (
-                  <p
-                    className={`mt-1.5 text-xs leading-relaxed text-slate-400 ${
-                      field.hint.trim().startsWith("<") ? "break-all font-mono text-[11px]" : ""
-                    }`}
-                  >
-                    {field.hint}
-                  </p>
-                ) : null}
-              </div>
-            ))}
+          <div className={group.id === "mail" ? "p-5" : "grid gap-5 p-5 md:grid-cols-2"}>
+            {group.id === "mail" ? (
+              <SmtpSettingsPanel values={values} />
+            ) : (
+              group.fields.map((field) => (
+                <div
+                  key={field.key}
+                  className={
+                    field.type === "textarea" || field.type === "image" || field.type === "file"
+                      ? "md:col-span-2"
+                      : undefined
+                  }
+                >
+                  {field.type !== "boolean" ? (
+                    <label
+                      htmlFor={field.key}
+                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                      {field.label}
+                    </label>
+                  ) : null}
+                  <FieldInput field={field} value={values[field.key] ?? field.defaultValue ?? ""} />
+                  {field.hint && field.type !== "boolean" ? (
+                    <p
+                      className={`mt-1.5 text-xs leading-relaxed text-slate-400 ${
+                        field.hint.trim().startsWith("<") ? "break-all font-mono text-[11px]" : ""
+                      }`}
+                    >
+                      {field.hint}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            )}
           </div>
         </section>
       ))}

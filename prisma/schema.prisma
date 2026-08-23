@@ -340,6 +340,9 @@ enum PageSectionType {
   RICH_TEXT
   PRICING
   CTA
+  CONTACT_FORM
+  CONTACT_INFO
+  GRID_ROW
 }
 
 /// CMS sayfaları — klasik içerik veya gelişmiş builder
@@ -369,18 +372,22 @@ model Page {
   @@map("pages")
 }
 
-/// Gelişmiş sayfa bölümü — sıralanabilir blok
+/// Gelişmiş sayfa bölümü — sıralanabilir blok (GRID_ROW içinde iç içe olabilir)
 model PageSection {
   id                  String            @id @default(cuid())
   pageId              String
   page                Page              @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  /// Grid satırı içindeki çocuk bölümler için üst satır
+  parentId            String?
+  parent              PageSection?      @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children            PageSection[]     @relation("SectionTree")
   type                PageSectionType
   /// Admin listesinde görünen etiket
   label               String?           @db.VarChar(191)
   title               String?           @db.VarChar(255)
   subtitle            String?           @db.Text
   content             String?           @db.LongText
-  /// JSON: limit, ctaLabel, ctaUrl, showFeatures, anchorId vb.
+  /// JSON: limit, ctaLabel, gridRow, gridCol vb.
   settings            String?           @db.Text
   sortOrder           Int               @default(0)
   isActive            Boolean           @default(true)
@@ -401,7 +408,7 @@ model PageSection {
   posts               PageSectionPost[]
   works               PageSectionWork[]
 
-  @@index([pageId, sortOrder])
+  @@index([pageId, parentId, sortOrder])
   @@index([pageId, isActive])
   @@index([type])
   @@map("page_sections")
@@ -742,4 +749,53 @@ model MenuItem {
   @@index([groupId, parentId, sortOrder])
   @@index([groupId, isActive])
   @@map("menu_items")
+}
+
+enum MailFolder {
+  INBOX
+  SENT
+  DRAFT
+  SPAM
+  TRASH
+}
+
+enum MailSource {
+  CONTACT_FORM
+  IMAP
+  COMPOSED
+  SYSTEM
+}
+
+/// Admin paneli e-posta / iletişim mesajları
+model MailMessage {
+  id              String     @id @default(cuid())
+  folder          MailFolder @default(INBOX)
+  source          MailSource @default(CONTACT_FORM)
+  fromName        String     @db.VarChar(191)
+  fromEmail       String     @db.VarChar(191)
+  toEmail         String     @db.VarChar(191)
+  replyToEmail    String?    @db.VarChar(191)
+  subject         String     @db.VarChar(500)
+  preview         String     @db.VarChar(500)
+  bodyText        String     @db.Text
+  bodyHtml        String?    @db.LongText
+  isRead          Boolean    @default(false)
+  isStarred       Boolean    @default(false)
+  hasAttachment   Boolean    @default(false)
+  /// Yanıt zinciri (cevaplanan mesaj)
+  parentId        String?
+  parent          MailMessage?  @relation("MailThread", fields: [parentId], references: [id], onDelete: SetNull)
+  replies         MailMessage[] @relation("MailThread")
+  /// Etiket: updates | important | personal | private | contact
+  label           String?    @db.VarChar(50)
+  externalId      String?    @unique @db.VarChar(191)
+  receivedAt      DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([folder, receivedAt])
+  @@index([isStarred, receivedAt])
+  @@index([isRead, folder])
+  @@index([label])
+  @@map("mail_messages")
 }
