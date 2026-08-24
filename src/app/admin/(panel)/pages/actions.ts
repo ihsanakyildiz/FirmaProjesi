@@ -324,6 +324,8 @@ export async function updateClassicPageAction(
     } else if (!image && existing.image) {
       await deletePublicAsset(existing.image);
       image = "";
+    } else if (image && existing.image && image !== existing.image) {
+      await deletePublicAsset(existing.image);
     }
 
     const seo = resolvePageSeo({

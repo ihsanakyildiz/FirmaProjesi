@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ImageIcon, Loader2, Save, Trash2, Upload } from "lucide-react";
 import { AdminSwitch } from "@/components/admin/admin-switch";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { uploadAdminMedia } from "@/components/admin/upload-admin-media";
 import { resolvePageSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX, clampSeoText } from "@/lib/seo";
 import {
   createClassicPageAction,
@@ -89,6 +90,8 @@ export function ClassicPageForm({
   );
   const [image, setImage] = useState(initial?.image ?? "");
   const [preview, setPreview] = useState(initial?.image ?? "");
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -420,10 +423,15 @@ export function ClassicPageForm({
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  disabled={coverUploading || isPending}
+                  className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                 >
-                  <Upload className="h-4 w-4" />
-                  Görsel Seç
+                  {coverUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {coverUploading ? "Yükleniyor..." : "Görsel Seç"}
                 </button>
                 {preview ? (
                   <button
@@ -431,9 +439,11 @@ export function ClassicPageForm({
                     onClick={() => {
                       setImage("");
                       setPreview("");
+                      setCoverUploadError(null);
                       if (fileRef.current) fileRef.current.value = "";
                     }}
-                    className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600"
+                    disabled={coverUploading || isPending}
+                    className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" />
                     Kaldır
@@ -443,16 +453,49 @@ export function ClassicPageForm({
               <input
                 ref={fileRef}
                 type="file"
-                name="image_file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
+                  e.target.value = "";
                   if (!file) return;
-                  setPreview(URL.createObjectURL(file));
+
+                  const localPreview = URL.createObjectURL(file);
+                  setPreview(localPreview);
+                  setCoverUploadError(null);
+                  setCoverUploading(true);
+
+                  void uploadAdminMedia(file, "uploads/pages")
+                    .then((result) => {
+                      setImage(result.url);
+                      setPreview(result.url);
+                      URL.revokeObjectURL(localPreview);
+                    })
+                    .catch((error) => {
+                      setImage("");
+                      setPreview("");
+                      URL.revokeObjectURL(localPreview);
+                      setCoverUploadError(
+                        error instanceof Error
+                          ? error.message
+                          : "Kapak görseli yüklenemedi.",
+                      );
+                    })
+                    .finally(() => {
+                      setCoverUploading(false);
+                    });
                 }}
               />
-              <p className="text-xs text-slate-400">PNG, JPG veya WEBP — kayıtta WebP’ye çevrilir.</p>
+              {coverUploadError ? (
+                <p className="text-xs text-rose-600" role="alert">
+                  {coverUploadError}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  Görsel seçilince hemen yüklenir (en fazla 5 MB). Kaydet yalnızca sayfa
+                  bilgilerini gönderir.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -467,7 +510,7 @@ export function ClassicPageForm({
         </Link>
         <button
           type="submit"
-          disabled={isPending || seoInvalid}
+          disabled={isPending || seoInvalid || coverUploading}
           className="inline-flex items-center gap-2 rounded-md bg-[#0ab39c] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#099885] disabled:opacity-70"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
