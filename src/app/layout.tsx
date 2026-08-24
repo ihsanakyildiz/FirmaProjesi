@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { DeferredAnalytics } from "@/components/site/deferred-analytics";
 import { PerformanceHead } from "@/components/site/performance-head";
 import { PerformanceProvider } from "@/components/site/performance-provider";
+import { SiteCustomCode } from "@/components/site/site-custom-code";
+import { SiteCustomHeadTags } from "@/components/site/site-custom-head-tags";
 import { SiteThemeStyles } from "@/components/site/site-theme-styles";
 import { RouteLoadingIndicator } from "@/components/route-loading-indicator";
 import { isAdminRequest } from "@/lib/admin-request";
@@ -180,6 +182,7 @@ export default async function RootLayout({
         />
         {isAdmin ? null : <SiteThemeStyles settings={settings} />}
         {isAdmin ? null : <PerformanceHead settings={settings} />}
+        {isAdmin ? null : <SiteCustomHeadTags code={settings.custom_code_head} />}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} antialiased`}
@@ -195,6 +198,12 @@ export default async function RootLayout({
             delayMs={Number.isFinite(delayMs) ? delayMs : 3000}
             googleAnalyticsId={settings.google_analytics_id || undefined}
             googleTagManagerId={settings.google_tag_manager_id || undefined}
+          />
+        )}
+        {isAdmin ? null : (
+          <SiteCustomCode
+            headCode={settings.custom_code_head}
+            bodyCode={settings.custom_code_body}
           />
         )}
       </body>

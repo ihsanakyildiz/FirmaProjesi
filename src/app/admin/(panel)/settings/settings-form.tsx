@@ -202,10 +202,13 @@ function FieldInput({
       <textarea
         id={field.key}
         name={field.key}
-        rows={3}
+        rows={field.rows ?? 3}
         defaultValue={value}
         placeholder={field.placeholder}
-        className={`${baseClass} resize-y`}
+        spellCheck={field.codeEditor ? false : undefined}
+        className={`${baseClass} resize-y ${
+          field.codeEditor ? "font-mono text-[13px] leading-relaxed" : ""
+        }`}
       />
     );
   }
@@ -339,7 +342,10 @@ export function SettingsForm({
                 <div
                   key={field.key}
                   className={
-                    field.type === "textarea" || field.type === "image" || field.type === "file"
+                    field.type === "textarea" ||
+                    field.type === "image" ||
+                    field.type === "file" ||
+                    field.codeEditor
                       ? "md:col-span-2"
                       : undefined
                   }

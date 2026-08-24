@@ -19,6 +19,10 @@ export type SettingFieldDef = {
   placeholder?: string;
   hint?: string;
   defaultValue?: string;
+  /** textarea satır sayısı */
+  rows?: number;
+  /** monospace / kod alanı görünümü */
+  codeEditor?: boolean;
   /** Formda düzenlenemez; sunucu değeri yazılır */
   readOnly?: boolean;
   /** password: boş kayıtta mevcut değer korunur */
@@ -300,6 +304,36 @@ export const settingGroups: SettingGroupDef[] = [
         label: "Google Tag Manager ID",
         type: "text",
         placeholder: "GTM-XXXXXXX",
+        defaultValue: "",
+      },
+    ],
+  },
+  {
+    id: "custom_code",
+    title: "Özel Kod Enjeksiyonu",
+    description:
+      "Doğrulama meta etiketleri, pixel veya üçüncü parti script’leri kaynak koda ekleyin. Yalnızca güvendiğiniz kodları yapıştırın.",
+    fields: [
+      {
+        key: "custom_code_head",
+        label: "</head> öncesi kod",
+        type: "textarea",
+        rows: 8,
+        codeEditor: true,
+        placeholder:
+          '<!-- Örn. Google / Bing doğrulama -->\n<meta name="google-site-verification" content="..." />\n<script>...</script>',
+        hint: "Bu alanın içeriği public sitede </head> etiketinden hemen önce eklenir. Admin panelinde çalışmaz.",
+        defaultValue: "",
+      },
+      {
+        key: "custom_code_body",
+        label: "</body> öncesi kod",
+        type: "textarea",
+        rows: 8,
+        codeEditor: true,
+        placeholder:
+          "<!-- Örn. chat widget, pixel -->\n<script>...</script>",
+        hint: "Bu alanın içeriği public sitede </body> etiketinden hemen önce eklenir. Admin panelinde çalışmaz.",
         defaultValue: "",
       },
     ],
