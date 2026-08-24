@@ -21,6 +21,7 @@ type AdvancedPageMetaFormProps = {
     slug?: string;
     sortOrder?: number;
     isActive?: boolean;
+    sidebarEnabled?: boolean;
     seoTitle?: string;
     seoDescription?: string;
   };
@@ -163,11 +164,19 @@ export function AdvancedPageMetaForm({ mode, initial }: AdvancedPageMetaFormProp
         </div>
       </div>
 
-      <AdminSwitch
-        name="isActive"
-        label="Yayında"
-        defaultChecked={initial?.isActive ?? true}
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
+        <AdminSwitch
+          name="isActive"
+          label="Yayında"
+          defaultChecked={initial?.isActive ?? true}
+        />
+        <AdminSwitch
+          name="sidebarEnabled"
+          label="Sidebar göster"
+          description="Bu sayfada site kenar çubuğunu göster"
+          defaultChecked={initial?.sidebarEnabled ?? true}
+        />
+      </div>
 
       <button
         type="submit"

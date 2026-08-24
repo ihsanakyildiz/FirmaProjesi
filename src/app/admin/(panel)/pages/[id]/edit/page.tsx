@@ -301,6 +301,7 @@ export default async function EditPagePage({ params }: EditPageProps) {
               slug: page.slug,
               sortOrder: page.sortOrder,
               isActive: page.isActive,
+              sidebarEnabled: page.sidebarEnabled,
               seoTitle: page.seoTitle ?? "",
               seoDescription: page.seoDescription ?? "",
             }}
@@ -368,6 +369,7 @@ export default async function EditPagePage({ params }: EditPageProps) {
           image: page.image ?? "",
           sortOrder: page.sortOrder,
           isActive: page.isActive,
+          sidebarEnabled: page.sidebarEnabled,
           seoTitle,
           seoDescription,
           workIds: page.works.map((item) => item.id),

@@ -12,9 +12,17 @@ export type ProjectSidebarCategory = {
 export function ProjectCategorySidebar({
   categories,
   activeSlug = null,
+  title = "Kategoriler",
+  showCounts = true,
+  showAllLink = true,
+  embedded = false,
 }: {
   categories: ProjectSidebarCategory[];
   activeSlug?: string | null;
+  title?: string;
+  showCounts?: boolean;
+  showAllLink?: boolean;
+  embedded?: boolean;
 }) {
   const roots = categories.filter(
     (category) =>
@@ -25,43 +33,50 @@ export function ProjectCategorySidebar({
 
   if (categories.length === 0) return null;
 
-  return (
-    <aside className="lg:sticky lg:top-28 lg:self-start">
-      <div className="rounded-3xl border border-site-border bg-site-card p-5 shadow-sm">
-        <h2 className="font-display text-lg font-semibold text-site-fg">
-          Kategoriler
-        </h2>
-        <ul className="mt-3 space-y-1">
-          <li>
-            <SiteLink
-              href="/projeler"
-              className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
-                !activeSlug
-                  ? "bg-site-primary-soft font-semibold text-site-primary"
-                  : "text-site-fg hover:bg-site-surface"
-              }`}
-            >
-              Tüm projeler
-            </SiteLink>
-          </li>
-          {items.map((category) => (
-            <CategoryBranch
-              key={category.id}
-              category={category}
-              categories={categories}
-              activeSlug={activeSlug}
-              depth={0}
-            />
-          ))}
-        </ul>
+  const card = (
+    <div className="rounded-3xl border border-site-border bg-site-card p-5 shadow-sm">
+      <h2 className="font-display text-lg font-semibold text-site-fg">
+        {title}
+      </h2>
+      <ul className="mt-3 space-y-1">
+        <li>
+          <SiteLink
+            href="/projeler"
+            className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
+              !activeSlug
+                ? "bg-site-primary-soft font-semibold text-site-primary"
+                : "text-site-fg hover:bg-site-surface"
+            }`}
+          >
+            Tüm projeler
+          </SiteLink>
+        </li>
+        {items.map((category) => (
+          <CategoryBranch
+            key={category.id}
+            category={category}
+            categories={categories}
+            activeSlug={activeSlug}
+            depth={0}
+            showCounts={showCounts}
+          />
+        ))}
+      </ul>
+      {showAllLink ? (
         <SiteLink
           href={PROJECT_CATEGORY_PATH}
           className="mt-4 inline-flex text-sm font-semibold text-site-primary hover:underline"
         >
           Tüm kategoriler
         </SiteLink>
-      </div>
-    </aside>
+      ) : null}
+    </div>
+  );
+
+  if (embedded) return card;
+
+  return (
+    <aside className="lg:sticky lg:top-28 lg:self-start">{card}</aside>
   );
 }
 
@@ -70,11 +85,13 @@ function CategoryBranch({
   categories,
   activeSlug,
   depth,
+  showCounts,
 }: {
   category: ProjectSidebarCategory;
   categories: ProjectSidebarCategory[];
   activeSlug: string | null;
   depth: number;
+  showCounts: boolean;
 }) {
   const children = categories.filter((item) => item.parentId === category.id);
   const active = activeSlug === category.slug;
@@ -92,9 +109,11 @@ function CategoryBranch({
         }`}
       >
         <span className="truncate">{category.name}</span>
-        <span className="ml-2 shrink-0 text-xs text-site-muted">
-          {category.projectCount}
-        </span>
+        {showCounts ? (
+          <span className="ml-2 shrink-0 text-xs text-site-muted">
+            {category.projectCount}
+          </span>
+        ) : null}
       </SiteLink>
       {children.length > 0 ? (
         <ul className="mt-0.5 space-y-0.5">
@@ -105,6 +124,7 @@ function CategoryBranch({
               categories={categories}
               activeSlug={activeSlug}
               depth={depth + 1}
+              showCounts={showCounts}
             />
           ))}
         </ul>

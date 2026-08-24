@@ -4,6 +4,7 @@ import {
   Building2,
   CircleDollarSign,
   CircleHelp,
+  Columns3,
   FileText,
   FolderKanban,
   Gauge,
@@ -74,6 +75,11 @@ export const adminNavSections: AdminNavSection[] = [
         label: "Menüler",
         href: "/admin/menus",
         icon: Menu,
+      },
+      {
+        label: "Sidebar",
+        href: "/admin/sidebars",
+        icon: Columns3,
       },
       {
         label: "E-posta",

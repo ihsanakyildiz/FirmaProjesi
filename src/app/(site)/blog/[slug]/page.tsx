@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 import { preload } from "react-dom";
 import { BlogPostDetailView } from "@/components/site/blog/blog-post-detail";
 import { JsonLd } from "@/components/site/json-ld";
+import { SiteSidebarRenderer } from "@/components/site/site-sidebar-slot";
 import { getCachedBlogDetailPayload, blogCategoryHref } from "@/lib/blog";
 import { prepareRichHtml } from "@/lib/html";
 import { buildBlogPostingJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { buildPublicMetadata, resolveBlogSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
+import { getSidebarByLocation } from "@/lib/site-sidebars";
 
 const HomeCta = dynamic(() =>
   import("@/components/site/home/home-cta").then((mod) => mod.HomeCta),
@@ -56,9 +58,10 @@ export async function generateMetadata({
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
 
-  const [payload, settings] = await Promise.all([
+  const [payload, settings, cmsSidebar] = await Promise.all([
     getCachedBlogDetailPayload(slug),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
+    getSidebarByLocation("BLOG_DETAIL"),
   ]);
 
   if (!payload) notFound();
@@ -132,6 +135,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           postCount: category._count.posts,
         }))}
         phone={settings.contact_phone || ""}
+        sidebar={
+          cmsSidebar ? (
+            <SiteSidebarRenderer sidebar={cmsSidebar} embedded />
+          ) : undefined
+        }
+        sidebarPlacement={cmsSidebar?.placement ?? "RIGHT"}
       />
       <HomeCta />
     </>

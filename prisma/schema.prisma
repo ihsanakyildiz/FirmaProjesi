@@ -355,6 +355,8 @@ model Page {
   content        String?       @db.LongText
   image          String?       @db.VarChar(500)
   isActive       Boolean       @default(true)
+  /// Sayfa kenar çubuğu (PAGE_DETAIL) gösterilsin mi
+  sidebarEnabled Boolean       @default(true)
   sortOrder      Int           @default(0)
   seoTitle       String?       @db.VarChar(191)
   seoDescription String?       @db.VarChar(500)
@@ -815,4 +817,73 @@ model MailAttachment {
 
   @@index([messageId])
   @@map("mail_attachments")
+}
+
+/// Tema sidebar konumları (WordPress widget area benzeri)
+enum SidebarLocation {
+  BLOG_LIST
+  BLOG_DETAIL
+  WORKS_LIST
+  WORKS_DETAIL
+  PROJECTS_LIST
+  PROJECTS_DETAIL
+  PAGE_DETAIL
+}
+
+enum SidebarPlacement {
+  LEFT
+  RIGHT
+}
+
+enum SidebarWidgetType {
+  BLOG_CATEGORIES
+  WORK_CATEGORIES
+  PROJECT_CATEGORIES
+  CONTACT_INFO
+  RICH_TEXT
+  IMAGE
+}
+
+/// Yönetilebilir site sidebar’ı
+model SiteSidebar {
+  id          String           @id @default(cuid())
+  name        String           @db.VarChar(191)
+  slug        String           @unique @db.VarChar(191)
+  description String?          @db.Text
+  /// Boşsa yalnızca taslak / kullanılabilir; doluysa ilgili alanda gösterilir
+  location    SidebarLocation?
+  /// İçeriğin solunda veya sağında gösterim
+  placement   SidebarPlacement @default(LEFT)
+  isActive    Boolean          @default(true)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  widgets     SiteSidebarWidget[]
+
+  @@index([isActive, sortOrder])
+  @@index([location, isActive])
+  @@map("site_sidebars")
+}
+
+/// Sidebar içindeki widget / blok
+model SiteSidebarWidget {
+  id        String            @id @default(cuid())
+  sidebarId String
+  sidebar   SiteSidebar       @relation(fields: [sidebarId], references: [id], onDelete: Cascade)
+  type      SidebarWidgetType
+  title     String?           @db.VarChar(191)
+  /// RICH_TEXT HTML içeriği
+  content   String?           @db.LongText
+  imagePath String?           @db.VarChar(500)
+  imageAlt  String?           @db.VarChar(191)
+  /// JSON ayarlar (iletişim alanları, sayaç, link vb.)
+  settings  String?           @db.Text
+  isActive  Boolean           @default(true)
+  sortOrder Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([sidebarId, sortOrder])
+  @@index([sidebarId, isActive])
+  @@map("site_sidebar_widgets")
 }

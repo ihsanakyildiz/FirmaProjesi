@@ -28,6 +28,7 @@ type ClassicPageFormValues = {
   image?: string;
   sortOrder?: number;
   isActive?: boolean;
+  sidebarEnabled?: boolean;
   seoTitle?: string;
   seoDescription?: string;
   workIds?: string[];
@@ -198,11 +199,17 @@ export function ClassicPageForm({
             />
           </div>
 
-          <div className="flex items-end md:col-span-2">
+          <div className="flex flex-col gap-4 md:col-span-2 md:flex-row md:items-end md:gap-8">
             <AdminSwitch
               name="isActive"
               label="Aktif (yayında)"
               defaultChecked={initial?.isActive ?? true}
+            />
+            <AdminSwitch
+              name="sidebarEnabled"
+              label="Sidebar göster"
+              description="Bu sayfada site kenar çubuğunu göster"
+              defaultChecked={initial?.sidebarEnabled ?? true}
             />
           </div>
 

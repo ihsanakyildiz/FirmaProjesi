@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
@@ -39,6 +40,8 @@ type WorkDetailViewProps = {
   disableThirdParty?: boolean;
   skills: WorkDetailSkill[];
   relatedProjects: WorkDetailRelatedProject[];
+  sidebar?: ReactNode;
+  sidebarPlacement?: "LEFT" | "RIGHT";
 };
 
 function SocialLink({
@@ -77,6 +80,8 @@ export function WorkDetailView({
   disableThirdParty = false,
   skills,
   relatedProjects,
+  sidebar,
+  sidebarPlacement = "RIGHT",
 }: WorkDetailViewProps) {
   const summaryText = stripHtml(summary);
   const hasContact = Boolean(phone || email || address);
@@ -225,7 +230,9 @@ export function WorkDetailView({
 
       <section className="bg-white py-12 sm:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-14 lg:px-8">
-          <div>
+          <div
+            className={`min-w-0 ${sidebarPlacement === "LEFT" ? "lg:order-2" : ""}`}
+          >
             {content?.trim() ? (
               <div
                 className="site-rich-content"
@@ -290,7 +297,12 @@ export function WorkDetailView({
             ) : null}
           </div>
 
-          <aside>
+          <aside
+            className={`space-y-5 lg:sticky lg:top-28 lg:self-start ${
+              sidebarPlacement === "LEFT" ? "lg:order-1" : ""
+            }`}
+          >
+            {sidebar}
             <div className="rounded-[1.5rem] border border-site-border bg-[#f8f7fc] p-6 sm:p-7">
               <h3 className="font-display text-xl font-bold text-site-fg">
                 Yetenekler & Deneyim

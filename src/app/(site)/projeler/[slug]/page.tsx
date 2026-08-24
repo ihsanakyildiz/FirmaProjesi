@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
+import { SiteSidebarLayout } from "@/components/site/site-sidebar-layout";
+import { SiteSidebarRenderer } from "@/components/site/site-sidebar-slot";
 import { JsonLd } from "@/components/site/json-ld";
 import { LucideIconByName } from "@/lib/lucide-icons";
 import { parseProjectHighlights } from "@/lib/project-portfolio";
@@ -26,6 +28,7 @@ import { buildCreativeWorkJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { buildPublicMetadata, resolveProjectSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
+import { getSidebarByLocation } from "@/lib/site-sidebars";
 import { getSiteOrigin } from "@/lib/site-origin";
 
 const HomeCta = dynamic(() =>
@@ -86,9 +89,10 @@ export default async function ProjectDetailPage({
 }: ProjectDetailPageProps) {
   const { slug } = await params;
 
-  const [project, settings] = await Promise.all([
+  const [project, settings, cmsSidebar] = await Promise.all([
     getCachedProjectBySlug(slug),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
+    getSidebarByLocation("PROJECTS_DETAIL"),
   ]);
 
   if (!project) notFound();
@@ -191,47 +195,78 @@ export default async function ProjectDetailPage({
       </section>
 
       <section className="py-14">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
+        <SiteSidebarLayout
+          placement={cmsSidebar?.placement ?? "LEFT"}
+          sidebar={
           <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
-            <div className="rounded-3xl border border-site-border bg-site-card p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-2 px-2">
-                <p className="text-xs font-semibold tracking-wide text-site-muted uppercase">
-                  Projeler
-                </p>
-                <SiteLink
-                  href="/projeler"
-                  className="text-[11px] font-semibold text-site-primary hover:underline"
-                >
-                  Tümü
-                </SiteLink>
-              </div>
-              <ul className="mt-2 space-y-1">
-                {siblingProjects.length === 0 ? (
-                  <li className="px-3 py-2 text-sm text-site-muted">
-                    Henüz başka proje yok.
-                  </li>
-                ) : (
-                  siblingProjects.map((item) => {
-                    const active = item.id === project.id;
-                    return (
-                      <li key={item.id}>
-                        <SiteLink
-                          href={`/projeler/${item.slug}`}
-                          className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
-                            active
-                              ? "bg-site-primary-soft font-semibold text-site-primary"
-                              : "text-site-fg hover:bg-site-surface"
-                          }`}
-                        >
-                          <span className="truncate">{item.title}</span>
-                          {active ? <ArrowUpRight className="h-4 w-4" /> : null}
-                        </SiteLink>
-                      </li>
-                    );
-                  })
-                )}
-              </ul>
-            </div>
+            {cmsSidebar ? (
+              <SiteSidebarRenderer sidebar={cmsSidebar} embedded />
+            ) : (
+                <>
+                  <div className="rounded-3xl border border-site-border bg-site-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 px-2">
+                      <p className="text-xs font-semibold tracking-wide text-site-muted uppercase">
+                        Projeler
+                      </p>
+                      <SiteLink
+                        href="/projeler"
+                        className="text-[11px] font-semibold text-site-primary hover:underline"
+                      >
+                        Tümü
+                      </SiteLink>
+                    </div>
+                    <ul className="mt-2 space-y-1">
+                      {siblingProjects.length === 0 ? (
+                        <li className="px-3 py-2 text-sm text-site-muted">
+                          Henüz başka proje yok.
+                        </li>
+                      ) : (
+                        siblingProjects.map((item) => {
+                          const active = item.id === project.id;
+                          return (
+                            <li key={item.id}>
+                              <SiteLink
+                                href={`/projeler/${item.slug}`}
+                                className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
+                                  active
+                                    ? "bg-site-primary-soft font-semibold text-site-primary"
+                                    : "text-site-fg hover:bg-site-surface"
+                                }`}
+                              >
+                                <span className="truncate">{item.title}</span>
+                                {active ? (
+                                  <ArrowUpRight className="h-4 w-4" />
+                                ) : null}
+                              </SiteLink>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  </div>
+
+                  <div className="rounded-3xl bg-site-primary p-6 text-white shadow-lg shadow-violet-500/20">
+                    <p className="font-display text-xl font-semibold leading-snug">
+                      Dijital deneyiminizi bir üst seviyeye taşıyalım.
+                    </p>
+                    {phone ? (
+                      <a
+                        href={`tel:${phone.replace(/\s+/g, "")}`}
+                        className="mt-5 flex items-center gap-2 text-sm font-semibold text-white/95"
+                      >
+                        <Phone className="h-4 w-4" />
+                        {phone}
+                      </a>
+                    ) : null}
+                    <SiteLink
+                      href="/iletisim"
+                      className="mt-5 inline-flex rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-site-primary"
+                    >
+                      Ücretsiz Teklif
+                    </SiteLink>
+                  </div>
+                </>
+            )}
 
             {(brochurePdf || brochureZip) && (
               <div className="rounded-3xl border border-site-border bg-site-card p-5 shadow-sm">
@@ -269,30 +304,10 @@ export default async function ProjectDetailPage({
               </div>
             )}
 
-            <div className="rounded-3xl bg-site-primary p-6 text-white shadow-lg shadow-violet-500/20">
-              <p className="font-display text-xl font-semibold leading-snug">
-                Dijital deneyiminizi bir üst seviyeye taşıyalım.
-              </p>
-              {phone ? (
-                <a
-                  href={`tel:${phone.replace(/\s+/g, "")}`}
-                  className="mt-5 flex items-center gap-2 text-sm font-semibold text-white/95"
-                >
-                  <Phone className="h-4 w-4" />
-                  {phone}
-                </a>
-              ) : null}
-              <SiteLink
-                href="/iletisim"
-                className="mt-5 inline-flex rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-site-primary"
-              >
-                Ücretsiz Teklif
-              </SiteLink>
-            </div>
-
             <ProjectQuoteForm projectTitle={project.title} />
           </aside>
-
+          }
+        >
           <div>
             {cover ? (
               <div className="relative aspect-[16/9] overflow-hidden rounded-[1.75rem] border border-site-border shadow-sm">
@@ -532,7 +547,7 @@ export default async function ProjectDetailPage({
               </div>
             )}
           </div>
-        </div>
+        </SiteSidebarLayout>
       </section>
 
       <HomeCta />

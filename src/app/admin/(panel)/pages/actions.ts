@@ -124,6 +124,9 @@ function parsePagePayload(formData: FormData) {
   const seoDescription = String(formData.get("seoDescription") ?? "").trim();
   const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10);
   const isActive = formData.get("isActive") === "on" || formData.get("isActive") === "true";
+  const sidebarEnabled =
+    formData.get("sidebarEnabled") === "on" ||
+    formData.get("sidebarEnabled") === "true";
   const existingImage = String(formData.get("image") ?? "").trim();
   const imageFile = formData.get("image_file");
   const workIds = formData
@@ -148,6 +151,7 @@ function parsePagePayload(formData: FormData) {
     seoDescription,
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     isActive,
+    sidebarEnabled,
     existingImage,
     imageFile,
     workIds,
@@ -244,6 +248,7 @@ export async function createClassicPageAction(
         image: image || null,
         sortOrder,
         isActive: data.isActive,
+        sidebarEnabled: data.sidebarEnabled,
         seoTitle: seo.seoTitle,
         seoDescription: seo.seoDescription,
         works: { connect: workIds.map((id) => ({ id })) },
@@ -339,6 +344,7 @@ export async function updateClassicPageAction(
         image: image || null,
         sortOrder: data.sortOrder,
         isActive: data.isActive,
+        sidebarEnabled: data.sidebarEnabled,
         seoTitle: seo.seoTitle,
         seoDescription: seo.seoDescription,
         works: { set: workIds.map((workId) => ({ id: workId })) },
@@ -439,6 +445,9 @@ function parseMetaPayload(formData: FormData) {
   const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10);
   const isActive =
     formData.get("isActive") === "on" || formData.get("isActive") === "true";
+  const sidebarEnabled =
+    formData.get("sidebarEnabled") === "on" ||
+    formData.get("sidebarEnabled") === "true";
 
   return {
     title,
@@ -447,6 +456,7 @@ function parseMetaPayload(formData: FormData) {
     seoDescription,
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     isActive,
+    sidebarEnabled,
   };
 }
 
@@ -504,6 +514,7 @@ export async function createAdvancedPageAction(
         slug,
         sortOrder,
         isActive: data.isActive,
+        sidebarEnabled: data.sidebarEnabled,
         seoTitle: seo.seoTitle,
         seoDescription: seo.seoDescription,
       },
@@ -562,6 +573,7 @@ export async function updateAdvancedPageMetaAction(
         slug,
         sortOrder: data.sortOrder,
         isActive: data.isActive,
+        sidebarEnabled: data.sidebarEnabled,
         seoTitle: seo.seoTitle,
         seoDescription: seo.seoDescription,
       },

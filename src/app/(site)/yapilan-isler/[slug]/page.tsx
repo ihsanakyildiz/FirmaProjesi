@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { preload } from "react-dom";
 import { WorkDetailView } from "@/components/site/work/work-detail-view";
 import { JsonLd } from "@/components/site/json-ld";
+import { SiteSidebarRenderer } from "@/components/site/site-sidebar-slot";
 import { prepareRichHtml } from "@/lib/html";
 import { buildServiceJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
 import { buildPublicMetadata, resolveWorkSeo } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
+import { getSidebarByLocation } from "@/lib/site-sidebars";
 import {
   getCachedFallbackWorkSkills,
   getCachedWorkBySlug,
@@ -61,9 +63,10 @@ export async function generateMetadata({
 export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
   const { slug } = await params;
 
-  const [work, settings] = await Promise.all([
+  const [work, settings, cmsSidebar] = await Promise.all([
     getCachedWorkBySlug(slug),
     getSettingsMap().catch(() => ({}) as Record<string, string>),
+    getSidebarByLocation("WORKS_DETAIL"),
   ]);
 
   if (!work) notFound();
@@ -163,6 +166,12 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
           summary: project.summary,
           image: withCdnUrl(project.image, perf.cdnUrl),
         }))}
+        sidebar={
+          cmsSidebar ? (
+            <SiteSidebarRenderer sidebar={cmsSidebar} embedded />
+          ) : undefined
+        }
+        sidebarPlacement={cmsSidebar?.placement ?? "RIGHT"}
       />
       <HomeCta />
     </>

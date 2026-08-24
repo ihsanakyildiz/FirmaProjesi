@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { JsonLd } from "@/components/site/json-ld";
 import { ProjectCard } from "@/components/site/project/project-card";
 import { ProjectCategorySidebar } from "@/components/site/project/project-category-sidebar";
+import { SiteSidebarPageLayout } from "@/components/site/site-sidebar-layout";
 import { SitePagination } from "@/components/site/site-pagination";
 import { buildCollectionJsonLd } from "@/lib/json-ld";
 import { parsePerformance, withCdnUrl } from "@/lib/performance";
@@ -95,36 +96,36 @@ export default async function ProjectsIndexPage({
       </section>
 
       <section className="py-14">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12 lg:px-8">
-          <ProjectCategorySidebar categories={categories} />
-          <div className="min-w-0">
-            {gridProjects.length === 0 ? (
-              <p className="py-10 text-sm text-site-muted">
-                Henüz yayınlanmış proje yok.
-              </p>
-            ) : (
-              <>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  {gridProjects.map((project, index) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={{
-                        ...project,
-                        image: withCdnUrl(project.image, perf.cdnUrl),
-                      }}
-                      imagePriority={index === 0}
-                    />
-                  ))}
-                </div>
-                <SitePagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  hrefForPage={pageHref}
-                />
-              </>
-            )}
-          </div>
-        </div>
+        <SiteSidebarPageLayout
+          location="PROJECTS_LIST"
+          fallbackSidebar={<ProjectCategorySidebar categories={categories} />}
+        >
+          {gridProjects.length === 0 ? (
+            <p className="py-10 text-sm text-site-muted">
+              Henüz yayınlanmış proje yok.
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-6 sm:grid-cols-2">
+                {gridProjects.map((project, index) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={{
+                      ...project,
+                      image: withCdnUrl(project.image, perf.cdnUrl),
+                    }}
+                    imagePriority={index === 0}
+                  />
+                ))}
+              </div>
+              <SitePagination
+                currentPage={page}
+                totalPages={totalPages}
+                hrefForPage={pageHref}
+              />
+            </>
+          )}
+        </SiteSidebarPageLayout>
       </section>
 
       <HomeCta />
