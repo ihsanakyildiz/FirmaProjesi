@@ -74,7 +74,23 @@ body {
 .site-shell {
   background: var(--site-bg);
   color: var(--site-fg);
-  font-family: var(--font-plus-jakarta), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--site-font, var(--font-plus-jakarta)), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.site-shell :where(.rounded-md) {
+  border-radius: var(--site-radius, 0.375rem);
+}
+
+.site-shell :where(.rounded-lg) {
+  border-radius: calc(var(--site-radius, 0.5rem) * 1.25);
+}
+
+.site-shell :where(.rounded-xl) {
+  border-radius: calc(var(--site-radius, 0.5rem) * 1.75);
+}
+
+.site-shell :where(.rounded-2xl) {
+  border-radius: calc(var(--site-radius, 0.5rem) * 2.5);
 }
 
 .site-grid-bg {

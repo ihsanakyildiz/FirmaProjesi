@@ -3,10 +3,12 @@ import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { DeferredAnalytics } from "@/components/site/deferred-analytics";
 import { PerformanceHead } from "@/components/site/performance-head";
 import { PerformanceProvider } from "@/components/site/performance-provider";
+import { SiteThemeStyles } from "@/components/site/site-theme-styles";
 import { RouteLoadingIndicator } from "@/components/route-loading-indicator";
 import { isAdminRequest } from "@/lib/admin-request";
 import { parsePerformance } from "@/lib/performance";
 import { getSettingsMap, isSettingEnabled } from "@/lib/settings";
+import { getThemeDefaultModeScript, parseThemeMode } from "@/lib/site-theme";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { getWebpCompanion } from "@/lib/uploads";
 import "./globals.css";
@@ -152,6 +154,7 @@ export default async function RootLayout({
     : isSettingEnabled(settings, "perf_disable_third_party", false);
   const deferAnalytics = isSettingEnabled(settings, "perf_defer_analytics", true);
   const delayMs = Number.parseInt(settings.perf_analytics_delay_ms || "3000", 10);
+  const themeDefaultMode = parseThemeMode(settings.theme_default_mode);
 
   const htmlClass = [
     smoothScroll ? "perf-smooth-scroll" : "",
@@ -172,9 +175,10 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var a=localStorage.getItem('admin-theme');if(a==='dark'){document.documentElement.classList.add('admin-dark');document.documentElement.dataset.adminTheme='dark';}else{document.documentElement.dataset.adminTheme='light';}var s=localStorage.getItem('site-theme');if(s==='dark'){document.documentElement.classList.add('site-dark');document.documentElement.dataset.siteTheme='dark';}else{document.documentElement.dataset.siteTheme='light';}}catch(e){}})();`,
+            __html: getThemeDefaultModeScript(themeDefaultMode),
           }}
         />
+        {isAdmin ? null : <SiteThemeStyles settings={settings} />}
         {isAdmin ? null : <PerformanceHead settings={settings} />}
       </head>
       <body

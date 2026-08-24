@@ -1,3 +1,5 @@
+import { themeSettingGroups } from "@/config/theme-settings";
+
 export type SettingFieldType =
   | "text"
   | "textarea"
@@ -726,7 +728,7 @@ export const performanceSettingGroups: SettingGroupDef[] = [
   },
 ];
 
-export type SettingsScope = "general" | "performance" | "all";
+export type SettingsScope = "general" | "performance" | "theme" | "all";
 
 export function getSettingGroupsByScope(scope: SettingsScope): SettingGroupDef[] {
   switch (scope) {
@@ -734,8 +736,10 @@ export function getSettingGroupsByScope(scope: SettingsScope): SettingGroupDef[]
       return settingGroups;
     case "performance":
       return performanceSettingGroups;
+    case "theme":
+      return themeSettingGroups;
     case "all":
-      return [...settingGroups, ...performanceSettingGroups];
+      return [...settingGroups, ...performanceSettingGroups, ...themeSettingGroups];
     default: {
       const _exhaustive: never = scope;
       return _exhaustive;

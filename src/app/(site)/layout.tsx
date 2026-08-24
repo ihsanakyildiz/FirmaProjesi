@@ -5,6 +5,7 @@ import { ScrollToTop } from "@/components/site/scroll-to-top";
 import type { SiteNavItem } from "@/components/site/site-types";
 import { getMenuBySlug } from "@/lib/menus";
 import { getSettingsMap } from "@/lib/settings";
+import { parseThemeMode } from "@/lib/site-theme";
 
 function fallbackNav(): SiteNavItem[] {
   return [
@@ -99,9 +100,10 @@ export default async function SiteLayout({
   ]);
 
   const siteName = settings.site_name || "İhsan Akyıldız";
+  const themeDefaultMode = parseThemeMode(settings.theme_default_mode);
 
   return (
-    <SiteThemeProvider>
+    <SiteThemeProvider defaultMode={themeDefaultMode}>
       <div className="site-shell min-h-screen">
         <a
           href="#icerik"

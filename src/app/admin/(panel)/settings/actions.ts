@@ -10,6 +10,8 @@ import {
 } from "@/config/settings";
 import { prisma } from "@/lib/prisma";
 import { getDetectedSitePath } from "@/lib/settings";
+import { isValidThemeColor, sanitizeThemeColor } from "@/lib/site-theme";
+import { THEME_DEFAULTS } from "@/config/theme-settings";
 import {
   deletePublicAsset,
   saveOptimizedImage,
@@ -31,7 +33,7 @@ function parseAcceptList(accept?: string) {
 
 function parseScope(formData: FormData): SettingsScope {
   const raw = String(formData.get("_settings_scope") ?? "general");
-  if (raw === "performance" || raw === "general" || raw === "all") {
+  if (raw === "performance" || raw === "general" || raw === "theme" || raw === "all") {
     return raw;
   }
   return "general";
@@ -94,6 +96,40 @@ async function resolveFieldValue(
   }
 
   const raw = String(formData.get(def.key) ?? "").trim();
+
+  if (def.key.startsWith("theme_light_") || def.key.startsWith("theme_dark_")) {
+    const fallback = THEME_DEFAULTS[def.key] ?? "";
+    if (raw === "") return fallback;
+    if (
+      def.key.endsWith("_glowA") ||
+      def.key.endsWith("_glowB") ||
+      def.key.endsWith("_primarySoft")
+    ) {
+      if (!isValidThemeColor(raw)) {
+        throw new Error(`${def.label}: geçerli bir hex veya rgba rengi girin.`);
+      }
+      return sanitizeThemeColor(raw, fallback);
+    }
+    if (!isValidThemeColor(raw)) {
+      throw new Error(`${def.label}: geçerli bir hex rengi girin (#RRGGBB).`);
+    }
+    return sanitizeThemeColor(raw, fallback);
+  }
+
+  if (def.key === "theme_default_mode") {
+    if (raw === "dark" || raw === "system") return raw;
+    return "light";
+  }
+
+  if (def.key === "theme_radius") {
+    if (raw === "sm" || raw === "lg") return raw;
+    return "md";
+  }
+
+  if (def.key === "theme_font") {
+    if (raw === "geist" || raw === "system") return raw;
+    return "plus-jakarta";
+  }
 
   if (
     (def.type === "password" || def.preserveIfEmpty) &&
@@ -227,12 +263,15 @@ export async function saveSettingsAction(
     revalidatePath("/");
     revalidatePath("/admin/settings");
     revalidatePath("/admin/settings/performance");
+    revalidatePath("/admin/settings/theme");
     return {
       success: true,
       message:
         scope === "performance"
           ? "Performans ayarları kaydedildi."
-          : "Ayarlar kaydedildi. Görseller optimize edildi; eski dosyalar temizlendi.",
+          : scope === "theme"
+            ? "Tema ayarları kaydedildi. Site renkleri güncellendi."
+            : "Ayarlar kaydedildi. Görseller optimize edildi; eski dosyalar temizlendi.",
     };
   } catch (error) {
     console.error(error);
