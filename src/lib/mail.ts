@@ -180,3 +180,74 @@ export function avatarTone(seed: string) {
   }
   return tones[hash] ?? tones[0]!;
 }
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export type QuotedMailMessage = {
+  fromName: string;
+  fromEmail: string;
+  subject: string;
+  bodyText: string;
+  bodyHtml: string | null;
+  receivedAt: Date | string;
+};
+
+/** Müşteriye giden yanıta orijinal mesajı ekler (hatırlatma amaçlı) */
+export function buildReplyOutboundContent(
+  replyBody: string,
+  quoted: QuotedMailMessage,
+): { text: string; html: string } {
+  const when =
+    typeof quoted.receivedAt === "string"
+      ? formatMailDate(quoted.receivedAt)
+      : formatMailDate(quoted.receivedAt.toISOString());
+
+  const quotedText = (
+    quoted.bodyText?.trim() ||
+    quoted.bodyHtml?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() ||
+    ""
+  ).trim();
+
+  const text = [
+    replyBody.trim(),
+    "",
+    "---------- Orijinal Mesaj ----------",
+    `Kimden: ${quoted.fromName} <${quoted.fromEmail}>`,
+    `Tarih: ${when}`,
+    `Konu: ${quoted.subject}`,
+    "",
+    quotedText,
+  ].join("\n");
+
+  const quotedHtmlBlock = quoted.bodyHtml?.trim()
+    ? quoted.bodyHtml
+    : `<pre style="white-space:pre-wrap;font-family:inherit;margin:0;">${escapeHtml(quotedText)}</pre>`;
+
+  const html = `
+<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">
+  <div style="white-space:pre-wrap;">${escapeHtml(replyBody.trim())}</div>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
+  <div style="padding:12px 14px;background:#f8fafc;border-left:3px solid #94a3b8;color:#475569;">
+    <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#64748b;">
+      Orijinal mesajınız (${escapeHtml(when)})
+    </p>
+    <p style="margin:0 0 4px;font-size:12px;">
+      <strong>${escapeHtml(quoted.fromName)}</strong>
+      &lt;${escapeHtml(quoted.fromEmail)}&gt;
+    </p>
+    <p style="margin:0 0 12px;font-size:12px;">
+      Konu: ${escapeHtml(quoted.subject)}
+    </p>
+    <div style="font-size:13px;color:#334155;">${quotedHtmlBlock}</div>
+  </div>
+</div>`.trim();
+
+  return { text, html };
+}
+

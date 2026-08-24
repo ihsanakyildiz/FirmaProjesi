@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Moon, Search, Sun } from "lucide-react";
+import { Menu, Moon, PanelLeft, PanelLeftClose, Search, Sun } from "lucide-react";
 import { logoutAction } from "@/app/admin/(panel)/actions";
 import { AdminNotifications } from "./admin-notifications";
 import { useSidebar } from "./sidebar-context";
@@ -19,7 +19,7 @@ export function AdminHeader({
   userRole,
   unreadNotificationCount,
 }: AdminHeaderProps) {
-  const { toggle } = useSidebar();
+  const { toggle, isCollapsed, toggleCollapsed } = useSidebar();
   const { isDark, toggleTheme } = useAdminTheme();
 
   const initials = userName
@@ -38,6 +38,20 @@ export function AdminHeader({
         aria-label="Menüyü aç"
       >
         <Menu className="h-5 w-5" />
+      </button>
+
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        className="hidden h-9 w-9 items-center justify-center rounded-md border border-[#e9ebec] text-slate-600 transition hover:bg-slate-50 lg:inline-flex"
+        aria-label={isCollapsed ? "Kenar çubuğunu genişlet" : "Kenar çubuğunu daralt"}
+        title={isCollapsed ? "Kenar çubuğunu genişlet" : "Kenar çubuğunu daralt"}
+      >
+        {isCollapsed ? (
+          <PanelLeft className="h-4 w-4" />
+        ) : (
+          <PanelLeftClose className="h-4 w-4" />
+        )}
       </button>
 
       <div className="relative hidden max-w-md flex-1 sm:block">

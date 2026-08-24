@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  collectThreadMessageIds,
+  findThreadRootId,
+} from "@/lib/mail-thread";
+import {
   getMailNotifications,
   getUnreadMailNotificationCount,
   type MailNotificationItem,
@@ -40,9 +44,6 @@ export async function fetchUnreadNotificationCountAction(): Promise<number> {
 
 export async function markMailNotificationReadAction(id: string) {
   await requireAdmin();
-  const { findThreadRootId, collectThreadMessageIds } = await import(
-    "@/lib/mail-thread"
-  );
   const rootId = await findThreadRootId(id);
   const threadIds = await collectThreadMessageIds(rootId);
 

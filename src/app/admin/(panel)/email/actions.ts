@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { buildReplyOutboundContent } from "@/lib/mail";
+import {
+  bumpThreadRootActivity,
+  buildThreadReferences,
+  collectThreadMessageIds,
+  findThreadRootId,
+} from "@/lib/mail-thread";
 import { prisma } from "@/lib/prisma";
-import { bumpThreadRootActivity, buildThreadReferences } from "@/lib/mail-thread";
 import { getSettingsMapUncached } from "@/lib/settings";
 import {
   getSmtpConfigFromSettings,
@@ -30,11 +36,37 @@ function revalidateMail() {
   revalidatePath("/admin", "layout");
 }
 
+/** Yanıta eklenecek müşteri mesajını bulur (mümkünse gelen kutusu / iletişim formu) */
+async function resolveCustomerQuoteMessage(parent: {
+  id: string;
+  folder: string;
+  fromName: string;
+  fromEmail: string;
+  subject: string;
+  bodyText: string;
+  bodyHtml: string | null;
+  receivedAt: Date;
+}) {
+  if (parent.folder !== "SENT") {
+    return parent;
+  }
+
+  const rootId = await findThreadRootId(parent.id);
+  const threadIds = await collectThreadMessageIds(rootId);
+  const inbound = await prisma.mailMessage.findMany({
+    where: {
+      id: { in: threadIds },
+      folder: { not: "SENT" },
+    },
+    orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
+    take: 1,
+  });
+
+  return inbound[0] ?? parent;
+}
+
 export async function markMailReadAction(id: string, isRead = true) {
   await requireAdmin();
-  const { findThreadRootId, collectThreadMessageIds } = await import(
-    "@/lib/mail-thread"
-  );
   const rootId = await findThreadRootId(id);
   const threadIds = await collectThreadMessageIds(rootId);
 
@@ -118,10 +150,22 @@ export async function replyMailAction(
 
     const threadHeaders = await buildThreadReferences(parent.id);
 
+    // Müşteriye giden e-postada orijinal mesajı da ekle (hatırlatma)
+    const quoteTarget = await resolveCustomerQuoteMessage(parent);
+    const outbound = buildReplyOutboundContent(body, {
+      fromName: quoteTarget.fromName,
+      fromEmail: quoteTarget.fromEmail,
+      subject: quoteTarget.subject,
+      bodyText: quoteTarget.bodyText,
+      bodyHtml: quoteTarget.bodyHtml,
+      receivedAt: quoteTarget.receivedAt,
+    });
+
     const info = await sendMailWithConfig(smtp, {
       to,
       subject,
-      text: body,
+      text: outbound.text,
+      html: outbound.html,
       replyTo: smtp.replyTo || smtp.fromEmail,
       inReplyTo: threadHeaders.inReplyTo,
       references: threadHeaders.references,

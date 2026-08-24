@@ -118,9 +118,12 @@ export async function sendMailWithConfig(config: SmtpConfig, input: SendMailInpu
         : {}),
       ...(input.references
         ? {
-            References: input.references.startsWith("<")
-              ? input.references
-              : `<${input.references}>`,
+            References: input.references
+              .split(/\s+/)
+              .map((id) => id.trim())
+              .filter(Boolean)
+              .map((id) => (id.startsWith("<") ? id : `<${id}>`))
+              .join(" "),
           }
         : {}),
     },
