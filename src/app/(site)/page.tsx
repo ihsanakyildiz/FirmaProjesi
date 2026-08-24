@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { HomeHero } from "@/components/site/home/home-hero";
+import { HomeHeroSlider } from "@/components/site/home/home-hero-slider";
 import { JsonLd } from "@/components/site/json-ld";
 import { PageSectionsRenderer } from "@/components/site/page-sections-renderer";
-import { DEFAULT_HERO_SLIDE, getHeroBySlug } from "@/lib/heroes";
+import {
+  DEFAULT_HERO_SLIDE,
+  getHeroBySlug,
+  mapHeroSlideToProps,
+} from "@/lib/heroes";
 import { getFaqGroupBySlug } from "@/lib/faqs";
 import { buildHomeJsonLd } from "@/lib/json-ld";
 import { getCachedHomepageAdvanced } from "@/lib/pages";
@@ -203,24 +207,10 @@ export default async function HomePage() {
     getActivePricingPlans().catch(() => []),
   ]);
 
-  const slide = hero?.slides?.[0];
-  const collage =
-    slide?.media
-      ?.filter((item) => item.kind === "COLLAGE")
-      .map((item) => ({ src: item.image, alt: item.alt || item.label || siteName })) ?? [];
-  const logos =
-    slide?.media
-      ?.filter((item) => item.kind === "LOGO")
-      .map((item) => ({
-        src: item.image,
-        alt: item.alt || item.label || "Logo",
-        label: item.label || "Logo",
-        href: item.href,
-      })) ?? [];
-  const avatars =
-    slide?.media
-      ?.filter((item) => item.kind === "AVATAR")
-      .map((item) => ({ src: item.image, alt: item.alt || "" })) ?? [];
+  const heroSlides =
+    hero?.slides?.map((item, index) =>
+      mapHeroSlideToProps(item, siteName, { priority: index === 0 }),
+    ) ?? [];
 
   const classicCards = cards.filter((card) => card.type === "CLASSIC").slice(0, 6);
   const advancedCard =
@@ -241,25 +231,25 @@ export default async function HomePage() {
           })),
         })}
       />
-      <HomeHero
-        kicker={slide?.kicker}
-        badgeText={slide?.badgeText}
-        headline={slide?.headline ?? DEFAULT_HERO_SLIDE.headline}
-        headlineAccent={slide?.headlineAccent}
-        subheadline={slide?.subheadline}
-        ctaLabel={slide?.ctaLabel}
-        ctaUrl={slide?.ctaUrl}
-        ctaSecondaryLabel={slide?.ctaSecondaryLabel}
-        ctaSecondaryUrl={slide?.ctaSecondaryUrl}
-        trustLabel={slide?.trustLabel}
-        showStars={slide?.showStars ?? true}
-        starCount={slide?.starCount ?? 5}
-        showAvatars={slide?.showAvatars ?? true}
-        layout={slide?.layout ?? "SPLIT_COLLAGE"}
-        collageImages={collage}
-        logos={logos}
-        avatars={avatars}
-        backgroundStyle={slide?.backgroundStyle ?? "grid"}
+      <HomeHeroSlider
+        slides={
+          heroSlides.length > 0
+            ? heroSlides
+            : [
+                mapHeroSlideToProps(
+                  {
+                    ...DEFAULT_HERO_SLIDE,
+                    headline: DEFAULT_HERO_SLIDE.headline,
+                  },
+                  siteName,
+                  { priority: true },
+                ),
+              ]
+        }
+        autoplay={hero?.autoplay ?? true}
+        intervalMs={hero?.intervalMs ?? 6000}
+        showDots={hero?.showDots ?? true}
+        showArrows={hero?.showArrows ?? true}
       />
 
       <HomeTrusted

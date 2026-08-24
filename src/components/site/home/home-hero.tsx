@@ -1,3 +1,5 @@
+"use client";
+
 import { ArrowUpRight, Rocket, Star } from "lucide-react";
 import { SiteImage } from "@/components/site/site-image";
 import { SiteLink } from "@/components/site/site-link";
@@ -22,6 +24,7 @@ export type HomeHeroProps = {
   logos?: Array<{ src: string; alt: string; label: string; href?: string | null }>;
   avatars?: Array<{ src: string; alt: string }>;
   backgroundStyle?: string | null;
+  priority?: boolean;
 };
 
 function resolveLayout(value?: string | null): HeroLayoutValue {
@@ -50,6 +53,7 @@ export function HomeHero({
   logos = [],
   avatars = [],
   backgroundStyle = "grid",
+  priority = false,
 }: HomeHeroProps) {
   const layout = resolveLayout(layoutProp);
   const isCentered = layout === "CENTERED";
@@ -218,7 +222,7 @@ export function HomeHero({
               src={images[0].src}
               alt={images[0].alt || "Hero"}
               fill
-              priority
+              priority={priority}
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 520px"
             />
@@ -283,7 +287,7 @@ export function HomeHero({
             src={images[0].src}
             alt=""
             fill
-            priority
+            priority={priority}
             className="object-cover"
             sizes="100vw"
           />

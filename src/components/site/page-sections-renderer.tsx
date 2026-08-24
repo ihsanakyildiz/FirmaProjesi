@@ -1,12 +1,12 @@
 import type { CardLayout } from "@prisma/client";
 import dynamic from "next/dynamic";
-import { HomeHero } from "@/components/site/home/home-hero";
+import { HomeHeroSlider } from "@/components/site/home/home-hero-slider";
 import { SiteLink } from "@/components/site/site-link";
 import {
   groupGridChildren,
   PageGridRow,
 } from "@/components/site/page-grid-row";
-import { DEFAULT_HERO_SLIDE } from "@/lib/heroes";
+import { DEFAULT_HERO_SLIDE, mapHeroSlideToProps } from "@/lib/heroes";
 import { highlightRichCodeBlocks } from "@/lib/highlight-rich-html";
 import type { ResolvedPageSection } from "@/lib/pages";
 import {
@@ -180,52 +180,32 @@ export function PageSectionsRenderer({
         switch (section.type) {
           case "HERO": {
             if (nested) return null;
-            const slide = section.hero?.slides?.[0];
-            const collage =
-              slide?.media
-                ?.filter((item) => item.kind === "COLLAGE")
-                .map((item) => ({
-                  src: item.image,
-                  alt: item.alt || item.label || siteName,
-                })) ?? [];
-            const logos =
-              slide?.media
-                ?.filter((item) => item.kind === "LOGO")
-                .map((item) => ({
-                  src: item.image,
-                  alt: item.alt || item.label || "Logo",
-                  label: item.label || "Logo",
-                  href: item.href,
-                })) ?? [];
-            const avatars =
-              slide?.media
-                ?.filter((item) => item.kind === "AVATAR")
-                .map((item) => ({ src: item.image, alt: item.alt || "" })) ?? [];
+            const heroSlides =
+              section.hero?.slides?.map((item, index) =>
+                mapHeroSlideToProps(item, siteName, { priority: index === 0 }),
+              ) ?? [];
+
+            const slides =
+              heroSlides.length > 0
+                ? heroSlides
+                : [
+                    mapHeroSlideToProps(
+                      {
+                        ...DEFAULT_HERO_SLIDE,
+                        headline: DEFAULT_HERO_SLIDE.headline,
+                      },
+                      siteName,
+                      { priority: true },
+                    ),
+                  ];
 
             return shell(
-              <HomeHero
-                kicker={slide?.kicker}
-                badgeText={slide?.badgeText}
-                headline={slide?.headline ?? DEFAULT_HERO_SLIDE.headline}
-                headlineAccent={
-                  slide?.headlineAccent ?? DEFAULT_HERO_SLIDE.headlineAccent
-                }
-                subheadline={
-                  slide?.subheadline ?? DEFAULT_HERO_SLIDE.subheadline
-                }
-                ctaLabel={slide?.ctaLabel ?? DEFAULT_HERO_SLIDE.ctaLabel}
-                ctaUrl={slide?.ctaUrl ?? "/iletisim"}
-                ctaSecondaryLabel={slide?.ctaSecondaryLabel}
-                ctaSecondaryUrl={slide?.ctaSecondaryUrl}
-                trustLabel={slide?.trustLabel ?? DEFAULT_HERO_SLIDE.trustLabel}
-                showStars={slide?.showStars ?? true}
-                starCount={slide?.starCount ?? 5}
-                showAvatars={slide?.showAvatars ?? true}
-                layout={slide?.layout ?? "SPLIT_COLLAGE"}
-                collageImages={collage}
-                logos={logos}
-                avatars={avatars}
-                backgroundStyle={slide?.backgroundStyle ?? "grid"}
+              <HomeHeroSlider
+                slides={slides}
+                autoplay={section.hero?.autoplay ?? true}
+                intervalMs={section.hero?.intervalMs ?? 6000}
+                showDots={section.hero?.showDots ?? true}
+                showArrows={section.hero?.showArrows ?? true}
               />,
             );
           }

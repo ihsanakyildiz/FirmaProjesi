@@ -113,6 +113,23 @@ body {
   opacity: 1;
 }
 
+.site-hero-swiper .swiper-pagination {
+  bottom: 1.25rem !important;
+  z-index: 20;
+}
+
+.site-hero-swiper .swiper-pagination-bullet {
+  background: #fff;
+  opacity: 0.45;
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+.site-hero-swiper .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: var(--site-primary);
+}
+
 @keyframes site-float {
   0%,
   100% {
