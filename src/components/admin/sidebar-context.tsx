@@ -4,108 +4,114 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-
-const STORAGE_KEY = "admin-sidebar-mode";
-const LEGACY_STORAGE_KEY = "admin-sidebar-collapsed";
-
-/** lg breakpoint — Tailwind lg = 1024px */
-export const SIDEBAR_DESKTOP_MIN = 1024;
-/** Bu genişliğin altında masaüstünde otomatik ikon modu */
-export const SIDEBAR_AUTO_COLLAPSE_MAX = 1280;
-
-export type SidebarMode = "auto" | "expanded" | "collapsed";
+import {
+  applySidebarDataset,
+  readStoredSidebarMode,
+  resolveSidebarCollapsed,
+  SIDEBAR_AUTO_COLLAPSE_MAX,
+  SIDEBAR_DESKTOP_MIN,
+  writeStoredSidebarMode,
+  type SidebarMode,
+} from "@/lib/admin-sidebar-preference";
 
 type SidebarContextValue = {
-  /** Mobil çekmece açık mı */
   isOpen: boolean;
   toggle: () => void;
   close: () => void;
-  /** lg ve üzeri mi */
   isDesktop: boolean;
-  /** Kullanıcı tercihi / otomatik */
   mode: SidebarMode;
-  /** Gerçekte uygulanan daraltılmış görünüm (mobilde her zaman false) */
   isCollapsed: boolean;
+  allowTransition: boolean;
   toggleCollapsed: () => void;
   setMode: (mode: SidebarMode) => void;
 };
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
-function readStoredMode(): SidebarMode {
-  if (typeof window === "undefined") return "auto";
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "auto" || stored === "expanded" || stored === "collapsed") {
-      return stored;
+type SidebarProviderProps = {
+  children: ReactNode;
+  /** Sunucunun cookie'den okuduğu son masaüstü görünümü */
+  initialCollapsed?: boolean;
+};
+
+export function SidebarProvider({
+  children,
+  initialCollapsed = false,
+}: SidebarProviderProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [mode, setModeState] = useState<SidebarMode>(() => {
+    if (typeof window !== "undefined") return readStoredSidebarMode();
+    // SSR: cookie ile aynı görünümü üret
+    return initialCollapsed ? "collapsed" : "expanded";
+  });
+  // Sunucu ile aynı ilk görünüm — menü boşalıp dolmasın
+  const [viewportWidth, setViewportWidth] = useState(() => {
+    if (typeof window !== "undefined") return window.innerWidth;
+    return initialCollapsed
+      ? SIDEBAR_DESKTOP_MIN
+      : SIDEBAR_AUTO_COLLAPSE_MAX;
+  });
+  const [allowTransition, setAllowTransition] = useState(false);
+
+  useLayoutEffect(() => {
+    const width = window.innerWidth;
+    const storedMode = readStoredSidebarMode();
+    const collapsed = resolveSidebarCollapsed(storedMode, width);
+
+    setModeState(storedMode);
+    setViewportWidth(width);
+    applySidebarDataset(collapsed);
+    if (width < SIDEBAR_DESKTOP_MIN) {
+      setIsOpen(false);
     }
 
-    // Eski anahtar: 0/1
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy === "1") return "collapsed";
-    if (legacy === "0") return "expanded";
-  } catch {
-    /* ignore */
-  }
-  return "auto";
-}
-
-function writeStoredMode(mode: SidebarMode) {
-  try {
-    localStorage.setItem(STORAGE_KEY, mode);
-  } catch {
-    /* ignore */
-  }
-}
-
-function resolveCollapsed(mode: SidebarMode, width: number): boolean {
-  if (width < SIDEBAR_DESKTOP_MIN) return false;
-  if (mode === "collapsed") return true;
-  if (mode === "expanded") return false;
-  // auto
-  return width < SIDEBAR_AUTO_COLLAPSE_MAX;
-}
-
-export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [mode, setModeState] = useState<SidebarMode>("auto");
-  const [viewportWidth, setViewportWidth] = useState(SIDEBAR_DESKTOP_MIN);
-
-  useEffect(() => {
-    setModeState(readStoredMode());
+    const frame = requestAnimationFrame(() => {
+      setAllowTransition(true);
+    });
 
     const syncWidth = () => {
-      const width = window.innerWidth;
-      setViewportWidth(width);
-      if (width < SIDEBAR_DESKTOP_MIN) {
+      const nextWidth = window.innerWidth;
+      setViewportWidth(nextWidth);
+      setModeState((current) => {
+        applySidebarDataset(resolveSidebarCollapsed(current, nextWidth));
+        return current;
+      });
+      if (nextWidth < SIDEBAR_DESKTOP_MIN) {
         setIsOpen(false);
       }
     };
 
-    syncWidth();
     window.addEventListener("resize", syncWidth);
-    return () => window.removeEventListener("resize", syncWidth);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", syncWidth);
+    };
   }, []);
 
   const isDesktop = viewportWidth >= SIDEBAR_DESKTOP_MIN;
-  const isCollapsed = resolveCollapsed(mode, viewportWidth);
+  const isCollapsed = resolveSidebarCollapsed(mode, viewportWidth);
 
   const setMode = useCallback((next: SidebarMode) => {
     setModeState(next);
-    writeStoredMode(next);
+    writeStoredSidebarMode(next);
+    const width =
+      typeof window !== "undefined" ? window.innerWidth : SIDEBAR_DESKTOP_MIN;
+    applySidebarDataset(resolveSidebarCollapsed(next, width));
   }, []);
 
   const toggleCollapsed = useCallback(() => {
     setModeState((current) => {
-      const width = typeof window !== "undefined" ? window.innerWidth : SIDEBAR_DESKTOP_MIN;
-      const currentlyCollapsed = resolveCollapsed(current, width);
+      const width =
+        typeof window !== "undefined" ? window.innerWidth : SIDEBAR_DESKTOP_MIN;
+      const currentlyCollapsed = resolveSidebarCollapsed(current, width);
       const next: SidebarMode = currentlyCollapsed ? "expanded" : "collapsed";
-      writeStoredMode(next);
+      writeStoredSidebarMode(next);
+      applySidebarDataset(resolveSidebarCollapsed(next, width));
       return next;
     });
   }, []);
@@ -118,10 +124,19 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       isDesktop,
       mode,
       isCollapsed,
+      allowTransition,
       toggleCollapsed,
       setMode,
     }),
-    [isOpen, isDesktop, mode, isCollapsed, toggleCollapsed, setMode],
+    [
+      isOpen,
+      isDesktop,
+      mode,
+      isCollapsed,
+      allowTransition,
+      toggleCollapsed,
+      setMode,
+    ],
   );
 
   return (

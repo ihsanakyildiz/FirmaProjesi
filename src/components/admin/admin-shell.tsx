@@ -12,6 +12,7 @@ type AdminShellProps = {
   userEmail: string;
   userRole: string;
   unreadNotificationCount: number;
+  initialSidebarCollapsed?: boolean;
 };
 
 function AdminShellLayout({
@@ -20,8 +21,8 @@ function AdminShellLayout({
   userEmail,
   userRole,
   unreadNotificationCount,
-}: AdminShellProps) {
-  const { isCollapsed, isDesktop } = useSidebar();
+}: Omit<AdminShellProps, "initialSidebarCollapsed">) {
+  const { isCollapsed, isDesktop, allowTransition } = useSidebar();
   const iconMode = isDesktop && isCollapsed;
 
   return (
@@ -31,9 +32,12 @@ function AdminShellLayout({
     >
       <AdminSidebar />
       <div
-        className={`transition-[padding] duration-300 ease-out ${
-          iconMode ? "lg:pl-[72px]" : "lg:pl-[260px]"
-        }`}
+        className={`admin-shell-main ${
+          allowTransition
+            ? "transition-[padding] duration-300 ease-out"
+            : "transition-none"
+        } ${iconMode ? "lg:pl-[72px]" : "lg:pl-[260px]"}`}
+        suppressHydrationWarning
       >
         <AdminHeader
           userName={userName}
@@ -47,10 +51,13 @@ function AdminShellLayout({
   );
 }
 
-export function AdminShell(props: AdminShellProps) {
+export function AdminShell({
+  initialSidebarCollapsed = false,
+  ...props
+}: AdminShellProps) {
   return (
     <AdminThemeProvider>
-      <SidebarProvider>
+      <SidebarProvider initialCollapsed={initialSidebarCollapsed}>
         <AdminShellLayout {...props} />
       </SidebarProvider>
     </AdminThemeProvider>

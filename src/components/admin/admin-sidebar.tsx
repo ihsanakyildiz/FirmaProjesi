@@ -352,9 +352,13 @@ function NavLink({
 }
 
 export function AdminSidebar() {
-  const { isOpen, close, isCollapsed, isDesktop, toggleCollapsed } = useSidebar();
+  const { isOpen, close, isCollapsed, isDesktop, allowTransition, toggleCollapsed } =
+    useSidebar();
   // Mobilde her zaman tam menü; ikon modu yalnızca masaüstünde
   const iconMode = isDesktop && isCollapsed;
+  const widthTransition = allowTransition
+    ? "transition-[width,transform] duration-300 ease-out"
+    : "transition-none";
 
   return (
     <>
@@ -368,9 +372,10 @@ export function AdminSidebar() {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(260px,85vw)] flex-col overflow-hidden bg-[#405189] text-white transition-[width,transform] duration-300 ease-out lg:translate-x-0 ${
+        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(260px,85vw)] flex-col overflow-hidden bg-[#405189] text-white lg:translate-x-0 ${widthTransition} ${
           iconMode ? "lg:w-[72px]" : "lg:w-[260px]"
         } ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        suppressHydrationWarning
       >
         <div
           className={`flex h-16 shrink-0 items-center border-b border-white/10 ${

@@ -516,6 +516,25 @@ html.perf-font-swap {
   height: 0;
 }
 
+/* Sidebar tercihini boyamadan uygula — refresh flicker önler */
+@media (min-width: 1024px) {
+  html[data-admin-sidebar="collapsed"] .admin-sidebar {
+    width: 72px;
+  }
+
+  html[data-admin-sidebar="expanded"] .admin-sidebar {
+    width: 260px;
+  }
+
+  html[data-admin-sidebar="collapsed"] .admin-shell-main {
+    padding-left: 72px;
+  }
+
+  html[data-admin-sidebar="expanded"] .admin-shell-main {
+    padding-left: 260px;
+  }
+}
+
 .admin-scroll-light {
   scrollbar-width: thin;
   scrollbar-color: #c5cbd3 #f3f6f9;
