@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { bumpThreadRootActivity } from "@/lib/mail-thread";
+import { bumpThreadRootActivity, buildThreadReferences } from "@/lib/mail-thread";
 import { getSettingsMapUncached } from "@/lib/settings";
 import {
   getSmtpConfigFromSettings,
@@ -106,13 +106,25 @@ export async function replyMailAction(
       ? parent.subject
       : `Re: ${parent.subject}`;
 
+    // Contact form kökünde Message-ID yoksa üret; In-Reply-To / References için gerekli
+    if (!parent.externalId) {
+      const generatedId = `contact.${parent.id}@local`;
+      await prisma.mailMessage.update({
+        where: { id: parent.id },
+        data: { externalId: generatedId },
+      });
+      parent.externalId = generatedId;
+    }
+
+    const threadHeaders = await buildThreadReferences(parent.id);
+
     const info = await sendMailWithConfig(smtp, {
       to,
       subject,
       text: body,
       replyTo: smtp.replyTo || smtp.fromEmail,
-      inReplyTo: parent.externalId,
-      references: parent.externalId,
+      inReplyTo: threadHeaders.inReplyTo,
+      references: threadHeaders.references,
     });
 
     const preview = body.replace(/\s+/g, " ").slice(0, 180);

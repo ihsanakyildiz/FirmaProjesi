@@ -12,6 +12,7 @@ import {
   getMailMessageDetail,
   listMailMessagesPage,
 } from "@/lib/mail-queries";
+import { relinkOrphanMailReplies } from "@/lib/mail-imap-sync";
 
 export const metadata: Metadata = {
   title: "E-posta",
@@ -34,6 +35,9 @@ export default async function AdminEmailPage({ searchParams }: EmailPageProps) {
   const label = resolveMailLabelKey(params.label);
   const query = (params.q ?? "").trim();
   const selectedId = (params.id ?? "").trim() || null;
+
+  // Daha önce parent’sız düşmüş Re: mesajlarını yazışmaya bağla (IMAP yok)
+  await relinkOrphanMailReplies(30).catch(() => 0);
 
   const [messagePage, counts, mailDetail] = await Promise.all([
     listMailMessagesPage({ folder, label, q: query }),

@@ -54,3 +54,46 @@ export async function bumpThreadRootActivity(
     },
   });
 }
+
+/** Re:/Fwd:/Ynt: öneklerini temizleyip karşılaştırılabilir konu üretir */
+export function normalizeMailSubject(subject: string): string {
+  let value = subject.trim();
+  for (let i = 0; i < 8; i += 1) {
+    const next = value
+      .replace(/^(re|fw|fwd|ynt|cevap|yanıt|yanit)\s*:\s*/i, "")
+      .trim();
+    if (next === value) break;
+    value = next;
+  }
+  return value.replace(/\s+/g, " ").trim();
+}
+
+export function normalizeMailAddress(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** Thread’deki Message-ID zincirini SMTP References başlığı için üretir */
+export async function buildThreadReferences(
+  messageId: string,
+): Promise<{ inReplyTo: string | null; references: string | null }> {
+  const rootId = await findThreadRootId(messageId);
+  const threadIds = await collectThreadMessageIds(rootId);
+  const rows = await prisma.mailMessage.findMany({
+    where: {
+      id: { in: threadIds },
+      externalId: { not: null },
+    },
+    select: { id: true, externalId: true, receivedAt: true },
+    orderBy: [{ receivedAt: "asc" }, { id: "asc" }],
+  });
+
+  const ids = rows
+    .map((row) => row.externalId)
+    .filter((value): value is string => Boolean(value));
+
+  const parent = rows.find((row) => row.id === messageId);
+  const inReplyTo = parent?.externalId ?? ids[ids.length - 1] ?? null;
+  const references = ids.length > 0 ? ids.join(" ") : inReplyTo;
+
+  return { inReplyTo, references };
+}

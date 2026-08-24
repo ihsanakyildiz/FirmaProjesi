@@ -154,6 +154,7 @@ export async function submitContactFormAction(
     const preview = bodyText.replace(/\s+/g, " ").slice(0, 180);
 
     if (inbox.storeContactMessages) {
+      const externalId = `contact.${crypto.randomUUID()}@local`;
       await prisma.mailMessage.create({
         data: {
           folder: "INBOX",
@@ -167,6 +168,7 @@ export async function submitContactFormAction(
           bodyText,
           label: "contact",
           isRead: false,
+          externalId,
           receivedAt: new Date(),
         },
       });

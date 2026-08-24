@@ -6,11 +6,16 @@ import {
 } from "@/lib/mail-inbox";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMapUncached } from "@/lib/settings";
-import { bumpThreadRootActivity } from "@/lib/mail-thread";
+import {
+  bumpThreadRootActivity,
+  normalizeMailAddress,
+  normalizeMailSubject,
+} from "@/lib/mail-thread";
 
-const SYNC_COOLDOWN_MS = 120_000;
-const SYNC_TIMEOUT_MS = 8_000;
-const MAX_SYNC_MESSAGES = 20;
+const SYNC_COOLDOWN_MS = 60_000;
+const SYNC_TIMEOUT_MS = 20_000;
+const MAX_SYNC_MESSAGES = 40;
+const RECENT_LOOKBACK = 80;
 
 let lastImapSyncAt = 0;
 let syncInFlight: Promise<number> | null = null;
@@ -34,6 +39,7 @@ type ParsedIncomingMail = {
   bodyHtml: string | null;
   receivedAt: Date;
   inReplyTo: string | null;
+  references: string[];
 };
 
 function withTimeout<T>(
@@ -93,6 +99,20 @@ function normalizeMessageId(value: string | null | undefined): string | null {
   return raw || null;
 }
 
+function parseReferences(value: string | null | undefined): string[] {
+  if (!value) return [];
+  const matches = value.match(/<[^>]+>/g);
+  if (matches?.length) {
+    return matches
+      .map((item) => normalizeMessageId(item))
+      .filter((item): item is string => Boolean(item));
+  }
+  return value
+    .split(/\s+/)
+    .map((item) => normalizeMessageId(item))
+    .filter((item): item is string => Boolean(item));
+}
+
 function hasImapAttachments(
   structure: { disposition?: string; type?: string; childNodes?: unknown[] } | false | undefined,
 ): boolean {
@@ -109,43 +129,71 @@ function hasImapAttachments(
   return false;
 }
 
+async function findByExternalId(externalId: string) {
+  return prisma.mailMessage.findFirst({
+    where: { externalId },
+    select: { id: true, parentId: true },
+    orderBy: { receivedAt: "desc" },
+  });
+}
+
 async function resolveParentId(
-  mail: Pick<ParsedIncomingMail, "fromEmail" | "subject" | "inReplyTo">,
+  mail: Pick<
+    ParsedIncomingMail,
+    "fromEmail" | "subject" | "inReplyTo" | "references"
+  >,
 ): Promise<string | null> {
-  const inReplyTo = normalizeMessageId(mail.inReplyTo);
-  if (inReplyTo) {
-    const byExternal = await prisma.mailMessage.findFirst({
-      where: { externalId: inReplyTo },
-      select: { id: true },
-      orderBy: { receivedAt: "desc" },
-    });
+  const candidateIds = [
+    mail.inReplyTo,
+    ...mail.references.slice().reverse(),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const externalId of candidateIds) {
+    const byExternal = await findByExternalId(externalId);
     if (byExternal) return byExternal.id;
   }
 
-  const baseSubject = mail.subject.replace(/^re:\s*/i, "").trim();
+  const baseSubject = normalizeMailSubject(mail.subject);
   if (!baseSubject) return null;
 
-  const sent = await prisma.mailMessage.findFirst({
+  const fromEmail = normalizeMailAddress(mail.fromEmail);
+  const subjectNeedle = baseSubject.slice(0, 120);
+
+  const sentCandidates = await prisma.mailMessage.findMany({
     where: {
       folder: "SENT",
-      toEmail: mail.fromEmail,
-      subject: { contains: baseSubject.slice(0, 120) },
+      subject: { contains: subjectNeedle },
     },
-    select: { id: true },
+    select: { id: true, toEmail: true, receivedAt: true },
     orderBy: { receivedAt: "desc" },
+    take: 20,
   });
+
+  const sent = sentCandidates.find(
+    (row) => normalizeMailAddress(row.toEmail) === fromEmail,
+  );
   if (sent) return sent.id;
 
-  const thread = await prisma.mailMessage.findFirst({
+  const inboxCandidates = await prisma.mailMessage.findMany({
     where: {
       folder: "INBOX",
-      fromEmail: mail.fromEmail,
-      subject: { contains: baseSubject.slice(0, 120) },
+      subject: { contains: subjectNeedle },
+      parentId: null,
     },
-    select: { id: true },
+    select: { id: true, fromEmail: true, replyToEmail: true, receivedAt: true },
     orderBy: { receivedAt: "desc" },
+    take: 20,
   });
-  return thread?.id ?? null;
+
+  const inbox = inboxCandidates.find((row) => {
+    const from = normalizeMailAddress(row.fromEmail);
+    const replyTo = row.replyToEmail
+      ? normalizeMailAddress(row.replyToEmail)
+      : null;
+    return from === fromEmail || replyTo === fromEmail;
+  });
+
+  return inbox?.id ?? null;
 }
 
 function parseFromEnvelope(
@@ -159,6 +207,7 @@ function parseFromEnvelope(
   },
   uid: number,
   folder: string,
+  referencesHeader?: string | null,
 ): ParsedIncomingMail | null {
   const from = envelope.from?.[0];
   const fromEmail = from?.address?.trim();
@@ -186,7 +235,90 @@ function parseFromEnvelope(
     bodyHtml: null,
     receivedAt: envelope.date ?? new Date(),
     inReplyTo: normalizeMessageId(envelope.inReplyTo ?? null),
+    references: parseReferences(referencesHeader),
   };
+}
+
+/** Daha önce parent’sız düşmüş Re: mesajlarını yazışmaya bağlar */
+export async function relinkOrphanMailReplies(limit = 50): Promise<number> {
+  const orphans = await prisma.mailMessage.findMany({
+    where: {
+      folder: "INBOX",
+      parentId: null,
+      OR: [
+        { subject: { startsWith: "Re:" } },
+        { subject: { startsWith: "RE:" } },
+        { subject: { startsWith: "re:" } },
+        { subject: { startsWith: "Ynt:" } },
+        { subject: { startsWith: "YNT:" } },
+      ],
+    },
+    select: {
+      id: true,
+      fromEmail: true,
+      subject: true,
+      preview: true,
+      receivedAt: true,
+      externalId: true,
+    },
+    orderBy: { receivedAt: "desc" },
+    take: limit,
+  });
+
+  let linked = 0;
+
+  for (const orphan of orphans) {
+    const parentId = await resolveParentId({
+      fromEmail: orphan.fromEmail,
+      subject: orphan.subject,
+      inReplyTo: null,
+      references: [],
+    });
+
+    if (!parentId || parentId === orphan.id) continue;
+
+    await prisma.mailMessage.update({
+      where: { id: orphan.id },
+      data: { parentId },
+    });
+    await bumpThreadRootActivity(parentId, {
+      preview: orphan.preview,
+      receivedAt: orphan.receivedAt,
+      isRead: false,
+    });
+    linked += 1;
+  }
+
+  return linked;
+}
+
+function extractReferencesHeader(headers: unknown): string | null {
+  if (!headers) return null;
+
+  if (
+    typeof headers === "object" &&
+    headers !== null &&
+    "get" in headers &&
+    typeof (headers as { get: (key: string) => unknown }).get === "function"
+  ) {
+    const value = (headers as { get: (key: string) => unknown }).get("references");
+    if (!value) return null;
+    if (Buffer.isBuffer(value)) return value.toString("utf8");
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => (Buffer.isBuffer(item) ? item.toString("utf8") : String(item)))
+        .join(" ");
+    }
+    return String(value);
+  }
+
+  if (Buffer.isBuffer(headers)) {
+    const text = headers.toString("utf8");
+    const match = text.match(/^references:\s*([\s\S]+?)(?=\r?\n\S|\r?\n\r?\n|$)/im);
+    return match?.[1]?.replace(/\r?\n[ \t]+/g, " ").trim() ?? null;
+  }
+
+  return null;
 }
 
 async function importImapMessages(): Promise<{ imported: number }> {
@@ -209,9 +341,9 @@ async function importImapMessages(): Promise<{ imported: number }> {
       pass: imap.password,
     },
     logger: false,
-    connectionTimeout: 8_000,
-    greetingTimeout: 8_000,
-    socketTimeout: 8_000,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
   });
 
   let imported = 0;
@@ -220,28 +352,59 @@ async function importImapMessages(): Promise<{ imported: number }> {
     await client.connect();
     const lock = await client.getMailboxLock(imap.folder);
     try {
-      for await (const message of client.fetch(
-        { seen: false },
-        { uid: true, envelope: true, bodyStructure: true },
-      )) {
+      const exists =
+        typeof client.mailbox === "object" && client.mailbox
+          ? Number(client.mailbox.exists || 0)
+          : 0;
+      const startSeq = Math.max(1, exists - RECENT_LOOKBACK + 1);
+      const range = exists > 0 ? `${startSeq}:*` : "1:*";
+
+      for await (const message of client.fetch(range, {
+        uid: true,
+        envelope: true,
+        bodyStructure: true,
+        headers: ["references"],
+      })) {
         if (imported >= MAX_SYNC_MESSAGES) break;
         if (!message.envelope) continue;
+
+        const referencesHeader = extractReferencesHeader(message.headers);
 
         const parsed = parseFromEnvelope(
           message.envelope,
           message.uid,
           imap.folder,
+          referencesHeader,
         );
         if (!parsed) continue;
-        if (!matchesInboxFilter(parsed, inbox)) continue;
 
         const existing = await prisma.mailMessage.findUnique({
           where: { externalId: parsed.externalId },
-          select: { id: true },
+          select: { id: true, parentId: true },
         });
-        if (existing) continue;
+        if (existing) {
+          if (!existing.parentId) {
+            const parentId = await resolveParentId(parsed);
+            if (parentId && parentId !== existing.id) {
+              await prisma.mailMessage.update({
+                where: { id: existing.id },
+                data: { parentId },
+              });
+              await bumpThreadRootActivity(parentId, {
+                preview: parsed.preview,
+                receivedAt: parsed.receivedAt,
+                isRead: false,
+              });
+            }
+          }
+          continue;
+        }
 
         const parentId = await resolveParentId(parsed);
+        const passesFilter = matchesInboxFilter(parsed, inbox);
+        // Filtreye uymasa bile mevcut bir yazışmaya bağlanabiliyorsa içeri al
+        if (!passesFilter && !parentId) continue;
+
         const isReply =
           Boolean(parentId) || /^re:\s*/i.test(parsed.subject.trim());
         const hasAttachment = hasImapAttachments(message.bodyStructure);
@@ -288,6 +451,8 @@ async function importImapMessages(): Promise<{ imported: number }> {
       // Bağlantı zaten kapalı olabilir
     }
   }
+
+  await relinkOrphanMailReplies();
 
   return { imported };
 }
