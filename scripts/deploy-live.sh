@@ -48,9 +48,13 @@ if [[ "$STASHED" -eq 1 ]]; then
   git stash drop || true
 fi
 
-echo "==> npm ci"
+echo "==> npm bağımlılıkları"
 if [[ -f package-lock.json ]]; then
-  npm ci
+  if ! npm ci; then
+    echo "Uyarı: npm ci başarısız (lock senkron değil). npm install ile devam ediliyor."
+    rm -rf node_modules
+    npm install
+  fi
 else
   npm install
 fi

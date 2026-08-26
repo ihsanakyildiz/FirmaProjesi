@@ -51,6 +51,9 @@
     "swiper": "^14.1.0",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "@swc/helpers": "0.5.23"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
