@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { HeroLcpPreload } from "@/components/site/home/hero-lcp-preload";
 import { HomeHeroSlider } from "@/components/site/home/home-hero-slider";
 import { JsonLd } from "@/components/site/json-ld";
 import { PageSectionsRenderer } from "@/components/site/page-sections-renderer";
 import {
   DEFAULT_HERO_SLIDE,
   getHeroBySlug,
+  getHeroLcpImageUrl,
   mapHeroSlideToProps,
 } from "@/lib/heroes";
 import { getFaqGroupBySlug } from "@/lib/faqs";
@@ -231,6 +233,20 @@ export default async function HomePage() {
 
   const homeSeo = homeSeoCopy(settings);
 
+  const resolvedHeroSlides =
+    heroSlides.length > 0
+      ? heroSlides
+      : [
+          mapHeroSlideToProps(
+            {
+              ...DEFAULT_HERO_SLIDE,
+              headline: DEFAULT_HERO_SLIDE.headline,
+            },
+            siteName,
+            { priority: true },
+          ),
+        ];
+
   return (
     <>
       <JsonLd
@@ -244,21 +260,9 @@ export default async function HomePage() {
           })),
         })}
       />
+      <HeroLcpPreload src={getHeroLcpImageUrl(resolvedHeroSlides)} />
       <HomeHeroSlider
-        slides={
-          heroSlides.length > 0
-            ? heroSlides
-            : [
-                mapHeroSlideToProps(
-                  {
-                    ...DEFAULT_HERO_SLIDE,
-                    headline: DEFAULT_HERO_SLIDE.headline,
-                  },
-                  siteName,
-                  { priority: true },
-                ),
-              ]
-        }
+        slides={resolvedHeroSlides}
         autoplay={hero?.autoplay ?? true}
         intervalMs={hero?.intervalMs ?? 6000}
         showDots={hero?.showDots ?? true}

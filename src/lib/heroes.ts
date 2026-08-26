@@ -101,6 +101,13 @@ export type MappedHeroSlideProps = {
   priority?: boolean;
 };
 
+export function getHeroLcpImageUrl(
+  slides: MappedHeroSlideProps[],
+): string | null {
+  const firstImage = slides[0]?.collageImages?.[0]?.src;
+  return firstImage?.trim() ? firstImage : null;
+}
+
 export function mapHeroSlideToProps(
   slide: HeroSlideRow,
   siteName: string,

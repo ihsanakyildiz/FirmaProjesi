@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import path from "path";
+
+const emptyPolyfill = path.join(process.cwd(), "src/lib/empty-polyfill.js");
 
 const htmlCacheSeconds = Number(process.env.PERF_HTML_CACHE_SECONDS || "0");
 const assetCacheDays = Number(process.env.PERF_ASSET_CACHE_DAYS || "365");
@@ -11,6 +14,21 @@ const assetCacheControl = `public, max-age=${assetMaxAge}, immutable${
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["imapflow", "mailparser"],
+  turbopack: {
+    resolveAlias: {
+      "../build/polyfills/polyfill-module": emptyPolyfill,
+      "next/dist/build/polyfills/polyfill-module": emptyPolyfill,
+    },
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "next/dist/build/polyfills/polyfill-module": emptyPolyfill,
+      };
+    }
+    return config;
+  },
   experimental: {
     optimizePackageImports: ["lucide-react"],
     serverActions: {
