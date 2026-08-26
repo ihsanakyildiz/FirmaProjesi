@@ -9,7 +9,11 @@ export type PricingFeatureItem = {
 
 export type PricingBillingInterval = "monthly" | "yearly";
 
+/** project = tek seferlik proje bedeli; subscription = aylık/yıllık abonelik */
+export type PricingDisplayMode = "project" | "subscription";
+
 export type PricingBillingOptions = {
+  mode: PricingDisplayMode;
   monthlyEnabled: boolean;
   yearlyEnabled: boolean;
   /** true when both intervals are on — show Aylık/Yıllık switch */
@@ -17,6 +21,8 @@ export type PricingBillingOptions = {
   /** default interval when toggle is hidden or for initial state */
   defaultInterval: PricingBillingInterval;
 };
+
+export const PROJECT_PRICE_PERIOD_LABEL = "tek seferlik";
 
 export type PricingPlanView = {
   id: string;
@@ -27,6 +33,8 @@ export type PricingPlanView = {
   coverImage: string | null;
   priceMonthly: string;
   priceYearly: string;
+  priceMonthlyDiscount: string | null;
+  priceYearlyDiscount: string | null;
   showPeriod: boolean;
   featured: boolean;
   features: PricingFeatureItem[];
@@ -36,6 +44,53 @@ export type PricingPlanView = {
   stripePriceIdMonthly: string | null;
   stripePriceIdYearly: string | null;
 };
+
+export type ResolvedPlanPrice = {
+  /** Gösterilecek asıl fiyat (indirimli varsa o) */
+  price: string;
+  /** Üstü çizili liste fiyatı; indirim yoksa null */
+  compareAt: string | null;
+  discounted: boolean;
+};
+
+export function resolvePlanPrice(
+  plan: Pick<
+    PricingPlanView,
+    | "priceMonthly"
+    | "priceYearly"
+    | "priceMonthlyDiscount"
+    | "priceYearlyDiscount"
+  >,
+  interval: PricingBillingInterval,
+  mode: PricingDisplayMode = "subscription",
+): ResolvedPlanPrice {
+  const list =
+    mode === "project"
+      ? plan.priceMonthly
+      : interval === "monthly"
+        ? plan.priceMonthly
+        : plan.priceYearly;
+  const saleRaw =
+    mode === "project"
+      ? plan.priceMonthlyDiscount
+      : interval === "monthly"
+        ? plan.priceMonthlyDiscount
+        : plan.priceYearlyDiscount;
+  const sale = saleRaw?.trim() || null;
+  if (sale && sale !== list) {
+    return { price: sale, compareAt: list, discounted: true };
+  }
+  return { price: list, compareAt: null, discounted: false };
+}
+
+export function getPricingPeriodLabel(
+  billingOptions: Pick<PricingBillingOptions, "mode" | "defaultInterval">,
+): string {
+  if (billingOptions.mode === "project") {
+    return PROJECT_PRICE_PERIOD_LABEL;
+  }
+  return billingOptions.defaultInterval === "monthly" ? "ay" : "yıl";
+}
 
 const MAX_FEATURES = 12;
 
@@ -48,6 +103,8 @@ function mapPlan(plan: {
   coverImage: string | null;
   priceMonthly: string;
   priceYearly: string;
+  priceMonthlyDiscount?: string | null;
+  priceYearlyDiscount?: string | null;
   showPeriod: boolean;
   featured: boolean;
   features: string | null;
@@ -66,6 +123,8 @@ function mapPlan(plan: {
     coverImage: plan.coverImage,
     priceMonthly: plan.priceMonthly,
     priceYearly: plan.priceYearly,
+    priceMonthlyDiscount: plan.priceMonthlyDiscount?.trim() || null,
+    priceYearlyDiscount: plan.priceYearlyDiscount?.trim() || null,
     showPeriod: plan.showPeriod,
     featured: plan.featured,
     features: parsePricingFeatures(plan.features),
@@ -123,11 +182,22 @@ export function serializePricingFeatures(
 export function resolvePricingBillingOptions(
   settings: Record<string, string>,
 ): PricingBillingOptions {
-  const monthlyEnabled = settings.pricing_billing_monthly_enabled !== "false";
-  const yearlyEnabled = settings.pricing_billing_yearly_enabled !== "false";
+  const monthlyEnabled = settings.pricing_billing_monthly_enabled === "true";
+  const yearlyEnabled = settings.pricing_billing_yearly_enabled === "true";
+
+  if (!monthlyEnabled && !yearlyEnabled) {
+    return {
+      mode: "project",
+      monthlyEnabled: false,
+      yearlyEnabled: false,
+      showToggle: false,
+      defaultInterval: "monthly",
+    };
+  }
 
   if (monthlyEnabled && yearlyEnabled) {
     return {
+      mode: "subscription",
       monthlyEnabled: true,
       yearlyEnabled: true,
       showToggle: true,
@@ -136,6 +206,7 @@ export function resolvePricingBillingOptions(
   }
   if (yearlyEnabled && !monthlyEnabled) {
     return {
+      mode: "subscription",
       monthlyEnabled: false,
       yearlyEnabled: true,
       showToggle: false,
@@ -143,7 +214,8 @@ export function resolvePricingBillingOptions(
     };
   }
   return {
-    monthlyEnabled: monthlyEnabled || !yearlyEnabled,
+    mode: "subscription",
+    monthlyEnabled: true,
     yearlyEnabled: false,
     showToggle: false,
     defaultInterval: "monthly",

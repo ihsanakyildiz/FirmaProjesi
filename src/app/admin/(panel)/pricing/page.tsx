@@ -46,6 +46,8 @@ pm2 restart ihsanakyildiz`}
         blurb: true,
         priceMonthly: true,
         priceYearly: true,
+        priceMonthlyDiscount: true,
+        priceYearlyDiscount: true,
         featured: true,
         isActive: true,
         sortOrder: true,
@@ -67,8 +69,8 @@ pm2 restart ihsanakyildiz`}
               Fiyatlandırma
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Anasayfa ve gelişmiş sayfa fiyatlandırma bölümünde gösterilecek
-              paketleri yönetin. Detay sayfası adresi: /paket/[slug]
+              Tek seferlik proje paketlerini yönetin. Fiyatlar domain &amp;
+              hostinge kurulum ve kaynak kod teslimini kapsar. Detay: /paket/[slug]
             </p>
           </div>
           <Link
@@ -90,6 +92,8 @@ pm2 restart ihsanakyildiz`}
         plans={plans.map((plan) => ({
           ...plan,
           slug: plan.slug ?? plan.id,
+          priceMonthlyDiscount: plan.priceMonthlyDiscount ?? null,
+          priceYearlyDiscount: plan.priceYearlyDiscount ?? null,
         }))}
       />
     </div>

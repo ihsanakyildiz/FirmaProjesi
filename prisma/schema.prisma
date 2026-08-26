@@ -747,6 +747,9 @@ model PricingPlan {
   coverImage            String?                  @db.VarChar(500)
   priceMonthly          String                   @db.VarChar(80)
   priceYearly           String                   @db.VarChar(80)
+  /// Doluysa sitede liste fiyatı üstü çizili, bu değer asıl fiyat olur
+  priceMonthlyDiscount  String?                  @db.VarChar(80)
+  priceYearlyDiscount   String?                  @db.VarChar(80)
   /// false ise fiyat yanında /ay /yıl gösterilmez (örn. Ücretsiz)
   showPeriod            Boolean                  @default(true)
   featured              Boolean                  @default(false)

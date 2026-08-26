@@ -3,23 +3,23 @@ import type { SettingGroupDef } from "@/config/settings";
 export const pricingSettingGroups: SettingGroupDef[] = [
   {
     id: "pricing_billing",
-    title: "Fiyatlandırma dönemi",
+    title: "Fiyatlandırma modeli",
     description:
-      "Aylık / yıllık fiyat gösterimini ve seçiciyi site genelinde açıp kapatın.",
+      "Varsayılan: tek seferlik proje bedeli. Aylık veya yıllık açarsanız abonelik moduna geçilir.",
     fields: [
       {
         key: "pricing_billing_monthly_enabled",
-        label: "Aylık fiyatlandırma",
+        label: "Aylık fiyatlandırma (abonelik)",
         type: "boolean",
-        hint: "Açıksa paketlerde aylık fiyat gösterilir.",
-        defaultValue: "true",
+        hint: "Kapalı tutulması önerilir — web/yazılım paketleri tek seferlik fiyatlandırılır.",
+        defaultValue: "false",
       },
       {
         key: "pricing_billing_yearly_enabled",
-        label: "Yıllık fiyatlandırma",
+        label: "Yıllık fiyatlandırma (abonelik)",
         type: "boolean",
-        hint: "Açıksa paketlerde yıllık fiyat gösterilir.",
-        defaultValue: "true",
+        hint: "Kapalı tutulması önerilir. İkisi de kapalıysa sitede tek seferlik proje fiyatı gösterilir.",
+        defaultValue: "false",
       },
     ],
   },

@@ -9,6 +9,8 @@ import type {
   PricingBillingOptions,
   PricingPlanView,
 } from "@/lib/pricing";
+import { resolvePlanPrice, getPricingPeriodLabel } from "@/lib/pricing";
+import { PricingPlanPrice } from "@/components/site/pricing/pricing-plan-price";
 
 export function PricingPlanDetailView({
   plan,
@@ -33,9 +35,12 @@ export function PricingPlanDetailView({
   const activeBilling = billingOptions.showToggle
     ? billing
     : billingOptions.defaultInterval;
-  const price =
-    activeBilling === "monthly" ? plan.priceMonthly : plan.priceYearly;
-  const periodLabel = activeBilling === "monthly" ? "ay" : "yıl";
+  const resolved = resolvePlanPrice(
+    plan,
+    activeBilling,
+    billingOptions.mode,
+  );
+  const periodLabel = getPricingPeriodLabel(billingOptions);
   const heroImage = coverImage || plan.coverImage;
   const ctaClass =
     "inline-flex items-center justify-center gap-2 rounded-full bg-site-primary px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-site-primary/25 transition hover:opacity-95 disabled:opacity-70";
@@ -93,22 +98,13 @@ export function PricingPlanDetailView({
             ) : null}
 
             <div className="mt-8 flex flex-wrap items-end gap-5">
-              <p
-                className={`text-4xl font-extrabold tracking-tight sm:text-5xl ${
-                  heroImage ? "text-white" : "text-site-fg"
-                }`}
-              >
-                {price}
-                {plan.showPeriod ? (
-                  <span
-                    className={`ml-2 text-sm font-medium ${
-                      heroImage ? "text-white/70" : "text-site-muted"
-                    }`}
-                  >
-                    / {periodLabel}
-                  </span>
-                ) : null}
-              </p>
+              <PricingPlanPrice
+                resolved={resolved}
+                showPeriod={plan.showPeriod}
+                periodLabel={periodLabel}
+                size="xl"
+                tone={heroImage ? "onDark" : "default"}
+              />
               {billingOptions.showToggle ? (
                 <div
                   className={`inline-flex rounded-full p-1 ${
@@ -148,6 +144,15 @@ export function PricingPlanDetailView({
                     Yıllık
                   </button>
                 </div>
+              ) : billingOptions.mode === "project" ? (
+                <p
+                  className={`max-w-md text-sm leading-relaxed ${
+                    heroImage ? "text-white/75" : "text-site-muted"
+                  }`}
+                >
+                  Tek seferlik proje bedeli — domain &amp; hostinge kurulum,
+                  kaynak kod teslimi dahil.
+                </p>
               ) : null}
             </div>
 
@@ -173,7 +178,8 @@ export function PricingPlanDetailView({
                 Neler dahil?
               </h2>
               <p className="mt-2 text-site-muted">
-                Bu paketin sunduğu başlıca özellikler.
+                Bu paketin sunduğu başlıca özellikler. Devam hizmetleri
+                (sosyal medya, dijital pazarlama, danışmanlık) isteğe bağlıdır.
               </p>
             </div>
             <ul className="mt-10 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -227,7 +233,14 @@ export function PricingPlanDetailView({
               {plan.name} ile başlayın
             </h2>
             <p className="mt-2 text-site-muted">
-              {price}
+              {resolved.compareAt ? (
+                <>
+                  <span className="line-through opacity-70">
+                    {resolved.compareAt}
+                  </span>{" "}
+                </>
+              ) : null}
+              <span className="font-semibold text-site-fg">{resolved.price}</span>
               {plan.showPeriod ? ` / ${periodLabel}` : null}
               {plan.blurb ? ` · ${plan.blurb}` : null}
             </p>

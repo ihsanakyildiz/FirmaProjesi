@@ -23,6 +23,8 @@ type PricingPlanFormInitial = {
   coverImage?: string | null;
   priceMonthly?: string;
   priceYearly?: string;
+  priceMonthlyDiscount?: string | null;
+  priceYearlyDiscount?: string | null;
   showPeriod?: boolean;
   featured?: boolean;
   features?: PricingFeatureItem[];
@@ -158,12 +160,12 @@ export function PricingPlanForm({
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Aylık fiyat
+              Proje fiyatı (tek seferlik)
             </label>
             <input
               name="priceMonthly"
               defaultValue={initial?.priceMonthly ?? ""}
-              placeholder="₺14.900 veya Ücretsiz"
+              placeholder="₺14.900 veya Teklif alın"
               required
               className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
             />
@@ -172,24 +174,26 @@ export function PricingPlanForm({
                 {state.fieldErrors.priceMonthly}
               </p>
             ) : null}
+            <p className="mt-1 text-xs text-slate-500">
+              Web / yazılım projesinin tek seferlik bedeli. Kurulum ve kaynak kod
+              teslimi bu fiyata dahildir.
+            </p>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Yıllık fiyat
+              İndirimli proje fiyatı
             </label>
             <input
-              name="priceYearly"
-              defaultValue={initial?.priceYearly ?? ""}
-              placeholder="₺149.000 veya Ücretsiz"
-              required
+              name="priceMonthlyDiscount"
+              defaultValue={initial?.priceMonthlyDiscount ?? ""}
+              placeholder="Boş bırakılırsa indirim yok"
               className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
             />
-            {state.fieldErrors?.priceYearly ? (
-              <p className="mt-1 text-xs text-rose-600">
-                {state.fieldErrors.priceYearly}
-              </p>
-            ) : null}
+            <p className="mt-1 text-xs text-slate-500">
+              Doluysa sitede liste fiyatı üstü çizili, bu değer gösterilir.
+            </p>
           </div>
+          <input type="hidden" name="priceYearlyDiscount" value="" />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
               CTA metni
@@ -249,8 +253,8 @@ export function PricingPlanForm({
         <div className="flex flex-wrap gap-3">
           <AdminSwitch
             name="showPeriod"
-            label="Dönem göster (/ay · /yıl)"
-            description="Kapalıysa fiyat yanında dönem yazılmaz."
+            label="Tek seferlik etiketi göster"
+            description="Açıksa fiyat yanında “tek seferlik” yazar."
             defaultChecked={initial?.showPeriod !== false}
           />
           <AdminSwitch

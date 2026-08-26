@@ -9,8 +9,10 @@ import type {
   PricingBillingOptions,
   PricingPlanView,
 } from "@/lib/pricing";
+import { resolvePlanPrice, getPricingPeriodLabel } from "@/lib/pricing";
 import { publicPricingPlanHref } from "@/lib/public-urls";
 import { resolveMembershipGatedHref } from "@/lib/membership-urls";
+import { PricingPlanPrice } from "@/components/site/pricing/pricing-plan-price";
 
 const FALLBACK_PLANS: PricingPlanView[] = [
   {
@@ -22,6 +24,8 @@ const FALLBACK_PLANS: PricingPlanView[] = [
     coverImage: null,
     priceMonthly: "Ücretsiz",
     priceYearly: "Ücretsiz",
+    priceMonthlyDiscount: null,
+    priceYearlyDiscount: null,
     showPeriod: false,
     featured: false,
     features: [
@@ -46,6 +50,8 @@ const FALLBACK_PLANS: PricingPlanView[] = [
     coverImage: null,
     priceMonthly: "₺14.900",
     priceYearly: "₺149.000",
+    priceMonthlyDiscount: null,
+    priceYearlyDiscount: null,
     showPeriod: true,
     featured: true,
     features: [
@@ -70,6 +76,8 @@ const FALLBACK_PLANS: PricingPlanView[] = [
     coverImage: null,
     priceMonthly: "₺24.900",
     priceYearly: "₺249.000",
+    priceMonthlyDiscount: null,
+    priceYearlyDiscount: null,
     showPeriod: true,
     featured: false,
     features: [
@@ -88,9 +96,10 @@ const FALLBACK_PLANS: PricingPlanView[] = [
 ];
 
 const DEFAULT_BILLING: PricingBillingOptions = {
-  monthlyEnabled: true,
-  yearlyEnabled: true,
-  showToggle: true,
+  mode: "project",
+  monthlyEnabled: false,
+  yearlyEnabled: false,
+  showToggle: false,
   defaultInterval: "monthly",
 };
 
@@ -124,8 +133,12 @@ export function HomePricing({
     billingOptions.defaultInterval,
   );
   const heading =
-    title?.trim() || "Şeffaf fiyatlandırma, özel entegrasyonlar";
-  const lead = subtitle?.trim() || null;
+    title?.trim() || "Şeffaf proje fiyatlandırması";
+  const lead =
+    subtitle?.trim() ||
+    (billingOptions.mode === "project"
+      ? "Tek seferlik proje bedeli — seçtiğiniz domain ve hostinge kurulum, kaynak kod teslimi dahil."
+      : null);
   const list = plans && plans.length > 0 ? plans : FALLBACK_PLANS;
 
   const primaryLabel = primaryCta?.label?.trim() || "Ücretsiz Teklif Alın";
@@ -140,6 +153,7 @@ export function HomePricing({
   const activeBilling = billingOptions.showToggle
     ? billing
     : billingOptions.defaultInterval;
+  const periodLabel = getPricingPeriodLabel(billingOptions);
 
   return (
     <section className="relative overflow-hidden py-20">
@@ -175,29 +189,28 @@ export function HomePricing({
                 Yıllık
               </button>
             </div>
+          ) : billingOptions.mode === "project" ? (
+            <p className="mt-4 text-sm text-site-muted">
+              Tüm fiyatlar tek seferlik proje bedelidir. Sosyal medya, dijital
+              pazarlama ve e-ticaret danışmanlığı isteğe bağlı devam hizmeti
+              olarak ayrıca sunulur.
+            </p>
           ) : null}
         </div>
 
-        <div
-          className={`mt-12 grid items-stretch gap-5 ${
-            list.length >= 4
-              ? "lg:grid-cols-2 xl:grid-cols-4"
-              : "lg:grid-cols-3"
-          }`}
-        >
+        <div className="mt-12 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((plan) => {
-            const price =
-              activeBilling === "monthly"
-                ? plan.priceMonthly
-                : plan.priceYearly;
-            const periodLabel =
-              activeBilling === "monthly" ? "ay" : "yıl";
+            const resolved = resolvePlanPrice(
+              plan,
+              activeBilling,
+              billingOptions.mode,
+            );
             return (
               <article
                 key={plan.id}
                 className={`rounded-[1.75rem] border p-7 shadow-sm transition ${
                   plan.featured
-                    ? "border-transparent bg-site-primary text-white shadow-xl shadow-violet-500/30 lg:-translate-y-3 lg:scale-[1.02]"
+                    ? "border-transparent bg-site-primary text-white shadow-xl shadow-violet-500/25 lg:-translate-y-2"
                     : "border-site-border bg-site-card text-site-fg"
                 }`}
               >
@@ -211,18 +224,14 @@ export function HomePricing({
                     {plan.blurb}
                   </p>
                 ) : null}
-                <p className="mt-6 text-4xl font-extrabold tracking-tight">
-                  {price}
-                  {plan.showPeriod ? (
-                    <span
-                      className={`ml-1 text-sm font-medium ${
-                        plan.featured ? "text-white/70" : "text-site-muted"
-                      }`}
-                    >
-                      / {periodLabel}
-                    </span>
-                  ) : null}
-                </p>
+                <div className="mt-6">
+                  <PricingPlanPrice
+                    resolved={resolved}
+                    showPeriod={plan.showPeriod}
+                    periodLabel={periodLabel}
+                    tone={plan.featured ? "featured" : "default"}
+                  />
+                </div>
 
                 <div className="mt-6 flex flex-col gap-2 sm:flex-row">
                   <SiteLink

@@ -90,6 +90,12 @@ function parsePricingPayload(formData: FormData) {
   const coverImageFile = formData.get("coverImage_file");
   const priceMonthly = String(formData.get("priceMonthly") ?? "").trim();
   const priceYearly = String(formData.get("priceYearly") ?? "").trim();
+  const priceMonthlyDiscount = String(
+    formData.get("priceMonthlyDiscount") ?? "",
+  ).trim();
+  const priceYearlyDiscount = String(
+    formData.get("priceYearlyDiscount") ?? "",
+  ).trim();
   const showPeriod =
     formData.get("showPeriod") === "on" ||
     formData.get("showPeriod") === "true";
@@ -119,6 +125,8 @@ function parsePricingPayload(formData: FormData) {
         : null,
     priceMonthly,
     priceYearly,
+    priceMonthlyDiscount: priceMonthlyDiscount || null,
+    priceYearlyDiscount: priceYearlyDiscount || null,
     showPeriod,
     featured,
     ctaLabel,
@@ -182,16 +190,13 @@ export async function createPricingPlanAction(
     }
     if (!data.priceMonthly) {
       return {
-        error: "Aylık fiyat zorunludur.",
+        error: "Proje fiyatı zorunludur.",
         fieldErrors: { priceMonthly: "Zorunlu alan" },
       };
     }
-    if (!data.priceYearly) {
-      return {
-        error: "Yıllık fiyat zorunludur.",
-        fieldErrors: { priceYearly: "Zorunlu alan" },
-      };
-    }
+
+    const projectPrice = data.priceMonthly;
+    const projectDiscount = data.priceMonthlyDiscount;
 
     let sortOrder = data.sortOrder;
     if (!String(formData.get("sortOrder") ?? "").trim()) {
@@ -215,8 +220,10 @@ export async function createPricingPlanAction(
         blurb: data.blurb || null,
         detailContent: data.detailContent || null,
         coverImage,
-        priceMonthly: data.priceMonthly,
-        priceYearly: data.priceYearly,
+        priceMonthly: projectPrice,
+        priceYearly: projectPrice,
+        priceMonthlyDiscount: projectDiscount,
+        priceYearlyDiscount: projectDiscount,
         showPeriod: data.showPeriod,
         featured: data.featured,
         features: serializePricingFeatures(data.features),
@@ -262,16 +269,13 @@ export async function updatePricingPlanAction(
     }
     if (!data.priceMonthly) {
       return {
-        error: "Aylık fiyat zorunludur.",
+        error: "Proje fiyatı zorunludur.",
         fieldErrors: { priceMonthly: "Zorunlu alan" },
       };
     }
-    if (!data.priceYearly) {
-      return {
-        error: "Yıllık fiyat zorunludur.",
-        fieldErrors: { priceYearly: "Zorunlu alan" },
-      };
-    }
+
+    const projectPrice = data.priceMonthly;
+    const projectDiscount = data.priceMonthlyDiscount;
 
     const slug = await uniquePricingSlug(
       data.slugRaw || data.name,
@@ -296,8 +300,10 @@ export async function updatePricingPlanAction(
         blurb: data.blurb || null,
         detailContent: data.detailContent || null,
         coverImage,
-        priceMonthly: data.priceMonthly,
-        priceYearly: data.priceYearly,
+        priceMonthly: projectPrice,
+        priceYearly: projectPrice,
+        priceMonthlyDiscount: projectDiscount,
+        priceYearlyDiscount: projectDiscount,
         showPeriod: data.showPeriod,
         featured: data.featured,
         features: serializePricingFeatures(data.features),
@@ -402,19 +408,13 @@ export async function updatePricingBillingSettingsAction(
       formData.get("pricing_billing_yearly_enabled") === "on" ||
       formData.get("pricing_billing_yearly_enabled") === "true";
 
-    if (!monthlyEnabled && !yearlyEnabled) {
-      return {
-        error: "Aylık veya yıllık fiyatlandırmadan en az biri açık olmalıdır.",
-      };
-    }
-
     await prisma.setting.upsert({
       where: { key: "pricing_billing_monthly_enabled" },
       update: { value: monthlyEnabled ? "true" : "false" },
       create: {
         key: "pricing_billing_monthly_enabled",
         value: monthlyEnabled ? "true" : "false",
-        label: "Aylık fiyatlandırma",
+        label: "Aylık fiyatlandırma (abonelik)",
         type: "boolean",
         group: "pricing_billing",
         sortOrder: 0,
@@ -426,7 +426,7 @@ export async function updatePricingBillingSettingsAction(
       create: {
         key: "pricing_billing_yearly_enabled",
         value: yearlyEnabled ? "true" : "false",
-        label: "Yıllık fiyatlandırma",
+        label: "Yıllık fiyatlandırma (abonelik)",
         type: "boolean",
         group: "pricing_billing",
         sortOrder: 1,

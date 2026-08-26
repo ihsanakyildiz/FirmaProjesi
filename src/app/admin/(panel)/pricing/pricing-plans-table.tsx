@@ -26,6 +26,8 @@ export type PricingPlanRow = {
   blurb: string | null;
   priceMonthly: string;
   priceYearly: string;
+  priceMonthlyDiscount: string | null;
+  priceYearlyDiscount: string | null;
   featured: boolean;
   isActive: boolean;
   sortOrder: number;
@@ -188,8 +190,7 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
           <thead className="bg-[#f3f6f9] text-xs tracking-wide text-slate-500 uppercase">
             <tr>
               <th className="px-4 py-3 font-semibold">Paket</th>
-              <th className="px-4 py-3 font-semibold">Aylık</th>
-              <th className="px-4 py-3 font-semibold">Yıllık</th>
+              <th className="px-4 py-3 font-semibold">Proje fiyatı</th>
               <th className="px-4 py-3 font-semibold">Sıra</th>
               <th className="px-4 py-3 font-semibold">Durum</th>
               <th className="px-4 py-3 font-semibold">İşlemler</th>
@@ -199,7 +200,7 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="px-4 py-10 text-center text-sm text-slate-500"
                 >
                   Paket bulunamadı.
@@ -233,10 +234,18 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
                     </p>
                   </td>
                   <td className="px-4 py-3 text-slate-700">
-                    {plan.priceMonthly}
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {plan.priceYearly}
+                    {plan.priceMonthlyDiscount ? (
+                      <span className="inline-flex flex-col gap-0.5">
+                        <span className="text-xs text-slate-400 line-through">
+                          {plan.priceMonthly}
+                        </span>
+                        <span className="font-semibold text-emerald-700">
+                          {plan.priceMonthlyDiscount}
+                        </span>
+                      </span>
+                    ) : (
+                      plan.priceMonthly
+                    )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{plan.sortOrder}</td>
                   <td className="px-4 py-3">

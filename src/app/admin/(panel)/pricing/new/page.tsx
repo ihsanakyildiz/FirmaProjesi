@@ -16,7 +16,7 @@ export default function NewPricingPlanPage() {
           Yeni Paket
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Aylık / yıllık fiyat, özellik listesi ve CTA ayarlarını girin.
+          Tek seferlik proje fiyatı, özellik listesi ve CTA ayarlarını girin.
         </p>
       </div>
       <PricingPlanForm mode="create" />

@@ -50,6 +50,8 @@ export default async function EditPricingPlanPage({
           coverImage: plan.coverImage ?? "",
           priceMonthly: plan.priceMonthly,
           priceYearly: plan.priceYearly,
+          priceMonthlyDiscount: plan.priceMonthlyDiscount ?? "",
+          priceYearlyDiscount: plan.priceYearlyDiscount ?? "",
           showPeriod: plan.showPeriod,
           featured: plan.featured,
           features: parsePricingFeatures(plan.features),

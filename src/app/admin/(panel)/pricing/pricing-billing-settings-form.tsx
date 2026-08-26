@@ -33,11 +33,12 @@ export function PricingBillingSettingsForm({
     >
       <div>
         <h2 className="text-sm font-semibold text-slate-800">
-          Aylık / yıllık ödeme
+          Fiyatlandırma modeli
         </h2>
         <p className="mt-0.5 text-xs text-slate-500">
-          İkisini de açarsanız sitede Aylık–Yıllık seçici görünür. Yalnızca biri
-          açıksa seçici gizlenir ve o dönem fiyatı gösterilir.
+          Varsayılan: tek seferlik proje bedeli (ikisi de kapalı). Aylık veya
+          yıllık açarsanız abonelik modu devreye girer ve sitede dönem seçici
+          görünebilir.
         </p>
       </div>
 
@@ -55,12 +56,12 @@ export function PricingBillingSettingsForm({
       <div className="flex flex-wrap gap-3">
         <AdminSwitch
           name="pricing_billing_monthly_enabled"
-          label="Aylık fiyatlandırma"
+          label="Aylık fiyatlandırma (abonelik)"
           defaultChecked={monthlyEnabled}
         />
         <AdminSwitch
           name="pricing_billing_yearly_enabled"
-          label="Yıllık fiyatlandırma"
+          label="Yıllık fiyatlandırma (abonelik)"
           defaultChecked={yearlyEnabled}
         />
       </div>
