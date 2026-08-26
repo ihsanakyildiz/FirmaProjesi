@@ -1,3 +1,4 @@
+import { ensurePricingPlansTable } from "@/lib/ensure-pricing-schema";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 
@@ -157,6 +158,7 @@ export async function getPricingBillingOptions(): Promise<PricingBillingOptions>
 }
 
 export async function getActivePricingPlans(): Promise<PricingPlanView[]> {
+  await ensurePricingPlansTable();
   const plans = await prisma.pricingPlan.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -168,6 +170,7 @@ export async function getActivePricingPlans(): Promise<PricingPlanView[]> {
 export async function getPricingPlanBySlug(
   slug: string,
 ): Promise<PricingPlanView | null> {
+  await ensurePricingPlansTable();
   const plan = await prisma.pricingPlan.findFirst({
     where: { slug, isActive: true },
   });

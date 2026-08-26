@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ensurePricingPlansTable } from "@/lib/ensure-pricing-schema";
 import { parsePricingFeatures } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { PricingPlanForm } from "../../pricing-plan-form";
@@ -23,6 +24,7 @@ export default async function EditPricingPlanPage({
   params,
 }: EditPricingPlanPageProps) {
   const { id } = await params;
+  await ensurePricingPlansTable();
   const plan = await prisma.pricingPlan.findUnique({ where: { id } });
   if (!plan) notFound();
 

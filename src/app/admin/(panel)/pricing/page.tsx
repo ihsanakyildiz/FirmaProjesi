@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CircleDollarSign, Plus } from "lucide-react";
+import { ensurePricingPlansTable } from "@/lib/ensure-pricing-schema";
 import { prisma } from "@/lib/prisma";
 import { getPricingBillingOptions } from "@/lib/pricing";
 import { ensureDefaultSettings } from "@/lib/settings";
@@ -14,6 +15,26 @@ export const metadata: Metadata = {
 
 export default async function PricingAdminPage() {
   await ensureDefaultSettings("pricing").catch(() => undefined);
+
+  try {
+    await ensurePricingPlansTable();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return (
+      <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">
+        <p className="font-semibold">Fiyatlandırma tablosu güncellenemedi.</p>
+        <p className="mt-2">
+          Sunucuda şu komutları çalıştırın, ardından sayfayı yenileyin:
+        </p>
+        <pre className="mt-3 overflow-x-auto rounded-md bg-white/80 p-3 text-xs text-slate-800">
+          {`npx prisma db push --skip-generate
+npx prisma generate
+pm2 restart ihsanakyildiz`}
+        </pre>
+        <p className="mt-3 text-xs text-rose-700/80">{detail}</p>
+      </div>
+    );
+  }
 
   const [plans, billing] = await Promise.all([
     prisma.pricingPlan.findMany({
