@@ -226,25 +226,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: String(token.id) },
-          select: { role: true, isActive: true, name: true, image: true, email: true },
-        });
-        if (!dbUser || !dbUser.isActive) {
-          return {
-            ...token,
-            id: undefined,
-            sub: undefined,
-            role: undefined,
-            email: undefined,
-            name: undefined,
-            picture: undefined,
-          };
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: String(token.id) },
+            select: { role: true, isActive: true, name: true, image: true, email: true },
+          });
+          if (!dbUser || !dbUser.isActive) {
+            return {
+              ...token,
+              id: undefined,
+              sub: undefined,
+              role: undefined,
+              email: undefined,
+              name: undefined,
+              picture: undefined,
+            };
+          }
+          token.role = dbUser.role;
+          token.name = dbUser.name;
+          token.picture = dbUser.image;
+          token.email = dbUser.email;
+        } catch (error) {
+          // Geçici DB/Prisma hatasında oturumu silme — redirect döngüsünü önler
+          console.error("auth jwt: user lookup failed", error);
         }
-        token.role = dbUser.role;
-        token.name = dbUser.name;
-        token.picture = dbUser.image;
-        token.email = dbUser.email;
       }
 
       return token;

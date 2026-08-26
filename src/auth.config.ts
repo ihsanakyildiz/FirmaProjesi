@@ -44,10 +44,9 @@ export const authConfig = {
         path === "/sifre-sifirla";
 
       if (isAdminLogin) {
-        if (isLoggedIn && role === ADMIN) {
-          return Response.redirect(new URL("/admin", nextUrl));
-        }
-        // Üye oturumu admin login’de takılmasın
+        // Edge JWT tek başına ADMIN sayıp /admin’e atmasın.
+        // Aksi halde sunucu oturumu (Prisma/DB) düştüğünde login ↔ admin döngüsü oluşur.
+        // Gerçek ADMIN kontrolünü login sayfası / panel layout yapar.
         if (isLoggedIn && role === MEMBER) {
           return Response.redirect(new URL("/uye", nextUrl));
         }
