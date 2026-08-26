@@ -61,13 +61,6 @@ export function PricingPlanPrice({
           İndirim
         </span>
       ) : null}
-      {resolved.kind === "RANGE" ? (
-        <span
-          className={`mb-1 text-xs ${muted}`}
-        >
-          tipik proje aralığı
-        </span>
-      ) : null}
     </div>
   );
 }
