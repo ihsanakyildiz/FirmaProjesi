@@ -22,6 +22,7 @@ import {
 export type PricingPlanRow = {
   id: string;
   name: string;
+  slug: string;
   blurb: string | null;
   priceMonthly: string;
   priceYearly: string;
@@ -138,6 +139,7 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
     return plans.filter(
       (plan) =>
         plan.name.toLowerCase().includes(q) ||
+        plan.slug.toLowerCase().includes(q) ||
         (plan.blurb ?? "").toLowerCase().includes(q) ||
         plan.priceMonthly.toLowerCase().includes(q),
     );
@@ -226,6 +228,9 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
                         {plan.blurb}
                       </p>
                     ) : null}
+                    <p className="mt-0.5 font-mono text-[11px] text-slate-400">
+                      /paket/{plan.slug}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-slate-700">
                     {plan.priceMonthly}

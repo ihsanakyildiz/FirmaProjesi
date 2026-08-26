@@ -1,11 +1,13 @@
-"use client";
+﻿"use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ImageIcon, Loader2, Plus, Save, Trash2, Upload } from "lucide-react";
 import { AdminSwitch } from "@/components/admin/admin-switch";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import type { PricingFeatureItem } from "@/lib/pricing";
+import { slugify } from "@/lib/slug";
 import {
   createPricingPlanAction,
   updatePricingPlanAction,
@@ -15,7 +17,10 @@ import {
 type PricingPlanFormInitial = {
   id?: string;
   name?: string;
+  slug?: string;
   blurb?: string | null;
+  detailContent?: string | null;
+  coverImage?: string | null;
   priceMonthly?: string;
   priceYearly?: string;
   showPeriod?: boolean;
@@ -23,6 +28,9 @@ type PricingPlanFormInitial = {
   features?: PricingFeatureItem[];
   ctaLabel?: string;
   ctaHref?: string;
+  purchasable?: boolean;
+  stripePriceIdMonthly?: string | null;
+  stripePriceIdYearly?: string | null;
   sortOrder?: number;
   isActive?: boolean;
 };
@@ -40,6 +48,7 @@ export function PricingPlanForm({
   initial?: PricingPlanFormInitial;
 }) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const boundUpdate = updatePricingPlanAction.bind(null, initial?.id ?? "");
   const action = mode === "create" ? createPricingPlanAction : boundUpdate;
   const [state, formAction, pending] = useActionState<
@@ -47,6 +56,14 @@ export function PricingPlanForm({
     FormData
   >(action, {});
 
+  const [name, setName] = useState(initial?.name ?? "");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
+  const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
+  const [detailContent, setDetailContent] = useState(
+    initial?.detailContent ?? "",
+  );
+  const [coverImage, setCoverImage] = useState(initial?.coverImage ?? "");
+  const [coverPreview, setCoverPreview] = useState(initial?.coverImage ?? "");
   const [features, setFeatures] = useState<PricingFeatureItem[]>(
     initial?.features && initial.features.length > 0
       ? initial.features
@@ -70,7 +87,7 @@ export function PricingPlanForm({
   };
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-5" encType="multipart/form-data">
       {state.error ? (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {state.error}
@@ -82,6 +99,8 @@ export function PricingPlanForm({
         </div>
       ) : null}
 
+      <input type="hidden" name="coverImage" value={coverImage} />
+
       <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -90,7 +109,12 @@ export function PricingPlanForm({
             </label>
             <input
               name="name"
-              defaultValue={initial?.name ?? ""}
+              value={name}
+              onChange={(event) => {
+                const next = event.target.value;
+                setName(next);
+                if (!slugTouched) setSlug(slugify(next));
+              }}
               required
               className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
             />
@@ -99,6 +123,27 @@ export function PricingPlanForm({
                 {state.fieldErrors.name}
               </p>
             ) : null}
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Slug (detay URL)
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-xs text-slate-400">/paket/</span>
+              <input
+                name="slug"
+                value={slug}
+                onChange={(event) => {
+                  setSlugTouched(true);
+                  setSlug(slugify(event.target.value));
+                }}
+                placeholder="standart"
+                className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+              />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Detay sayfası adresi. Boş bırakılırsa paket adından üretilir.
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -167,6 +212,28 @@ export function PricingPlanForm({
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Stripe Price ID (aylık)
+            </label>
+            <input
+              name="stripePriceIdMonthly"
+              defaultValue={initial?.stripePriceIdMonthly ?? ""}
+              placeholder="price_..."
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 font-mono text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Stripe Price ID (yıllık)
+            </label>
+            <input
+              name="stripePriceIdYearly"
+              defaultValue={initial?.stripePriceIdYearly ?? ""}
+              placeholder="price_..."
+              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 font-mono text-sm outline-none focus:border-[#405189]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
               Sıra
             </label>
             <input
@@ -187,6 +254,12 @@ export function PricingPlanForm({
             defaultChecked={initial?.showPeriod !== false}
           />
           <AdminSwitch
+            name="purchasable"
+            label="Stripe ile satın alınabilir"
+            description="Üyelik + Stripe açıkken CTA Checkout’a gider."
+            defaultChecked={initial?.purchasable === true}
+          />
+          <AdminSwitch
             name="featured"
             label="Öne çıkan paket"
             defaultChecked={initial?.featured === true}
@@ -197,6 +270,90 @@ export function PricingPlanForm({
             defaultChecked={initial?.isActive !== false}
           />
         </div>
+      </div>
+
+      <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-800">Kapak görseli</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Detay sayfasının üstünde tam genişlikte gösterilir. PNG, JPG veya
+            WEBP — kayıtta WebP’ye çevrilir.
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="flex h-36 w-full max-w-sm shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-[#e9ebec] bg-[#f3f6f9]">
+            {coverPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={coverPreview}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <ImageIcon className="h-10 w-10 text-slate-300" />
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-md border border-[#e9ebec] px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Upload className="h-4 w-4" />
+                Görsel Seç
+              </button>
+              {coverPreview ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverImage("");
+                    setCoverPreview("");
+                    if (fileRef.current) fileRef.current.value = "";
+                  }}
+                  className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Kaldır
+                </button>
+              ) : null}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              name="coverImage_file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                setCoverPreview(URL.createObjectURL(file));
+              }}
+            />
+            <p className="text-xs text-slate-400">
+              Önerilen oran 16:9, en az 1600×900 px.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-800">
+            Detay sayfası içeriği
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Paket kartındaki “Detay” butonu bu içeriğin olduğu sayfayı açar.
+          </p>
+        </div>
+        <RichTextEditor
+          id="detailContent"
+          name="detailContent"
+          variant="full"
+          value={detailContent}
+          placeholder="Paket hakkında ayrıntılı açıklama…"
+          onChange={setDetailContent}
+        />
       </div>
 
       <div className="rounded-lg border border-[#e9ebec] bg-white p-5 shadow-sm space-y-4">

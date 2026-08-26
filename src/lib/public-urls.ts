@@ -29,3 +29,7 @@ export function publicProjectCategoryHref(slug: string) {
 export function publicProjectTagHref(slug: string) {
   return `/projeler/etiket/${slug}`;
 }
+
+export function publicPricingPlanHref(slug: string) {
+  return `/paket/${slug}`;
+}

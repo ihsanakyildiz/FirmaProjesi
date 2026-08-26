@@ -9,6 +9,7 @@ import {
 import { DEFAULT_HERO_SLIDE, mapHeroSlideToProps } from "@/lib/heroes";
 import { highlightRichCodeBlocks } from "@/lib/highlight-rich-html";
 import type { ResolvedPageSection } from "@/lib/pages";
+import type { PricingBillingOptions } from "@/lib/pricing";
 import {
   getContactFormSettings,
   getContactInfoBlockSettings,
@@ -156,10 +157,18 @@ export function PageSectionsRenderer({
   sections,
   siteName,
   contactInfo,
+  purchaseEnabled = false,
+  membershipEnabled = false,
+  isAuthenticated = false,
+  billingOptions,
 }: {
   sections: ResolvedPageSection[];
   siteName: string;
   contactInfo?: PageSectionsContactInfo;
+  purchaseEnabled?: boolean;
+  membershipEnabled?: boolean;
+  isAuthenticated?: boolean;
+  billingOptions?: PricingBillingOptions;
 }) {
   const renderSection = (
     section: ResolvedPageSection,
@@ -392,6 +401,10 @@ export function PageSectionsRenderer({
                   title={section.title}
                   subtitle={section.subtitle}
                   plans={section.pricingPlans}
+                  purchaseEnabled={purchaseEnabled}
+                  membershipEnabled={membershipEnabled}
+                  isAuthenticated={isAuthenticated}
+                  billingOptions={billingOptions}
                   primaryCta={{
                     label: section.settings.pricingPrimaryCtaLabel,
                     url: section.settings.pricingPrimaryCtaUrl,

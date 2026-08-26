@@ -26,6 +26,7 @@ const ALLOWED_FOLDERS = new Set([
   "uploads/pages",
   "uploads/cards",
   "uploads/heroes",
+  "uploads/avatars",
 ]);
 
 export async function POST(request: Request) {

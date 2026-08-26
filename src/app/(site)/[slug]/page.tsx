@@ -12,6 +12,9 @@ import {
   resolvePageSections,
 } from "@/lib/pages";
 import { getSettingsMap } from "@/lib/settings";
+import { auth } from "@/auth";
+import { getMembershipFlags } from "@/lib/membership";
+import { resolvePricingBillingOptions } from "@/lib/pricing";
 import { prepareRichHtml } from "@/lib/html";
 import { buildCollectionJsonLd, buildWebPageJsonLd } from "@/lib/json-ld";
 import { parsePerformance } from "@/lib/performance";
@@ -29,6 +32,12 @@ const RESERVED_SLUGS = new Set([
   "blog",
   "yapilan-isler",
   "anasayfa",
+  "giris",
+  "kayit",
+  "uye",
+  "sifremi-unuttum",
+  "sifre-sifirla",
+  "paket",
 ]);
 
 function PageBodyWithOptionalSidebar({
@@ -82,7 +91,14 @@ export default async function CmsPage({ params }: PageProps) {
   if (RESERVED_SLUGS.has(slug)) notFound();
 
   const settings = await getSettingsMap().catch(() => ({}) as Record<string, string>);
+  const [membership, session] = await Promise.all([
+    getMembershipFlags(),
+    auth(),
+  ]);
+  const billingOptions = resolvePricingBillingOptions(settings);
   const siteName = settings.site_name || "İhsan Akyıldız";
+  const purchaseEnabled = membership.enabled && membership.stripeEnabled;
+  const isAuthenticated = Boolean(session?.user?.id);
 
   const advanced = await getAdvancedPageBySlug(slug).catch(() => null);
   if (advanced) {
@@ -123,6 +139,10 @@ export default async function CmsPage({ params }: PageProps) {
       <PageSectionsRenderer
         sections={sections}
         siteName={siteName}
+        purchaseEnabled={purchaseEnabled}
+        membershipEnabled={membership.enabled}
+        isAuthenticated={isAuthenticated}
+        billingOptions={billingOptions}
         contactInfo={{
           email: settings.contact_email,
           phone: settings.contact_phone,

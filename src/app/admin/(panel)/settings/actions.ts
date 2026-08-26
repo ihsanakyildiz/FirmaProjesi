@@ -33,7 +33,13 @@ function parseAcceptList(accept?: string) {
 
 function parseScope(formData: FormData): SettingsScope {
   const raw = String(formData.get("_settings_scope") ?? "general");
-  if (raw === "performance" || raw === "general" || raw === "theme" || raw === "all") {
+  if (
+    raw === "performance" ||
+    raw === "general" ||
+    raw === "theme" ||
+    raw === "membership" ||
+    raw === "all"
+  ) {
     return raw;
   }
   return "general";
@@ -264,6 +270,7 @@ export async function saveSettingsAction(
     revalidatePath("/admin/settings");
     revalidatePath("/admin/settings/performance");
     revalidatePath("/admin/settings/theme");
+    revalidatePath("/admin/settings/membership");
     return {
       success: true,
       message:
@@ -271,7 +278,9 @@ export async function saveSettingsAction(
           ? "Performans ayarları kaydedildi."
           : scope === "theme"
             ? "Tema ayarları kaydedildi. Site renkleri güncellendi."
-            : "Ayarlar kaydedildi. Görseller optimize edildi; eski dosyalar temizlendi.",
+            : scope === "membership"
+              ? "Üyelik ayarları kaydedildi."
+              : "Ayarlar kaydedildi. Görseller optimize edildi; eski dosyalar temizlendi.",
     };
   } catch (error) {
     console.error(error);

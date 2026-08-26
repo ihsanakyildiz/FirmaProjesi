@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CircleDollarSign, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getPricingBillingOptions } from "@/lib/pricing";
+import { ensureDefaultSettings } from "@/lib/settings";
+import { PricingBillingSettingsForm } from "./pricing-billing-settings-form";
 import { PricingPlansTable } from "./pricing-plans-table";
 
 export const metadata: Metadata = {
@@ -10,19 +13,25 @@ export const metadata: Metadata = {
 };
 
 export default async function PricingAdminPage() {
-  const plans = await prisma.pricingPlan.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      blurb: true,
-      priceMonthly: true,
-      priceYearly: true,
-      featured: true,
-      isActive: true,
-      sortOrder: true,
-    },
-  });
+  await ensureDefaultSettings("pricing").catch(() => undefined);
+
+  const [plans, billing] = await Promise.all([
+    prisma.pricingPlan.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        blurb: true,
+        priceMonthly: true,
+        priceYearly: true,
+        featured: true,
+        isActive: true,
+        sortOrder: true,
+      },
+    }),
+    getPricingBillingOptions(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -38,7 +47,7 @@ export default async function PricingAdminPage() {
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
               Anasayfa ve gelişmiş sayfa fiyatlandırma bölümünde gösterilecek
-              paketleri yönetin.
+              paketleri yönetin. Detay sayfası adresi: /paket/[slug]
             </p>
           </div>
           <Link
@@ -51,7 +60,17 @@ export default async function PricingAdminPage() {
         </div>
       </div>
 
-      <PricingPlansTable plans={plans} />
+      <PricingBillingSettingsForm
+        monthlyEnabled={billing.monthlyEnabled}
+        yearlyEnabled={billing.yearlyEnabled}
+      />
+
+      <PricingPlansTable
+        plans={plans.map((plan) => ({
+          ...plan,
+          slug: plan.slug ?? plan.id,
+        }))}
+      />
     </div>
   );
 }

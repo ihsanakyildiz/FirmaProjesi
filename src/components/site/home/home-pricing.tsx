@@ -1,15 +1,25 @@
 "use client";
 
-import { SiteLink } from "@/components/site/site-link";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import type { PricingPlanView } from "@/lib/pricing";
+import { SiteLink } from "@/components/site/site-link";
+import { PricingPlanStartCta } from "@/components/site/home/pricing-plan-start-cta";
+import type {
+  PricingBillingInterval,
+  PricingBillingOptions,
+  PricingPlanView,
+} from "@/lib/pricing";
+import { publicPricingPlanHref } from "@/lib/public-urls";
+import { resolveMembershipGatedHref } from "@/lib/membership-urls";
 
 const FALLBACK_PLANS: PricingPlanView[] = [
   {
     id: "trial",
     name: "Deneme",
+    slug: "deneme",
     blurb: "Test ve keşif için",
+    detailContent: null,
+    coverImage: null,
     priceMonthly: "Ücretsiz",
     priceYearly: "Ücretsiz",
     showPeriod: false,
@@ -23,11 +33,17 @@ const FALLBACK_PLANS: PricingPlanView[] = [
     ],
     ctaLabel: "Başlayın",
     ctaHref: "/iletisim",
+    purchasable: false,
+    stripePriceIdMonthly: null,
+    stripePriceIdYearly: null,
   },
   {
     id: "standard",
     name: "Standart",
+    slug: "standart",
     blurb: "Büyüyen ekipler için",
+    detailContent: null,
+    coverImage: null,
     priceMonthly: "₺14.900",
     priceYearly: "₺149.000",
     showPeriod: true,
@@ -41,11 +57,17 @@ const FALLBACK_PLANS: PricingPlanView[] = [
     ],
     ctaLabel: "Başlayın",
     ctaHref: "/iletisim",
+    purchasable: false,
+    stripePriceIdMonthly: null,
+    stripePriceIdYearly: null,
   },
   {
     id: "business",
     name: "Kurumsal",
+    slug: "kurumsal",
     blurb: "İleri seviye projeler",
+    detailContent: null,
+    coverImage: null,
     priceMonthly: "₺24.900",
     priceYearly: "₺249.000",
     showPeriod: true,
@@ -59,8 +81,18 @@ const FALLBACK_PLANS: PricingPlanView[] = [
     ],
     ctaLabel: "Başlayın",
     ctaHref: "/iletisim",
+    purchasable: false,
+    stripePriceIdMonthly: null,
+    stripePriceIdYearly: null,
   },
 ];
+
+const DEFAULT_BILLING: PricingBillingOptions = {
+  monthlyEnabled: true,
+  yearlyEnabled: true,
+  showToggle: true,
+  defaultInterval: "monthly",
+};
 
 export type HomePricingCta = {
   label?: string | null;
@@ -73,23 +105,41 @@ export function HomePricing({
   plans,
   primaryCta,
   secondaryCta,
+  purchaseEnabled = false,
+  membershipEnabled = false,
+  isAuthenticated = false,
+  billingOptions = DEFAULT_BILLING,
 }: {
   title?: string | null;
   subtitle?: string | null;
   plans?: PricingPlanView[];
   primaryCta?: HomePricingCta;
   secondaryCta?: HomePricingCta;
+  purchaseEnabled?: boolean;
+  membershipEnabled?: boolean;
+  isAuthenticated?: boolean;
+  billingOptions?: PricingBillingOptions;
 } = {}) {
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [billing, setBilling] = useState<PricingBillingInterval>(
+    billingOptions.defaultInterval,
+  );
   const heading =
     title?.trim() || "Şeffaf fiyatlandırma, özel entegrasyonlar";
   const lead = subtitle?.trim() || null;
   const list = plans && plans.length > 0 ? plans : FALLBACK_PLANS;
 
   const primaryLabel = primaryCta?.label?.trim() || "Ücretsiz Teklif Alın";
-  const primaryUrl = primaryCta?.url?.trim() || "/iletisim";
+  const primaryUrl = resolveMembershipGatedHref({
+    membershipEnabled,
+    isAuthenticated,
+    destination: primaryCta?.url?.trim() || "/iletisim",
+  });
   const secondaryLabel = secondaryCta?.label?.trim() || "Nasıl çalışıyoruz?";
   const secondaryUrl = secondaryCta?.url?.trim() || "/hakkimizda";
+
+  const activeBilling = billingOptions.showToggle
+    ? billing
+    : billingOptions.defaultInterval;
 
   return (
     <section className="relative overflow-hidden py-20">
@@ -100,36 +150,48 @@ export function HomePricing({
             {heading}
           </h2>
           {lead ? <p className="mt-3 text-site-muted">{lead}</p> : null}
-          <div className="mt-6 inline-flex rounded-full border border-site-border bg-site-card p-1">
-            <button
-              type="button"
-              onClick={() => setBilling("monthly")}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                billing === "monthly"
-                  ? "bg-site-primary text-white"
-                  : "text-site-muted hover:text-site-fg"
-              }`}
-            >
-              Aylık
-            </button>
-            <button
-              type="button"
-              onClick={() => setBilling("yearly")}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                billing === "yearly"
-                  ? "bg-site-primary text-white"
-                  : "text-site-muted hover:text-site-fg"
-              }`}
-            >
-              Yıllık
-            </button>
-          </div>
+          {billingOptions.showToggle ? (
+            <div className="mt-6 inline-flex rounded-full border border-site-border bg-site-card p-1">
+              <button
+                type="button"
+                onClick={() => setBilling("monthly")}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  billing === "monthly"
+                    ? "bg-site-primary text-white"
+                    : "text-site-muted hover:text-site-fg"
+                }`}
+              >
+                Aylık
+              </button>
+              <button
+                type="button"
+                onClick={() => setBilling("yearly")}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  billing === "yearly"
+                    ? "bg-site-primary text-white"
+                    : "text-site-muted hover:text-site-fg"
+                }`}
+              >
+                Yıllık
+              </button>
+            </div>
+          ) : null}
         </div>
 
-        <div className="mt-12 grid items-stretch gap-5 lg:grid-cols-3">
+        <div
+          className={`mt-12 grid items-stretch gap-5 ${
+            list.length >= 4
+              ? "lg:grid-cols-2 xl:grid-cols-4"
+              : "lg:grid-cols-3"
+          }`}
+        >
           {list.map((plan) => {
             const price =
-              billing === "monthly" ? plan.priceMonthly : plan.priceYearly;
+              activeBilling === "monthly"
+                ? plan.priceMonthly
+                : plan.priceYearly;
+            const periodLabel =
+              activeBilling === "monthly" ? "ay" : "yıl";
             return (
               <article
                 key={plan.id}
@@ -157,22 +219,36 @@ export function HomePricing({
                         plan.featured ? "text-white/70" : "text-site-muted"
                       }`}
                     >
-                      / {billing === "monthly" ? "ay" : "yıl"}
+                      / {periodLabel}
                     </span>
                   ) : null}
                 </p>
 
-                <SiteLink
-                  href={plan.ctaHref || "/iletisim"}
-                  className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
-                    plan.featured
-                      ? "bg-white text-site-primary hover:bg-violet-50"
-                      : "border border-site-fg/20 text-site-fg hover:border-site-primary hover:text-site-primary"
-                  }`}
-                >
-                  {plan.ctaLabel || "Başlayın"}
-                  <ArrowRight className="h-4 w-4" />
-                </SiteLink>
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+                  <SiteLink
+                    href={publicPricingPlanHref(plan.slug)}
+                    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                      plan.featured
+                        ? "border border-white/40 text-white hover:bg-white/10"
+                        : "border border-site-fg/20 text-site-fg hover:border-site-primary hover:text-site-primary"
+                    }`}
+                  >
+                    Detay
+                  </SiteLink>
+                  <PricingPlanStartCta
+                    plan={plan}
+                    billing={activeBilling}
+                    purchaseEnabled={purchaseEnabled}
+                    membershipEnabled={membershipEnabled}
+                    isAuthenticated={isAuthenticated}
+                    featured={plan.featured}
+                    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                      plan.featured
+                        ? "bg-white text-site-primary hover:bg-violet-50"
+                        : "bg-site-primary text-white hover:opacity-90"
+                    }`}
+                  />
+                </div>
 
                 <ul className="mt-7 space-y-3">
                   {plan.features.map((feature) => (

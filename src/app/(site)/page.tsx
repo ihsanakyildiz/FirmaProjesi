@@ -11,7 +11,9 @@ import {
 import { getFaqGroupBySlug } from "@/lib/faqs";
 import { buildHomeJsonLd } from "@/lib/json-ld";
 import { getCachedHomepageAdvanced } from "@/lib/pages";
-import { getActivePricingPlans } from "@/lib/pricing";
+import { getActivePricingPlans, getPricingBillingOptions } from "@/lib/pricing";
+import { auth } from "@/auth";
+import { getMembershipFlags } from "@/lib/membership";
 import { prisma } from "@/lib/prisma";
 import { resolveHomeMetadata } from "@/lib/seo";
 import { getSettingsMap } from "@/lib/settings";
@@ -78,8 +80,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const settings = await getSettingsMap().catch(() => ({}) as Record<string, string>);
+  const [settings, membership, billingOptions, session] = await Promise.all([
+    getSettingsMap().catch(() => ({}) as Record<string, string>),
+    getMembershipFlags(),
+    getPricingBillingOptions(),
+    auth(),
+  ]);
   const siteName = settings.site_name || "İhsan Akyıldız";
+  const purchaseEnabled = membership.enabled && membership.stripeEnabled;
+  const isAuthenticated = Boolean(session?.user?.id);
 
   const advancedHome = await getCachedHomepageAdvanced().catch(() => null);
   if (advancedHome) {
@@ -104,6 +113,10 @@ export default async function HomePage() {
         <PageSectionsRenderer
           sections={advancedHome.sections}
           siteName={siteName}
+          purchaseEnabled={purchaseEnabled}
+          membershipEnabled={membership.enabled}
+          isAuthenticated={isAuthenticated}
+          billingOptions={billingOptions}
           contactInfo={{
             email: settings.contact_email,
             phone: settings.contact_phone,
@@ -349,7 +362,13 @@ export default async function HomePage() {
       />
 
       <div id="fiyatlandirma">
-        <HomePricing plans={pricingPlans} />
+        <HomePricing
+          plans={pricingPlans}
+          purchaseEnabled={purchaseEnabled}
+          membershipEnabled={membership.enabled}
+          isAuthenticated={isAuthenticated}
+          billingOptions={billingOptions}
+        />
       </div>
 
       <div id="sss">

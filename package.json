@@ -47,6 +47,7 @@
     "react-dom": "19.1.0",
     "react-easy-crop": "^6.2.3",
     "sharp": "^0.35.3",
+    "stripe": "^22.5.0",
     "swiper": "^14.1.0",
     "zod": "^4.4.3"
   },

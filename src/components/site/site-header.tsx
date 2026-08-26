@@ -63,6 +63,9 @@ export function SiteHeader({
   ctaLabel = "Teklif Alın",
   ctaHref = "/iletisim",
   items,
+  membershipEnabled = false,
+  memberLoggedIn = false,
+  memberName,
 }: SiteHeaderProps) {
   const { isDark, toggleTheme } = useSiteTheme();
   const [open, setOpen] = useState(false);
@@ -131,6 +134,23 @@ export function SiteHeader({
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
+          {membershipEnabled ? (
+            memberLoggedIn ? (
+              <SiteLink
+                href="/uye"
+                className="hidden rounded-full border border-site-border px-4 py-2.5 text-sm font-semibold text-site-fg transition hover:bg-site-surface sm:inline-flex"
+              >
+                {memberName ? memberName.split(" ")[0] : "Hesabım"}
+              </SiteLink>
+            ) : (
+              <SiteLink
+                href="/giris"
+                className="hidden rounded-full border border-site-border px-4 py-2.5 text-sm font-semibold text-site-fg transition hover:bg-site-surface sm:inline-flex"
+              >
+                Giriş
+              </SiteLink>
+            )
+          ) : null}
           <SiteLink
             href={ctaHref}
             className="hidden rounded-full bg-site-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/25 transition hover:brightness-110 sm:inline-flex"
@@ -173,6 +193,34 @@ export function SiteHeader({
               </div>
             ))}
           </div>
+          {membershipEnabled ? (
+            memberLoggedIn ? (
+              <SiteLink
+                href="/uye"
+                onClick={() => setOpen(false)}
+                className="mt-3 flex items-center justify-center rounded-full border border-site-border px-4 py-3 text-sm font-semibold text-site-fg"
+              >
+                Hesabım
+              </SiteLink>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <SiteLink
+                  href="/giris"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center rounded-full border border-site-border px-4 py-3 text-sm font-semibold text-site-fg"
+                >
+                  Giriş
+                </SiteLink>
+                <SiteLink
+                  href="/kayit"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center rounded-full bg-site-primary px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Kayıt
+                </SiteLink>
+              </div>
+            )
+          ) : null}
           <SiteLink
             href={ctaHref}
             onClick={() => setOpen(false)}

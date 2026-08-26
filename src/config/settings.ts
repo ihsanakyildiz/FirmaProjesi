@@ -1,3 +1,5 @@
+import { membershipSettingGroups } from "@/config/membership-settings";
+import { pricingSettingGroups } from "@/config/pricing-settings";
 import { themeSettingGroups } from "@/config/theme-settings";
 
 export type SettingFieldType =
@@ -762,7 +764,13 @@ export const performanceSettingGroups: SettingGroupDef[] = [
   },
 ];
 
-export type SettingsScope = "general" | "performance" | "theme" | "all";
+export type SettingsScope =
+  | "general"
+  | "performance"
+  | "theme"
+  | "membership"
+  | "pricing"
+  | "all";
 
 export function getSettingGroupsByScope(scope: SettingsScope): SettingGroupDef[] {
   switch (scope) {
@@ -772,8 +780,18 @@ export function getSettingGroupsByScope(scope: SettingsScope): SettingGroupDef[]
       return performanceSettingGroups;
     case "theme":
       return themeSettingGroups;
+    case "membership":
+      return membershipSettingGroups;
+    case "pricing":
+      return pricingSettingGroups;
     case "all":
-      return [...settingGroups, ...performanceSettingGroups, ...themeSettingGroups];
+      return [
+        ...settingGroups,
+        ...performanceSettingGroups,
+        ...themeSettingGroups,
+        ...membershipSettingGroups,
+        ...pricingSettingGroups,
+      ];
     default: {
       const _exhaustive: never = scope;
       return _exhaustive;

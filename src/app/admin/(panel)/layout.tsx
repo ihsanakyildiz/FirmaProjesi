@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Role } from "@prisma/client";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminSidebarBootScript } from "@/components/admin/admin-sidebar-boot-script";
 import { getAdminSession } from "@/lib/admin-session";
@@ -16,7 +17,7 @@ export default async function AdminPanelLayout({
 }>) {
   const session = await getAdminSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
     redirect("/admin/login");
   }
 

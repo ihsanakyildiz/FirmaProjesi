@@ -42,7 +42,10 @@ export default async function EditPricingPlanPage({
         initial={{
           id: plan.id,
           name: plan.name,
+          slug: plan.slug ?? "",
           blurb: plan.blurb,
+          detailContent: plan.detailContent ?? "",
+          coverImage: plan.coverImage ?? "",
           priceMonthly: plan.priceMonthly,
           priceYearly: plan.priceYearly,
           showPeriod: plan.showPeriod,
@@ -50,6 +53,9 @@ export default async function EditPricingPlanPage({
           features: parsePricingFeatures(plan.features),
           ctaLabel: plan.ctaLabel,
           ctaHref: plan.ctaHref,
+          purchasable: plan.purchasable,
+          stripePriceIdMonthly: plan.stripePriceIdMonthly,
+          stripePriceIdYearly: plan.stripePriceIdYearly,
           sortOrder: plan.sortOrder,
           isActive: plan.isActive,
         }}

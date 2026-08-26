@@ -630,6 +630,7 @@ async function main() {
     const defaultPlans = [
       {
         name: "Deneme",
+        slug: "deneme",
         blurb: "Test ve keşif için",
         priceMonthly: "Ücretsiz",
         priceYearly: "Ücretsiz",
@@ -648,6 +649,7 @@ async function main() {
       },
       {
         name: "Standart",
+        slug: "standart",
         blurb: "Büyüyen ekipler için",
         priceMonthly: "₺14.900",
         priceYearly: "₺149.000",
@@ -666,6 +668,7 @@ async function main() {
       },
       {
         name: "Kurumsal",
+        slug: "kurumsal",
         blurb: "İleri seviye projeler",
         priceMonthly: "₺24.900",
         priceYearly: "₺249.000",

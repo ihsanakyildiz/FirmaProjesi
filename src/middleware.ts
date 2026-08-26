@@ -23,7 +23,6 @@ export default auth((req) => {
     try {
       const originHost = new URL(origin).host;
       if (TRUSTED_SITE_HOSTS.has(originHost)) {
-        // Proxy bazen www’siz host iletir; Origin www’li olunca Next 403 döner
         requestHeaders.set("x-forwarded-host", originHost);
       }
     } catch {
@@ -37,5 +36,14 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/admin",
+    "/admin/:path*",
+    "/uye",
+    "/uye/:path*",
+    "/giris",
+    "/kayit",
+    "/sifremi-unuttum",
+    "/sifre-sifirla",
+  ],
 };

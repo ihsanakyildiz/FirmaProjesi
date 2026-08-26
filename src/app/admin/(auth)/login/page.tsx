@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Role } from "@prisma/client";
 import { auth } from "@/auth";
 import { LoginForm } from "./login-form";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function AdminLoginPage() {
   const session = await auth();
-  if (session?.user) {
+  if (session?.user?.id && session.user.role === Role.ADMIN) {
     redirect("/admin");
   }
 

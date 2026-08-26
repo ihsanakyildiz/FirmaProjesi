@@ -3,9 +3,12 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteThemeProvider } from "@/components/site/site-theme-provider";
 import { ScrollToTop } from "@/components/site/scroll-to-top";
 import type { SiteNavItem } from "@/components/site/site-types";
+import { auth } from "@/auth";
 import { getMenuBySlug } from "@/lib/menus";
+import { getMembershipFlags } from "@/lib/membership";
 import { getSettingsMap } from "@/lib/settings";
 import { parseThemeMode } from "@/lib/site-theme";
+import { Role } from "@prisma/client";
 
 function fallbackNav(): SiteNavItem[] {
   return [
@@ -93,14 +96,20 @@ async function resolveFooterNav(): Promise<SiteNavItem[]> {
 export default async function SiteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [settings, headerItems, footerItems] = await Promise.all([
+  const [settings, headerItems, footerItems, session, membership] = await Promise.all([
     getSettingsMap().catch(() => ({}) as Record<string, string>),
     resolveNav(),
     resolveFooterNav(),
+    auth().catch(() => null),
+    getMembershipFlags(),
   ]);
 
   const siteName = settings.site_name || "İhsan Akyıldız";
   const themeDefaultMode = parseThemeMode(settings.theme_default_mode);
+  const memberLoggedIn = Boolean(
+    session?.user?.id &&
+      (session.user.role === Role.MEMBER || session.user.role === Role.ADMIN),
+  );
 
   return (
     <SiteThemeProvider defaultMode={themeDefaultMode}>
@@ -120,6 +129,9 @@ export default async function SiteLayout({
           ctaLabel="Teklif Alın"
           ctaHref="/iletisim"
           items={headerItems}
+          membershipEnabled={membership.enabled}
+          memberLoggedIn={memberLoggedIn}
+          memberName={session?.user?.name}
         />
         <main id="icerik">{children}</main>
         <SiteFooter

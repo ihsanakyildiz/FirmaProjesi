@@ -9,20 +9,93 @@ datasource db {
 
 enum Role {
   ADMIN
+  MEMBER
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique @db.VarChar(191)
-  emailVerified DateTime?
-  password      String
-  image         String?   @db.VarChar(500)
-  role          Role      @default(ADMIN)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String                   @id @default(cuid())
+  name             String?
+  email            String                   @unique @db.VarChar(191)
+  emailVerified    DateTime?
+  password         String?
+  image            String?                  @db.VarChar(500)
+  phone            String?                  @db.VarChar(50)
+  role             Role                     @default(MEMBER)
+  isActive         Boolean                  @default(true)
+  stripeCustomerId String?                  @unique @db.VarChar(191)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  accounts         Account[]
+  passwordResetTokens PasswordResetToken[]
+  subscriptions    MembershipSubscription[]
 
+  @@index([role, isActive])
   @@map("users")
+}
+
+/// Auth.js OAuth hesap bağlantısı
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String  @db.VarChar(50)
+  provider          String  @db.VarChar(50)
+  providerAccountId String  @db.VarChar(191)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(50)
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String? @db.VarChar(191)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique @db.VarChar(191)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  TRIALING
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+model MembershipSubscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricingPlanId        String
+  pricingPlan          PricingPlan        @relation(fields: [pricingPlanId], references: [id], onDelete: Restrict)
+  status               SubscriptionStatus @default(INCOMPLETE)
+  billingInterval      BillingInterval    @default(MONTHLY)
+  stripeSubscriptionId String?            @unique @db.VarChar(191)
+  stripePriceId        String?            @db.VarChar(191)
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([pricingPlanId])
+  @@map("membership_subscriptions")
 }
 
 model Language {
@@ -664,22 +737,31 @@ model FaqItem {
 
 /// Fiyatlandırma paketleri — anasayfa / gelişmiş sayfa PRICING bölümü
 model PricingPlan {
-  id           String   @id @default(cuid())
-  name         String   @db.VarChar(191)
-  blurb        String?  @db.VarChar(255)
-  priceMonthly String   @db.VarChar(80)
-  priceYearly  String   @db.VarChar(80)
+  id                    String                   @id @default(cuid())
+  name                  String                   @db.VarChar(191)
+  slug                  String                   @unique @db.VarChar(191)
+  blurb                 String?                  @db.VarChar(255)
+  /// Detay sayfası zengin metin (HTML)
+  detailContent         String?                  @db.LongText
+  /// Detay sayfası kapak görseli
+  coverImage            String?                  @db.VarChar(500)
+  priceMonthly          String                   @db.VarChar(80)
+  priceYearly           String                   @db.VarChar(80)
   /// false ise fiyat yanında /ay /yıl gösterilmez (örn. Ücretsiz)
-  showPeriod   Boolean  @default(true)
-  featured     Boolean  @default(false)
+  showPeriod            Boolean                  @default(true)
+  featured              Boolean                  @default(false)
   /// JSON: [{ "label": string, "included": boolean }]
-  features     String?  @db.Text
-  ctaLabel     String   @default("Başlayın") @db.VarChar(100)
-  ctaHref      String   @default("/iletisim") @db.VarChar(500)
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  features              String?                  @db.Text
+  ctaLabel              String                   @default("Başlayın") @db.VarChar(100)
+  ctaHref               String                   @default("/iletisim") @db.VarChar(500)
+  purchasable           Boolean                  @default(false)
+  stripePriceIdMonthly  String?                  @db.VarChar(191)
+  stripePriceIdYearly   String?                  @db.VarChar(191)
+  isActive              Boolean                  @default(true)
+  sortOrder             Int                      @default(0)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  subscriptions         MembershipSubscription[]
 
   @@index([isActive, sortOrder])
   @@map("pricing_plans")

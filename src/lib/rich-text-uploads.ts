@@ -61,6 +61,7 @@ export function diffRemovedEditorUploadPaths(
 type ReferenceCheckOptions = {
   excludePageIds?: string[];
   excludeSectionIds?: string[];
+  excludePricingPlanIds?: string[];
 };
 
 async function isEditorUploadPathReferenced(
@@ -69,6 +70,7 @@ async function isEditorUploadPathReferenced(
 ): Promise<boolean> {
   const excludePageIds = options.excludePageIds ?? [];
   const excludeSectionIds = options.excludeSectionIds ?? [];
+  const excludePricingPlanIds = options.excludePricingPlanIds ?? [];
 
   const contains = { contains: uploadPath };
 
@@ -83,6 +85,7 @@ async function isEditorUploadPathReferenced(
     blogCategory,
     card,
     faqItem,
+    pricingPlan,
   ] = await Promise.all([
     prisma.pageSection.findFirst({
       where: {
@@ -130,6 +133,15 @@ async function isEditorUploadPathReferenced(
       where: { answer: contains },
       select: { id: true },
     }),
+    prisma.pricingPlan.findFirst({
+      where: {
+        ...(excludePricingPlanIds.length
+          ? { id: { notIn: excludePricingPlanIds } }
+          : {}),
+        detailContent: contains,
+      },
+      select: { id: true },
+    }),
   ]);
 
   return Boolean(
@@ -142,7 +154,8 @@ async function isEditorUploadPathReferenced(
       projectCategory ||
       blogCategory ||
       card ||
-      faqItem,
+      faqItem ||
+      pricingPlan,
   );
 }
 

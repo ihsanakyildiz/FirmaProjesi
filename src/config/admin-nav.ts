@@ -22,6 +22,8 @@ import {
   Tags,
   HeartPulse,
   Palette,
+  Users,
+  UserCog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -124,6 +126,11 @@ export const adminNavSections: AdminNavSection[] = [
     title: "Sistem",
     items: [
       {
+        label: "Üyeler",
+        href: "/admin/members",
+        icon: Users,
+      },
+      {
         label: "Ayarlar",
         icon: Settings,
         children: [
@@ -131,6 +138,11 @@ export const adminNavSections: AdminNavSection[] = [
             label: "Genel Ayarlar",
             href: "/admin/settings",
             icon: Settings,
+          },
+          {
+            label: "Üyelik",
+            href: "/admin/settings/membership",
+            icon: UserCog,
           },
           {
             label: "Performans",

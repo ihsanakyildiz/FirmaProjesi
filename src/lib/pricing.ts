@@ -1,14 +1,29 @@
 import { prisma } from "@/lib/prisma";
+import { getSettingsMap } from "@/lib/settings";
 
 export type PricingFeatureItem = {
   label: string;
   included: boolean;
 };
 
+export type PricingBillingInterval = "monthly" | "yearly";
+
+export type PricingBillingOptions = {
+  monthlyEnabled: boolean;
+  yearlyEnabled: boolean;
+  /** true when both intervals are on — show Aylık/Yıllık switch */
+  showToggle: boolean;
+  /** default interval when toggle is hidden or for initial state */
+  defaultInterval: PricingBillingInterval;
+};
+
 export type PricingPlanView = {
   id: string;
   name: string;
+  slug: string;
   blurb: string | null;
+  detailContent: string | null;
+  coverImage: string | null;
   priceMonthly: string;
   priceYearly: string;
   showPeriod: boolean;
@@ -16,9 +31,50 @@ export type PricingPlanView = {
   features: PricingFeatureItem[];
   ctaLabel: string;
   ctaHref: string;
+  purchasable: boolean;
+  stripePriceIdMonthly: string | null;
+  stripePriceIdYearly: string | null;
 };
 
 const MAX_FEATURES = 12;
+
+function mapPlan(plan: {
+  id: string;
+  name: string;
+  slug: string | null;
+  blurb: string | null;
+  detailContent: string | null;
+  coverImage: string | null;
+  priceMonthly: string;
+  priceYearly: string;
+  showPeriod: boolean;
+  featured: boolean;
+  features: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+  purchasable: boolean;
+  stripePriceIdMonthly: string | null;
+  stripePriceIdYearly: string | null;
+}): PricingPlanView {
+  return {
+    id: plan.id,
+    name: plan.name,
+    slug: plan.slug || plan.id,
+    blurb: plan.blurb,
+    detailContent: plan.detailContent,
+    coverImage: plan.coverImage,
+    priceMonthly: plan.priceMonthly,
+    priceYearly: plan.priceYearly,
+    showPeriod: plan.showPeriod,
+    featured: plan.featured,
+    features: parsePricingFeatures(plan.features),
+    ctaLabel: plan.ctaLabel,
+    ctaHref: plan.ctaHref,
+    purchasable: plan.purchasable,
+    stripePriceIdMonthly: plan.stripePriceIdMonthly,
+    stripePriceIdYearly: plan.stripePriceIdYearly,
+  };
+}
 
 export function parsePricingFeatures(
   raw: string | null | undefined,
@@ -63,22 +119,57 @@ export function serializePricingFeatures(
   return cleaned.length ? JSON.stringify(cleaned) : null;
 }
 
+export function resolvePricingBillingOptions(
+  settings: Record<string, string>,
+): PricingBillingOptions {
+  const monthlyEnabled = settings.pricing_billing_monthly_enabled !== "false";
+  const yearlyEnabled = settings.pricing_billing_yearly_enabled !== "false";
+
+  if (monthlyEnabled && yearlyEnabled) {
+    return {
+      monthlyEnabled: true,
+      yearlyEnabled: true,
+      showToggle: true,
+      defaultInterval: "monthly",
+    };
+  }
+  if (yearlyEnabled && !monthlyEnabled) {
+    return {
+      monthlyEnabled: false,
+      yearlyEnabled: true,
+      showToggle: false,
+      defaultInterval: "yearly",
+    };
+  }
+  return {
+    monthlyEnabled: monthlyEnabled || !yearlyEnabled,
+    yearlyEnabled: false,
+    showToggle: false,
+    defaultInterval: "monthly",
+  };
+}
+
+export async function getPricingBillingOptions(): Promise<PricingBillingOptions> {
+  const settings = await getSettingsMap().catch(
+    () => ({}) as Record<string, string>,
+  );
+  return resolvePricingBillingOptions(settings);
+}
+
 export async function getActivePricingPlans(): Promise<PricingPlanView[]> {
   const plans = await prisma.pricingPlan.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
-  return plans.map((plan) => ({
-    id: plan.id,
-    name: plan.name,
-    blurb: plan.blurb,
-    priceMonthly: plan.priceMonthly,
-    priceYearly: plan.priceYearly,
-    showPeriod: plan.showPeriod,
-    featured: plan.featured,
-    features: parsePricingFeatures(plan.features),
-    ctaLabel: plan.ctaLabel,
-    ctaHref: plan.ctaHref,
-  }));
+  return plans.map(mapPlan);
+}
+
+export async function getPricingPlanBySlug(
+  slug: string,
+): Promise<PricingPlanView | null> {
+  const plan = await prisma.pricingPlan.findFirst({
+    where: { slug, isActive: true },
+  });
+  return plan ? mapPlan(plan) : null;
 }

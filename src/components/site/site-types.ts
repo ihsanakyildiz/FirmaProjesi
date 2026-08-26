@@ -13,4 +13,7 @@ export type SiteHeaderProps = {
   ctaLabel?: string;
   ctaHref?: string;
   items: SiteNavItem[];
+  membershipEnabled?: boolean;
+  memberLoggedIn?: boolean;
+  memberName?: string | null;
 };
