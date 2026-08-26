@@ -21,16 +21,32 @@ echo "==> Git durumu"
 git status --short
 
 # uploads untracked kalır; pull'u engelleyen tipik şeyler: package-lock.json, public favicon vb.
-blocking="$(git status --porcelain | grep -v '^?? public/uploads/' | grep -v '^?? uploads/' || true)"
+# Bu yerel farkları geçici stash'e al (uploads dahil edilmez), pull sonrası stash silinir —
+# canlıda kaynak olarak Git'teki sürüm kullanılır; npm ci lock dosyasını yeniden kurar.
+blocking="$(git status --porcelain | grep -vE '^\?\? (public/)?uploads/' || true)"
+STASHED=0
 if [[ -n "$blocking" ]]; then
-  echo "Uyarı: pull'u engelleyebilecek yerel değişiklikler var:"
+  echo "Uyarı: pull'u engelleyebilecek yerel değişiklikler var — stash'leniyor:"
   echo "$blocking"
-  echo "Favicon vb. için: git stash push -m \"pre-deploy\" -- public/ \"package-lock.json\""
-  echo "uploads stash'e girmez ve yerinde kalır."
+  # Yalnızca tracked değişiklikler; uploads untracked olduğu için buraya girmez
+  if git stash push -m "pre-deploy $(date -u +%Y%m%dT%H%M%SZ)" -- package-lock.json public/ 2>/dev/null; then
+    STASHED=1
+    echo "Stash alındı (uploads dokunulmadı)."
+  else
+    # pathspec eşleşmezse tüm tracked değişikleri dene (uploads yine untracked kalır)
+    git stash push -m "pre-deploy $(date -u +%Y%m%dT%H%M%SZ)" -- .
+    STASHED=1
+    echo "Stash alındı (geniş pathspec)."
+  fi
 fi
 
 echo "==> git pull origin ${BRANCH}"
 git pull origin "$BRANCH"
+
+if [[ "$STASHED" -eq 1 ]]; then
+  echo "==> Geçici stash atılıyor (sunucu yerel kopyası yerine repo sürümü kullanılacak)"
+  git stash drop || true
+fi
 
 echo "==> npm ci"
 if [[ -f package-lock.json ]]; then
