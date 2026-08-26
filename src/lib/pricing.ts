@@ -24,6 +24,8 @@ export type PricingBillingOptions = {
 
 export const PROJECT_PRICE_PERIOD_LABEL = "tek seferlik";
 
+export type PricingPriceType = "FIXED" | "RANGE" | "QUOTE";
+
 export type PricingPlanView = {
   id: string;
   name: string;
@@ -31,6 +33,9 @@ export type PricingPlanView = {
   blurb: string | null;
   detailContent: string | null;
   coverImage: string | null;
+  priceType: PricingPriceType;
+  priceRangeMin: string | null;
+  priceRangeMax: string | null;
   priceMonthly: string;
   priceYearly: string;
   priceMonthlyDiscount: string | null;
@@ -46,16 +51,40 @@ export type PricingPlanView = {
 };
 
 export type ResolvedPlanPrice = {
-  /** Gösterilecek asıl fiyat (indirimli varsa o) */
+  kind: PricingPriceType;
+  /** Gösterilecek metin (sabit, aralık veya teklif) */
   price: string;
-  /** Üstü çizili liste fiyatı; indirim yoksa null */
+  /** Üstü çizili liste fiyatı; yalnızca FIXED + indirim */
   compareAt: string | null;
   discounted: boolean;
 };
 
+export function canPurchasePricingPlan(plan: Pick<
+  PricingPlanView,
+  | "priceType"
+  | "purchasable"
+  | "stripePriceIdMonthly"
+  | "stripePriceIdYearly"
+>): boolean {
+  if (plan.priceType !== "FIXED" || !plan.purchasable) return false;
+  return Boolean(plan.stripePriceIdMonthly || plan.stripePriceIdYearly);
+}
+
+function formatPriceRange(min: string | null, max: string | null): string {
+  const lo = min?.trim();
+  const hi = max?.trim();
+  if (lo && hi) return `${lo} – ${hi}`;
+  if (lo) return `${lo}'dan itibaren`;
+  if (hi) return `${hi}'a kadar`;
+  return "Teklif alın";
+}
+
 export function resolvePlanPrice(
   plan: Pick<
     PricingPlanView,
+    | "priceType"
+    | "priceRangeMin"
+    | "priceRangeMax"
     | "priceMonthly"
     | "priceYearly"
     | "priceMonthlyDiscount"
@@ -64,6 +93,24 @@ export function resolvePlanPrice(
   interval: PricingBillingInterval,
   mode: PricingDisplayMode = "subscription",
 ): ResolvedPlanPrice {
+  if (plan.priceType === "QUOTE") {
+    return {
+      kind: "QUOTE",
+      price: "Teklif alın",
+      compareAt: null,
+      discounted: false,
+    };
+  }
+
+  if (plan.priceType === "RANGE") {
+    return {
+      kind: "RANGE",
+      price: formatPriceRange(plan.priceRangeMin, plan.priceRangeMax),
+      compareAt: null,
+      discounted: false,
+    };
+  }
+
   const list =
     mode === "project"
       ? plan.priceMonthly
@@ -78,9 +125,9 @@ export function resolvePlanPrice(
         : plan.priceYearlyDiscount;
   const sale = saleRaw?.trim() || null;
   if (sale && sale !== list) {
-    return { price: sale, compareAt: list, discounted: true };
+    return { kind: "FIXED", price: sale, compareAt: list, discounted: true };
   }
-  return { price: list, compareAt: null, discounted: false };
+  return { kind: "FIXED", price: list, compareAt: null, discounted: false };
 }
 
 export function getPricingPeriodLabel(
@@ -101,6 +148,9 @@ function mapPlan(plan: {
   blurb: string | null;
   detailContent: string | null;
   coverImage: string | null;
+  priceType?: PricingPriceType | null;
+  priceRangeMin?: string | null;
+  priceRangeMax?: string | null;
   priceMonthly: string;
   priceYearly: string;
   priceMonthlyDiscount?: string | null;
@@ -114,6 +164,7 @@ function mapPlan(plan: {
   stripePriceIdMonthly: string | null;
   stripePriceIdYearly: string | null;
 }): PricingPlanView {
+  const priceType = plan.priceType ?? "FIXED";
   return {
     id: plan.id,
     name: plan.name,
@@ -121,6 +172,9 @@ function mapPlan(plan: {
     blurb: plan.blurb,
     detailContent: plan.detailContent,
     coverImage: plan.coverImage,
+    priceType,
+    priceRangeMin: plan.priceRangeMin?.trim() || null,
+    priceRangeMax: plan.priceRangeMax?.trim() || null,
     priceMonthly: plan.priceMonthly,
     priceYearly: plan.priceYearly,
     priceMonthlyDiscount: plan.priceMonthlyDiscount?.trim() || null,
@@ -130,9 +184,10 @@ function mapPlan(plan: {
     features: parsePricingFeatures(plan.features),
     ctaLabel: plan.ctaLabel,
     ctaHref: plan.ctaHref,
-    purchasable: plan.purchasable,
-    stripePriceIdMonthly: plan.stripePriceIdMonthly,
-    stripePriceIdYearly: plan.stripePriceIdYearly,
+    purchasable: priceType === "FIXED" ? plan.purchasable : false,
+    stripePriceIdMonthly:
+      priceType === "FIXED" ? plan.stripePriceIdMonthly : null,
+    stripePriceIdYearly: priceType === "FIXED" ? plan.stripePriceIdYearly : null,
   };
 }
 

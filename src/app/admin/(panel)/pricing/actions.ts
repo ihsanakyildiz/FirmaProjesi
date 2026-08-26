@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { PricingPriceType } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -81,6 +82,86 @@ function parseFeaturesFromForm(formData: FormData): PricingFeatureItem[] {
   return features.slice(0, 12);
 }
 
+function parsePriceType(raw: string): PricingPriceType {
+  if (raw === "RANGE") return PricingPriceType.RANGE;
+  if (raw === "QUOTE") return PricingPriceType.QUOTE;
+  return PricingPriceType.FIXED;
+}
+
+function validatePriceFields(
+  priceType: PricingPriceType,
+  data: {
+    priceMonthly: string;
+    priceRangeMin: string;
+    priceRangeMax: string;
+  },
+): Record<string, string> | null {
+  if (priceType === PricingPriceType.FIXED && !data.priceMonthly) {
+    return { priceMonthly: "Zorunlu alan" };
+  }
+  if (priceType === PricingPriceType.RANGE) {
+    const errors: Record<string, string> = {};
+    if (!data.priceRangeMin) errors.priceRangeMin = "Zorunlu alan";
+    if (!data.priceRangeMax) errors.priceRangeMax = "Zorunlu alan";
+    if (Object.keys(errors).length > 0) return errors;
+  }
+  return null;
+}
+
+function buildStoredPrices(
+  priceType: PricingPriceType,
+  data: {
+    priceMonthly: string;
+    priceMonthlyDiscount: string | null;
+    priceRangeMin: string;
+    priceRangeMax: string;
+    purchasable: boolean;
+    stripePriceIdMonthly: string | null;
+    stripePriceIdYearly: string | null;
+  },
+) {
+  if (priceType === PricingPriceType.FIXED) {
+    return {
+      priceMonthly: data.priceMonthly,
+      priceYearly: data.priceMonthly,
+      priceMonthlyDiscount: data.priceMonthlyDiscount,
+      priceYearlyDiscount: data.priceMonthlyDiscount,
+      priceRangeMin: null,
+      priceRangeMax: null,
+      purchasable: data.purchasable,
+      stripePriceIdMonthly: data.stripePriceIdMonthly,
+      stripePriceIdYearly: data.stripePriceIdYearly,
+    };
+  }
+
+  if (priceType === PricingPriceType.RANGE) {
+    const label = `${data.priceRangeMin} – ${data.priceRangeMax}`;
+    return {
+      priceMonthly: label,
+      priceYearly: label,
+      priceMonthlyDiscount: null,
+      priceYearlyDiscount: null,
+      priceRangeMin: data.priceRangeMin,
+      priceRangeMax: data.priceRangeMax,
+      purchasable: false,
+      stripePriceIdMonthly: null,
+      stripePriceIdYearly: null,
+    };
+  }
+
+  return {
+    priceMonthly: "Teklif alın",
+    priceYearly: "Teklif alın",
+    priceMonthlyDiscount: null,
+    priceYearlyDiscount: null,
+    priceRangeMin: null,
+    priceRangeMax: null,
+    purchasable: false,
+    stripePriceIdMonthly: null,
+    stripePriceIdYearly: null,
+  };
+}
+
 function parsePricingPayload(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const slugRaw = String(formData.get("slug") ?? "").trim();
@@ -96,6 +177,9 @@ function parsePricingPayload(formData: FormData) {
   const priceYearlyDiscount = String(
     formData.get("priceYearlyDiscount") ?? "",
   ).trim();
+  const priceType = parsePriceType(String(formData.get("priceType") ?? "FIXED"));
+  const priceRangeMin = String(formData.get("priceRangeMin") ?? "").trim();
+  const priceRangeMax = String(formData.get("priceRangeMax") ?? "").trim();
   const showPeriod =
     formData.get("showPeriod") === "on" ||
     formData.get("showPeriod") === "true";
@@ -127,6 +211,9 @@ function parsePricingPayload(formData: FormData) {
     priceYearly,
     priceMonthlyDiscount: priceMonthlyDiscount || null,
     priceYearlyDiscount: priceYearlyDiscount || null,
+    priceType,
+    priceRangeMin,
+    priceRangeMax,
     showPeriod,
     featured,
     ctaLabel,
@@ -188,15 +275,15 @@ export async function createPricingPlanAction(
         fieldErrors: { name: "Zorunlu alan" },
       };
     }
-    if (!data.priceMonthly) {
+    const priceErrors = validatePriceFields(data.priceType, data);
+    if (priceErrors) {
       return {
-        error: "Proje fiyatı zorunludur.",
-        fieldErrors: { priceMonthly: "Zorunlu alan" },
+        error: "Fiyat alanlarını kontrol edin.",
+        fieldErrors: priceErrors,
       };
     }
 
-    const projectPrice = data.priceMonthly;
-    const projectDiscount = data.priceMonthlyDiscount;
+    const stored = buildStoredPrices(data.priceType, data);
 
     let sortOrder = data.sortOrder;
     if (!String(formData.get("sortOrder") ?? "").trim()) {
@@ -220,18 +307,21 @@ export async function createPricingPlanAction(
         blurb: data.blurb || null,
         detailContent: data.detailContent || null,
         coverImage,
-        priceMonthly: projectPrice,
-        priceYearly: projectPrice,
-        priceMonthlyDiscount: projectDiscount,
-        priceYearlyDiscount: projectDiscount,
+        priceType: data.priceType,
+        priceMonthly: stored.priceMonthly,
+        priceYearly: stored.priceYearly,
+        priceMonthlyDiscount: stored.priceMonthlyDiscount,
+        priceYearlyDiscount: stored.priceYearlyDiscount,
+        priceRangeMin: stored.priceRangeMin,
+        priceRangeMax: stored.priceRangeMax,
         showPeriod: data.showPeriod,
         featured: data.featured,
         features: serializePricingFeatures(data.features),
         ctaLabel: data.ctaLabel,
         ctaHref: data.ctaHref,
-        purchasable: data.purchasable,
-        stripePriceIdMonthly: data.stripePriceIdMonthly,
-        stripePriceIdYearly: data.stripePriceIdYearly,
+        purchasable: stored.purchasable,
+        stripePriceIdMonthly: stored.stripePriceIdMonthly,
+        stripePriceIdYearly: stored.stripePriceIdYearly,
         isActive: data.isActive,
         sortOrder,
       },
@@ -267,15 +357,15 @@ export async function updatePricingPlanAction(
         fieldErrors: { name: "Zorunlu alan" },
       };
     }
-    if (!data.priceMonthly) {
+    const priceErrors = validatePriceFields(data.priceType, data);
+    if (priceErrors) {
       return {
-        error: "Proje fiyatı zorunludur.",
-        fieldErrors: { priceMonthly: "Zorunlu alan" },
+        error: "Fiyat alanlarını kontrol edin.",
+        fieldErrors: priceErrors,
       };
     }
 
-    const projectPrice = data.priceMonthly;
-    const projectDiscount = data.priceMonthlyDiscount;
+    const stored = buildStoredPrices(data.priceType, data);
 
     const slug = await uniquePricingSlug(
       data.slugRaw || data.name,
@@ -300,18 +390,21 @@ export async function updatePricingPlanAction(
         blurb: data.blurb || null,
         detailContent: data.detailContent || null,
         coverImage,
-        priceMonthly: projectPrice,
-        priceYearly: projectPrice,
-        priceMonthlyDiscount: projectDiscount,
-        priceYearlyDiscount: projectDiscount,
+        priceType: data.priceType,
+        priceMonthly: stored.priceMonthly,
+        priceYearly: stored.priceYearly,
+        priceMonthlyDiscount: stored.priceMonthlyDiscount,
+        priceYearlyDiscount: stored.priceYearlyDiscount,
+        priceRangeMin: stored.priceRangeMin,
+        priceRangeMax: stored.priceRangeMax,
         showPeriod: data.showPeriod,
         featured: data.featured,
         features: serializePricingFeatures(data.features),
         ctaLabel: data.ctaLabel,
         ctaHref: data.ctaHref,
-        purchasable: data.purchasable,
-        stripePriceIdMonthly: data.stripePriceIdMonthly,
-        stripePriceIdYearly: data.stripePriceIdYearly,
+        purchasable: stored.purchasable,
+        stripePriceIdMonthly: stored.stripePriceIdMonthly,
+        stripePriceIdYearly: stored.stripePriceIdYearly,
         isActive: data.isActive,
         sortOrder: data.sortOrder,
       },

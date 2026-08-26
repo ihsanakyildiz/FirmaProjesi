@@ -736,6 +736,13 @@ model FaqItem {
 }
 
 /// Fiyatlandırma paketleri — anasayfa / gelişmiş sayfa PRICING bölümü
+enum PricingPriceType {
+  FIXED
+  RANGE
+  QUOTE
+}
+
+/// Fiyatlandırma paketleri — anasayfa / gelişmiş sayfa PRICING bölümü
 model PricingPlan {
   id                    String                   @id @default(cuid())
   name                  String                   @db.VarChar(191)
@@ -745,6 +752,12 @@ model PricingPlan {
   detailContent         String?                  @db.LongText
   /// Detay sayfası kapak görseli
   coverImage            String?                  @db.VarChar(500)
+  /// Sabit fiyat gösterimi
+  priceType             PricingPriceType         @default(FIXED)
+  /// RANGE: alt sınır · QUOTE: kullanılmaz
+  priceRangeMin         String?                  @db.VarChar(80)
+  /// RANGE: üst sınır
+  priceRangeMax         String?                  @db.VarChar(80)
   priceMonthly          String                   @db.VarChar(80)
   priceYearly           String                   @db.VarChar(80)
   /// Doluysa sitede liste fiyatı üstü çizili, bu değer asıl fiyat olur

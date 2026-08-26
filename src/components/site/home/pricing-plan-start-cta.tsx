@@ -8,6 +8,7 @@ import type {
   PricingBillingInterval,
   PricingPlanView,
 } from "@/lib/pricing";
+import { canPurchasePricingPlan } from "@/lib/pricing";
 import { publicPricingPlanHref } from "@/lib/public-urls";
 
 export function PricingPlanStartCta({
@@ -29,7 +30,7 @@ export function PricingPlanStartCta({
 }) {
   const canPurchase =
     purchaseEnabled &&
-    plan.purchasable &&
+    canPurchasePricingPlan(plan) &&
     ((billing === "monthly" && plan.stripePriceIdMonthly) ||
       (billing === "yearly" && plan.stripePriceIdYearly));
 

@@ -20,9 +20,20 @@ export function PricingPlanPrice({
   const main =
     tone === "featured" || tone === "onDark" ? "text-white" : "text-site-fg";
   const priceSize =
-    size === "xl"
-      ? "text-4xl font-extrabold tracking-tight sm:text-5xl"
-      : "text-4xl font-extrabold tracking-tight";
+    resolved.kind === "QUOTE"
+      ? size === "xl"
+        ? "text-3xl font-extrabold tracking-tight sm:text-4xl"
+        : "text-3xl font-extrabold tracking-tight"
+      : resolved.kind === "RANGE"
+        ? size === "xl"
+          ? "text-3xl font-extrabold tracking-tight sm:text-4xl"
+          : "text-3xl font-extrabold tracking-tight"
+        : size === "xl"
+          ? "text-4xl font-extrabold tracking-tight sm:text-5xl"
+          : "text-4xl font-extrabold tracking-tight";
+
+  const showPeriodLabel =
+    showPeriod && resolved.kind !== "QUOTE" && periodLabel.trim().length > 0;
 
   return (
     <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
@@ -33,7 +44,7 @@ export function PricingPlanPrice({
       ) : null}
       <p className={`${priceSize} ${main}`}>
         {resolved.price}
-        {showPeriod ? (
+        {showPeriodLabel ? (
           <span className={`ml-1 text-sm font-medium ${muted}`}>
             / {periodLabel}
           </span>
@@ -48,6 +59,13 @@ export function PricingPlanPrice({
           }`}
         >
           İndirim
+        </span>
+      ) : null}
+      {resolved.kind === "RANGE" ? (
+        <span
+          className={`mb-1 text-xs ${muted}`}
+        >
+          tipik proje aralığı
         </span>
       ) : null}
     </div>

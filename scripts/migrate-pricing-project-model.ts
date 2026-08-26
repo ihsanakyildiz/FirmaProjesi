@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, PricingPriceType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const DELIVERY_NOTE = `<p><strong>Teslimat:</strong> Proje, seçtiğiniz domain ve hostinge (kendi sunucunuz dahil) kurulur; kaynak kodları size teslim edilir. Sosyal medya yönetimi, dijital pazarlama ve e-ticaret danışmanlığı isteğe bağlı devam hizmeti olarak ayrıca sunulabilir.</p>`;
+const DELIVERY_NOTE = `<p><strong>Teslimat:</strong> Proje, seçtiğiniz domain ve hostinge (kendi sunucunuz dahil) kurulur; kaynak kodları size teslim edilir. Sosyal medya yönetimi, dijital pazarlama ve e-ticaret danışmanlığı isteğe bağlı devam hizmeti olarak ayrıca sunulabilir.</p><p><em>Fiyatlar tipik proje kapsamı içindir; entegrasyon ve özel modüllere göre net teklif verilir.</em></p>`;
 
 const OPTIONAL_FEATURES = [
   { label: "Sosyal medya yönetimi (isteğe bağlı devam hizmeti)", included: false },
@@ -10,19 +10,31 @@ const OPTIONAL_FEATURES = [
   { label: "E-ticaret danışmanlığı (isteğe bağlı)", included: false },
 ];
 
-const plans = [
+type PlanUpdate = {
+  slug: string;
+  priceType: PricingPriceType;
+  priceMonthly?: string;
+  priceRangeMin?: string;
+  priceRangeMax?: string;
+  blurb: string;
+  detailContent: string;
+  featured?: boolean;
+  ctaLabel?: string;
+  features: { label: string; included: boolean }[];
+};
+
+const plans: PlanUpdate[] = [
   {
     slug: "baslangic",
-    blurb:
-      "Kurumsal web sitesi — domain & hostinginize kurulum, kaynak kod teslimi",
-    priceMonthly: "₺4.900",
-    detailContent: `<p>Başlangıç paketi; dijitalde görünür olmak isteyen küçük işletmeler için tek seferlik proje bedelidir. Web siteniz hazırlanır, sizin belirlediğiniz domain ve hostinge kurulur, kaynak kodları teslim edilir.</p>
+    priceType: PricingPriceType.RANGE,
+    priceRangeMin: "₺15.000",
+    priceRangeMax: "₺25.000",
+    blurb: "Kurumsal web sitesi — domain & hostinginize kurulum, kaynak kod teslimi",
+    detailContent: `<p>Başlangıç paketi; dijitalde görünür olmak isteyen küçük işletmeler için tek seferlik proje bedelidir.</p>
 <h3>Proje kapsamı</h3>
 <ul>
 <li>Mobil uyumlu tanıtım / landing sayfası</li>
 <li>Temel SEO altyapısı</li>
-<li>İletişim formu</li>
-<li>Facebook &amp; Instagram hesap kurulumu</li>
 <li>Domain &amp; hostinge kurulum</li>
 <li>Kaynak kod teslimi</li>
 </ul>
@@ -33,30 +45,21 @@ ${DELIVERY_NOTE}`,
       { label: "Temel SEO altyapısı", included: true },
       { label: "Domain & hostinge kurulum", included: true },
       { label: "Kaynak kod teslimi", included: true },
-      { label: "Facebook & Instagram hesap kurulumu", included: true },
       ...OPTIONAL_FEATURES,
     ],
   },
   {
     slug: "profesyonel",
-    blurb:
-      "Çok sayfalı kurumsal site + admin panel — kurulum ve kaynak kod dahil",
-    priceMonthly: "₺9.900",
-    detailContent: `<p>Profesyonel paket; yönetilebilir kurumsal web sitesi ihtiyacı olan markalar için tek seferlik proje bedelidir. Admin paneli ile içeriklerinizi kendiniz güncelleyebilirsiniz.</p>
-<h3>Proje kapsamı</h3>
-<ul>
-<li>Çok sayfalı kurumsal web yapısı</li>
-<li>Admin paneli</li>
-<li>Blog / proje arşivi altyapısı</li>
-<li>Domain &amp; hostinge kurulum</li>
-<li>Kaynak kod teslimi</li>
-</ul>
+    priceType: PricingPriceType.RANGE,
+    priceRangeMin: "₺35.000",
+    priceRangeMax: "₺55.000",
+    blurb: "Çok sayfalı kurumsal site + admin panel — kurulum ve kaynak kod dahil",
+    detailContent: `<p>Profesyonel paket; yönetilebilir kurumsal web sitesi ihtiyacı olan markalar için tek seferlik proje bedelidir.</p>
 ${DELIVERY_NOTE}`,
     features: [
       { label: "Çok sayfalı kurumsal web sitesi", included: true },
       { label: "Admin paneli", included: true },
       { label: "Blog / proje arşivi", included: true },
-      { label: "Mobil uyumlu modern tasarım", included: true },
       { label: "Domain & hostinge kurulum", included: true },
       { label: "Kaynak kod teslimi", included: true },
       ...OPTIONAL_FEATURES,
@@ -64,25 +67,17 @@ ${DELIVERY_NOTE}`,
   },
   {
     slug: "buyume",
-    blurb:
-      "Gelişmiş web + dönüşüm odaklı yapı — kurulum, kaynak kod ve reklam altyapısı",
-    priceMonthly: "₺14.900",
+    priceType: PricingPriceType.RANGE,
+    priceRangeMin: "₺55.000",
+    priceRangeMax: "₺85.000",
     featured: true,
-    detailContent: `<p>Büyüme paketi; web sitesini büyüme aracına dönüştürmek isteyen markalar için tek seferlik proje bedelidir. Dönüşüm odaklı sayfa yapısı ve reklam entegrasyonlarına hazır altyapı sunar.</p>
-<h3>Proje kapsamı</h3>
-<ul>
-<li>Gelişmiş kurumsal web + admin paneli</li>
-<li>Landing / kampanya sayfaları</li>
-<li>Meta Pixel &amp; Google Ads dönüşüm altyapısı</li>
-<li>Domain &amp; hostinge kurulum</li>
-<li>Kaynak kod teslimi</li>
-</ul>
+    blurb: "Gelişmiş web + dönüşüm odaklı yapı — kurulum ve kaynak kod dahil",
+    detailContent: `<p>Büyüme paketi; web sitesini büyüme aracına dönüştürmek isteyen markalar için tek seferlik proje bedelidir.</p>
 ${DELIVERY_NOTE}`,
     features: [
       { label: "Gelişmiş kurumsal web + admin paneli", included: true },
       { label: "Landing / kampanya sayfaları", included: true },
       { label: "Meta Pixel & Google Ads altyapısı", included: true },
-      { label: "Temel SEO & hız optimizasyonu", included: true },
       { label: "Domain & hostinge kurulum", included: true },
       { label: "Kaynak kod teslimi", included: true },
       ...OPTIONAL_FEATURES,
@@ -90,43 +85,25 @@ ${DELIVERY_NOTE}`,
   },
   {
     slug: "kurumsal",
-    blurb:
-      "Özel yazılım ve entegrasyonlar — kurulum, kaynak kod, öncelikli destek",
-    priceMonthly: "₺24.900",
+    priceType: PricingPriceType.QUOTE,
     ctaLabel: "Teklif Alın",
-    detailContent: `<p>Kurumsal paket; özel ihtiyaçları olan firmalar için tek seferlik proje bedelidir. Kapsam keşif görüşmesi sonrası netleşir; listelenen tutar tipik bir başlangıç bandıdır.</p>
-<h3>Proje kapsamı</h3>
-<ul>
-<li>Özel web uygulaması veya gelişmiş kurumsal site</li>
-<li>Üçüncü parti entegrasyonlar (CRM, ERP vb.)</li>
-<li>Domain &amp; hostinge kurulum</li>
-<li>Kaynak kod teslimi</li>
-<li>Proje sonrası öncelikli destek dönemi</li>
-</ul>
+    blurb: "Özel yazılım ve entegrasyonlar — keşif sonrası net teklif",
+    detailContent: `<p>Kurumsal paket; özel ihtiyaçları olan firmalar içindir. Kapsam keşif görüşmesi sonrası netleşir.</p>
 ${DELIVERY_NOTE}`,
     features: [
       { label: "Özel yazılım / gelişmiş web uygulaması", included: true },
       { label: "Üçüncü parti entegrasyonlar", included: true },
-      { label: "Admin paneli & rol yönetimi", included: true },
       { label: "Domain & hostinge kurulum", included: true },
       { label: "Kaynak kod teslimi", included: true },
-      { label: "Proje sonrası öncelikli destek", included: true },
       ...OPTIONAL_FEATURES,
     ],
   },
   {
     slug: "e-ticaret",
-    blurb:
-      "Satışa hazır online mağaza — kurulum, kaynak kod ve sipariş paneli",
-    priceMonthly: "₺34.900",
-    detailContent: `<p>E-Ticaret paketi; ürünlerini online satmak isteyen markalar için tek seferlik proje bedelidir. Mağaza kurulur, sizin domain ve hostinginize yüklenir, kaynak kodları teslim edilir.</p>
-<h3>Proje kapsamı</h3>
-<ul>
-<li>Ürün kataloğu, sepet ve güvenli ödeme</li>
-<li>Sipariş yönetim paneli</li>
-<li>Domain &amp; hostinge kurulum</li>
-<li>Kaynak kod teslimi</li>
-</ul>
+    priceType: PricingPriceType.QUOTE,
+    ctaLabel: "Teklif Alın",
+    blurb: "Satışa hazır online mağaza — keşif sonrası net proje teklifi",
+    detailContent: `<p>E-Ticaret paketi; ürünlerini online satmak isteyen markalar içindir. Kapsam keşif sonrası netleşir.</p>
 ${DELIVERY_NOTE}`,
     features: [
       { label: "Mobil uyumlu e-ticaret vitrini", included: true },
@@ -135,38 +112,26 @@ ${DELIVERY_NOTE}`,
       { label: "Domain & hostinge kurulum", included: true },
       { label: "Kaynak kod teslimi", included: true },
       { label: "E-ticaret danışmanlığı (isteğe bağlı devam hizmeti)", included: false },
-      { label: "Sosyal medya yönetimi (isteğe bağlı)", included: false },
-      { label: "Dijital pazarlama / reklam (isteğe bağlı)", included: false },
+      ...OPTIONAL_FEATURES.slice(1),
     ],
   },
   {
     slug: "saas-platform",
-    blurb:
-      "Çok dilli, abonelikli özel yazılım — SAAS projeleri için tek seferlik proje",
-    priceMonthly: "₺89.900",
+    priceType: PricingPriceType.QUOTE,
     ctaLabel: "Teklif Alın",
-    detailContent: `<p>SAAS Platform paketi; kendi yazılım ürününü piyasaya sürmek isteyen firmalar için tek seferlik proje bedelidir. Çok dilli arayüz, üyelik, abonelik ödemeleri ve admin panelleri uçtan uca geliştirilir.</p>
-<h3>Proje kapsamı</h3>
-<ul>
-<li>Çok dilli (i18n) arayüz</li>
-<li>Üyelik, rol ve abonelik altyapısı</li>
-<li>Müşteri + admin panelleri</li>
-<li>Domain &amp; hostinge kurulum</li>
-<li>Kaynak kod teslimi</li>
-</ul>
+    blurb: "Çok dilli, abonelikli özel yazılım — SAAS projeleri için keşif teklifi",
+    detailContent: `<p>SAAS Platform paketi; kendi yazılım ürününü piyasaya sürmek isteyen firmalar içindir. Kapsam keşif sonrası netleşir.</p>
 ${DELIVERY_NOTE}`,
     features: [
       { label: "Çok dilli (i18n) arayüz", included: true },
       { label: "Üyelik & abonelik altyapısı", included: true },
       { label: "Müşteri + admin panelleri", included: true },
-      { label: "API & entegrasyon mimarisi", included: true },
       { label: "Domain & hostinge kurulum", included: true },
       { label: "Kaynak kod teslimi", included: true },
-      { label: "Sosyal medya yönetimi (isteğe bağlı)", included: false },
-      { label: "Dijital pazarlama (isteğe bağlı)", included: false },
+      ...OPTIONAL_FEATURES,
     ],
   },
-] as const;
+];
 
 async function setProjectPricingMode() {
   for (const [key, label] of [
@@ -186,7 +151,33 @@ async function setProjectPricingMode() {
       },
     });
   }
-  console.log("Pricing mode: tek seferlik proje (aylık/yıllık kapalı)");
+}
+
+function storedPrices(plan: PlanUpdate) {
+  if (plan.priceType === PricingPriceType.FIXED) {
+    const price = plan.priceMonthly ?? "—";
+    return {
+      priceMonthly: price,
+      priceYearly: price,
+      priceRangeMin: null,
+      priceRangeMax: null,
+    };
+  }
+  if (plan.priceType === PricingPriceType.RANGE) {
+    const label = `${plan.priceRangeMin} – ${plan.priceRangeMax}`;
+    return {
+      priceMonthly: label,
+      priceYearly: label,
+      priceRangeMin: plan.priceRangeMin ?? null,
+      priceRangeMax: plan.priceRangeMax ?? null,
+    };
+  }
+  return {
+    priceMonthly: "Teklif alın",
+    priceYearly: "Teklif alın",
+    priceRangeMin: null,
+    priceRangeMax: null,
+  };
 }
 
 async function main() {
@@ -201,24 +192,27 @@ async function main() {
       continue;
     }
 
-    const price = plan.priceMonthly;
+    const prices = storedPrices(plan);
     await prisma.pricingPlan.update({
       where: { slug: plan.slug },
       data: {
+        priceType: plan.priceType,
         blurb: plan.blurb,
         detailContent: plan.detailContent,
-        priceMonthly: price,
-        priceYearly: price,
+        ...prices,
         priceMonthlyDiscount: null,
         priceYearlyDiscount: null,
-        showPeriod: true,
-        featured: "featured" in plan ? plan.featured : existing.featured,
+        showPeriod: plan.priceType !== PricingPriceType.QUOTE,
+        featured: plan.featured ?? existing.featured,
         features: JSON.stringify(plan.features),
-        ctaLabel: "ctaLabel" in plan ? plan.ctaLabel : existing.ctaLabel,
+        ctaLabel: plan.ctaLabel ?? existing.ctaLabel,
+        ctaHref: "/iletisim",
         purchasable: false,
+        stripePriceIdMonthly: null,
+        stripePriceIdYearly: null,
       },
     });
-    console.log(`Updated: ${plan.slug} → ${price} (tek seferlik)`);
+    console.log(`Updated: ${plan.slug} [${plan.priceType}]`);
   }
 }
 

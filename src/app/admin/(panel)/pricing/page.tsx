@@ -46,6 +46,9 @@ pm2 restart ihsanakyildiz`}
         blurb: true,
         priceMonthly: true,
         priceYearly: true,
+        priceType: true,
+        priceRangeMin: true,
+        priceRangeMax: true,
         priceMonthlyDiscount: true,
         priceYearlyDiscount: true,
         featured: true,
@@ -92,6 +95,9 @@ pm2 restart ihsanakyildiz`}
         plans={plans.map((plan) => ({
           ...plan,
           slug: plan.slug ?? plan.id,
+          priceType: plan.priceType ?? "FIXED",
+          priceRangeMin: plan.priceRangeMin ?? null,
+          priceRangeMax: plan.priceRangeMax ?? null,
           priceMonthlyDiscount: plan.priceMonthlyDiscount ?? null,
           priceYearlyDiscount: plan.priceYearlyDiscount ?? null,
         }))}

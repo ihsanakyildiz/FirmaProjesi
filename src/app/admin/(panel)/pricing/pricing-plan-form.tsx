@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ImageIcon, Loader2, Plus, Save, Trash2, Upload } from "lucide-react";
 import { AdminSwitch } from "@/components/admin/admin-switch";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import type { PricingFeatureItem } from "@/lib/pricing";
+import type { PricingFeatureItem, PricingPriceType } from "@/lib/pricing";
 import { slugify } from "@/lib/slug";
 import {
   createPricingPlanAction,
@@ -21,6 +21,9 @@ type PricingPlanFormInitial = {
   blurb?: string | null;
   detailContent?: string | null;
   coverImage?: string | null;
+  priceType?: PricingPriceType;
+  priceRangeMin?: string | null;
+  priceRangeMax?: string | null;
   priceMonthly?: string;
   priceYearly?: string;
   priceMonthlyDiscount?: string | null;
@@ -71,6 +74,11 @@ export function PricingPlanForm({
       ? initial.features
       : [emptyFeature()],
   );
+  const [priceType, setPriceType] = useState<PricingPriceType>(
+    initial?.priceType ?? "FIXED",
+  );
+
+  const stripeAllowed = priceType === "FIXED";
 
   useEffect(() => {
     if (state.success) {
@@ -89,7 +97,7 @@ export function PricingPlanForm({
   };
 
   return (
-    <form action={formAction} className="space-y-5" encType="multipart/form-data">
+    <form action={formAction} className="space-y-5">
       {state.error ? (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {state.error}
@@ -158,41 +166,109 @@ export function PricingPlanForm({
               className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
             />
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Proje fiyatı (tek seferlik)
+              Fiyat gösterimi
             </label>
-            <input
-              name="priceMonthly"
-              defaultValue={initial?.priceMonthly ?? ""}
-              placeholder="₺14.900 veya Teklif alın"
-              required
+            <select
+              name="priceType"
+              value={priceType}
+              onChange={(event) =>
+                setPriceType(event.target.value as PricingPriceType)
+              }
               className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-            />
-            {state.fieldErrors?.priceMonthly ? (
-              <p className="mt-1 text-xs text-rose-600">
-                {state.fieldErrors.priceMonthly}
-              </p>
-            ) : null}
+            >
+              <option value="FIXED">Sabit fiyat (tek seferlik)</option>
+              <option value="RANGE">Fiyat aralığı</option>
+              <option value="QUOTE">Teklif alın (fiyat gösterme)</option>
+            </select>
             <p className="mt-1 text-xs text-slate-500">
-              Web / yazılım projesinin tek seferlik bedeli. Kurulum ve kaynak kod
-              teslimi bu fiyata dahildir.
+              Aralık ve teklif modunda Stripe ile doğrudan ödeme kapalıdır.
             </p>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              İndirimli proje fiyatı
-            </label>
-            <input
-              name="priceMonthlyDiscount"
-              defaultValue={initial?.priceMonthlyDiscount ?? ""}
-              placeholder="Boş bırakılırsa indirim yok"
-              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Doluysa sitede liste fiyatı üstü çizili, bu değer gösterilir.
-            </p>
-          </div>
+
+          {priceType === "FIXED" ? (
+            <>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Proje fiyatı (tek seferlik)
+                </label>
+                <input
+                  name="priceMonthly"
+                  defaultValue={initial?.priceMonthly ?? ""}
+                  placeholder="₺19.900"
+                  required
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+                />
+                {state.fieldErrors?.priceMonthly ? (
+                  <p className="mt-1 text-xs text-rose-600">
+                    {state.fieldErrors.priceMonthly}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  İndirimli proje fiyatı
+                </label>
+                <input
+                  name="priceMonthlyDiscount"
+                  defaultValue={initial?.priceMonthlyDiscount ?? ""}
+                  placeholder="Boş bırakılırsa indirim yok"
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+                />
+              </div>
+            </>
+          ) : null}
+
+          {priceType === "RANGE" ? (
+            <>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Aralık — alt sınır
+                </label>
+                <input
+                  name="priceRangeMin"
+                  defaultValue={initial?.priceRangeMin ?? ""}
+                  placeholder="₺15.000"
+                  required
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+                />
+                {state.fieldErrors?.priceRangeMin ? (
+                  <p className="mt-1 text-xs text-rose-600">
+                    {state.fieldErrors.priceRangeMin}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Aralık — üst sınır
+                </label>
+                <input
+                  name="priceRangeMax"
+                  defaultValue={initial?.priceRangeMax ?? ""}
+                  placeholder="₺25.000"
+                  required
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
+                />
+                {state.fieldErrors?.priceRangeMax ? (
+                  <p className="mt-1 text-xs text-rose-600">
+                    {state.fieldErrors.priceRangeMax}
+                  </p>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+
+          {priceType === "QUOTE" ? (
+            <div className="sm:col-span-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Sitede fiyat yerine &quot;Teklif alın&quot; gösterilir. CTA metni
+              ve linki ile iletişime yönlendirin.
+            </div>
+          ) : null}
+
+          {priceType !== "FIXED" ? (
+            <input type="hidden" name="priceMonthly" value="" />
+          ) : null}
           <input type="hidden" name="priceYearlyDiscount" value="" />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -214,28 +290,32 @@ export function PricingPlanForm({
               className="w-full rounded-md border border-[#e9ebec] px-3 py-2 text-sm outline-none focus:border-[#405189]"
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Stripe Price ID (aylık)
-            </label>
-            <input
-              name="stripePriceIdMonthly"
-              defaultValue={initial?.stripePriceIdMonthly ?? ""}
-              placeholder="price_..."
-              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 font-mono text-sm outline-none focus:border-[#405189]"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Stripe Price ID (yıllık)
-            </label>
-            <input
-              name="stripePriceIdYearly"
-              defaultValue={initial?.stripePriceIdYearly ?? ""}
-              placeholder="price_..."
-              className="w-full rounded-md border border-[#e9ebec] px-3 py-2 font-mono text-sm outline-none focus:border-[#405189]"
-            />
-          </div>
+          {stripeAllowed ? (
+            <>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Stripe Price ID (tek seferlik / aylık)
+                </label>
+                <input
+                  name="stripePriceIdMonthly"
+                  defaultValue={initial?.stripePriceIdMonthly ?? ""}
+                  placeholder="price_..."
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 font-mono text-sm outline-none focus:border-[#405189]"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Stripe Price ID (yıllık — abonelik modunda)
+                </label>
+                <input
+                  name="stripePriceIdYearly"
+                  defaultValue={initial?.stripePriceIdYearly ?? ""}
+                  placeholder="price_..."
+                  className="w-full rounded-md border border-[#e9ebec] px-3 py-2 font-mono text-sm outline-none focus:border-[#405189]"
+                />
+              </div>
+            </>
+          ) : null}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
               Sıra
@@ -254,15 +334,19 @@ export function PricingPlanForm({
           <AdminSwitch
             name="showPeriod"
             label="Tek seferlik etiketi göster"
-            description="Açıksa fiyat yanında “tek seferlik” yazar."
+            description="Sabit ve aralık fiyatında “tek seferlik” yazar."
             defaultChecked={initial?.showPeriod !== false}
           />
-          <AdminSwitch
-            name="purchasable"
-            label="Stripe ile satın alınabilir"
-            description="Üyelik + Stripe açıkken CTA Checkout’a gider."
-            defaultChecked={initial?.purchasable === true}
-          />
+          {stripeAllowed ? (
+            <AdminSwitch
+              name="purchasable"
+              label="Stripe ile satın alınabilir"
+              description="Yalnızca sabit fiyatlı paketlerde geçerlidir."
+              defaultChecked={initial?.purchasable === true}
+            />
+          ) : (
+            <input type="hidden" name="purchasable" value="off" />
+          )}
           <AdminSwitch
             name="featured"
             label="Öne çıkan paket"

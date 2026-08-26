@@ -56,11 +56,19 @@ export async function POST(request: Request) {
     }
 
     const plan = await prisma.pricingPlan.findFirst({
-      where: { id: pricingPlanId, isActive: true, purchasable: true },
+      where: {
+        id: pricingPlanId,
+        isActive: true,
+        purchasable: true,
+        priceType: "FIXED",
+      },
     });
 
     if (!plan) {
-      return NextResponse.json({ error: "Paket bulunamadı." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Bu paket için online ödeme kullanılamaz." },
+        { status: 403 },
+      );
     }
 
     const priceId =

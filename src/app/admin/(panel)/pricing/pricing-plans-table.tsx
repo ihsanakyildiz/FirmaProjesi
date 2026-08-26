@@ -18,12 +18,17 @@ import {
   deletePricingPlanAction,
   togglePricingPlanActiveAction,
 } from "./actions";
+import type { PricingPriceType } from "@/lib/pricing";
+import { resolvePlanPrice } from "@/lib/pricing";
 
 export type PricingPlanRow = {
   id: string;
   name: string;
   slug: string;
   blurb: string | null;
+  priceType: PricingPriceType;
+  priceRangeMin: string | null;
+  priceRangeMax: string | null;
   priceMonthly: string;
   priceYearly: string;
   priceMonthlyDiscount: string | null;
@@ -32,6 +37,16 @@ export type PricingPlanRow = {
   isActive: boolean;
   sortOrder: number;
 };
+
+const PRICE_TYPE_LABEL: Record<PricingPriceType, string> = {
+  FIXED: "Sabit",
+  RANGE: "Aralık",
+  QUOTE: "Teklif",
+};
+
+function formatAdminPrice(plan: PricingPlanRow) {
+  return resolvePlanPrice(plan, "monthly", "project").price;
+}
 
 function DeletePlanModal({
   plan,
@@ -190,7 +205,8 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
           <thead className="bg-[#f3f6f9] text-xs tracking-wide text-slate-500 uppercase">
             <tr>
               <th className="px-4 py-3 font-semibold">Paket</th>
-              <th className="px-4 py-3 font-semibold">Proje fiyatı</th>
+              <th className="px-4 py-3 font-semibold">Fiyat tipi</th>
+              <th className="px-4 py-3 font-semibold">Gösterim</th>
               <th className="px-4 py-3 font-semibold">Sıra</th>
               <th className="px-4 py-3 font-semibold">Durum</th>
               <th className="px-4 py-3 font-semibold">İşlemler</th>
@@ -200,7 +216,7 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-10 text-center text-sm text-slate-500"
                 >
                   Paket bulunamadı.
@@ -233,8 +249,11 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
                       /paket/{plan.slug}
                     </p>
                   </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {PRICE_TYPE_LABEL[plan.priceType]}
+                  </td>
                   <td className="px-4 py-3 text-slate-700">
-                    {plan.priceMonthlyDiscount ? (
+                    {plan.priceType === "FIXED" && plan.priceMonthlyDiscount ? (
                       <span className="inline-flex flex-col gap-0.5">
                         <span className="text-xs text-slate-400 line-through">
                           {plan.priceMonthly}
@@ -244,7 +263,7 @@ export function PricingPlansTable({ plans }: { plans: PricingPlanRow[] }) {
                         </span>
                       </span>
                     ) : (
-                      plan.priceMonthly
+                      formatAdminPrice(plan)
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{plan.sortOrder}</td>

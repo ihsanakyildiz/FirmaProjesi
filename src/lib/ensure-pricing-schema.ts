@@ -12,6 +12,9 @@ const REQUIRED_COLUMNS = [
   "stripePriceIdYearly",
   "priceMonthlyDiscount",
   "priceYearlyDiscount",
+  "priceType",
+  "priceRangeMin",
+  "priceRangeMax",
 ] as const;
 
 let ensurePromise: Promise<void> | null = null;
@@ -109,6 +112,21 @@ async function ensurePricingPlansTableOnce() {
     columns,
     "priceYearlyDiscount",
     "`priceYearlyDiscount` VARCHAR(80) NULL",
+  );
+  await addColumnIfMissing(
+    columns,
+    "priceType",
+    "`priceType` ENUM('FIXED','RANGE','QUOTE') NOT NULL DEFAULT 'FIXED'",
+  );
+  await addColumnIfMissing(
+    columns,
+    "priceRangeMin",
+    "`priceRangeMin` VARCHAR(80) NULL",
+  );
+  await addColumnIfMissing(
+    columns,
+    "priceRangeMax",
+    "`priceRangeMax` VARCHAR(80) NULL",
   );
 
   const plans = await prisma.$queryRaw<
